@@ -29,3 +29,11 @@ export type GenerationJob = {
   createdAt: string;
   results: GenerationResult[];
 };
+
+export const generationQueueMessageSchema = z.object({
+  version: z.literal(1),
+  jobId: z.string().uuid(),
+  requestedAt: z.string().datetime(),
+});
+
+export type GenerationQueueMessage = z.infer<typeof generationQueueMessageSchema>;

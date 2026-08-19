@@ -11,6 +11,7 @@
 ## 技术
 
 - [技术架构概览](architecture/overview.md)
+- [后端技术架构](architecture/backend.md)
 - [原始 PRD Word 文档](reference/AI_Icon_Generator_PRD_v0.1.docx)
 - [原始技术架构 Word 文档](reference/AI_Icon_Generator_Technical_Architecture_and_Overseas_Deployment_v1.0.docx)
 

@@ -15,6 +15,7 @@
     "build": "npm run build --workspace=@icongen/web",
     "start": "npm run start --workspace=@icongen/web",
     "lint": "npm run lint --workspace=@icongen/web",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   }
 }
