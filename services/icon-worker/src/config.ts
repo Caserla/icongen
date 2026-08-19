@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 const configSchema = z.object({
-  OPENAI_API_KEY: z.string().min(1),
-  OPENAI_IMAGE_MODEL: z.string().min(1).default("gpt-image-2"),
+  IMAGE_PROVIDER: z.string().min(1).default("openai"),
+  IMAGE_MODEL: z.string().min(1).default("gpt-image-2"),
+  IMAGE_PROVIDER_API_KEY: z.string().min(1),
+  ICON_SKILL: z.string().min(1).default("default-icon"),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   SUPABASE_ICON_BUCKET: z.string().min(1).default("generated-icons"),

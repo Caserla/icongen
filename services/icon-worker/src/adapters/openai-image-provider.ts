@@ -2,9 +2,10 @@ import type { ImageProvider } from "@icongen/backend-core";
 import OpenAI from "openai";
 
 export class OpenAIImageProvider implements ImageProvider {
+  readonly name = "openai";
   private readonly client: OpenAI;
 
-  constructor(apiKey: string, private readonly model: string) {
+  constructor(apiKey: string, readonly model: string) {
     this.client = new OpenAI({ apiKey });
   }
 

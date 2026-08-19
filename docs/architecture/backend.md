@@ -33,6 +33,8 @@ flowchart LR
 - `infra/supabase`：数据库表、RLS、私有文件桶与事务函数。
 - `infra/aws`：SQS、DLQ、Lambda 和 CloudWatch 告警。
 
+模型和 Skill 都通过 Worker 注册表选择。`IMAGE_PROVIDER`、`IMAGE_MODEL` 和 `ICON_SKILL` 是部署配置；新增供应商只实现 `ImageProvider`，新增 Skill 只实现 `PromptCompiler`，不会影响任务、扣点、队列和存储代码。任务及每个结果都会记录实际使用的 Provider、模型、Skill 名称与版本。
+
 ## 4. 核心流程
 
 ### 创建生成任务
@@ -89,4 +91,3 @@ Worker 变量见 `services/icon-worker/.env.example`。Web BFF 需要 Supabase U
 ## 9. 当前实现边界
 
 本次完成后端基础架构、领域用例、Worker、数据库迁移与云模板。Web 侧任务 API、Stripe Checkout/Webhook 的具体 Route Handler 仍需在对应业务模块开发时接入这些事务函数与队列。
-

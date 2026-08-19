@@ -21,13 +21,17 @@ export type StoredAsset = {
 
 export interface GenerationRepository {
   getJob(jobId: string): Promise<GenerationJobRecord | null>;
-  markProcessing(jobId: string): Promise<void>;
+  markProcessing(jobId: string, execution: GenerationExecution): Promise<void>;
   saveResult(input: {
     jobId: string;
     slot: number;
     bucket: string;
     objectPath: string;
     prompt: string;
+    skillName: string;
+    skillVersion: string;
+    imageProvider: string;
+    imageModel: string;
     providerRequestId?: string;
   }): Promise<void>;
   markCompleted(jobId: string): Promise<void>;
@@ -35,6 +39,8 @@ export interface GenerationRepository {
 }
 
 export interface ImageProvider {
+  readonly name: string;
+  readonly model: string;
   generate(input: { prompt: string }): Promise<GeneratedImage>;
 }
 
@@ -43,11 +49,20 @@ export interface AssetStore {
 }
 
 export interface PromptCompiler {
+  readonly name: string;
+  readonly version: string;
   compile(input: { description: string; stylePreset?: string; slot: 1 | 2 | 3 | 4 }): {
     prompt: string;
     skillVersion: string;
   };
 }
+
+export type GenerationExecution = {
+  skillName: string;
+  skillVersion: string;
+  imageProvider: string;
+  imageModel: string;
+};
 
 export interface AppLogger {
   info(message: string, context?: Record<string, unknown>): void;

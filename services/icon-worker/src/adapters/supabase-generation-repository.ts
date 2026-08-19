@@ -1,4 +1,4 @@
-import type { GenerationJobRecord, GenerationRepository } from "@icongen/backend-core";
+import type { GenerationExecution, GenerationJobRecord, GenerationRepository } from "@icongen/backend-core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type JobRow = {
@@ -29,8 +29,14 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     };
   }
 
-  async markProcessing(jobId: string) {
-    const { error } = await this.client.rpc("claim_generation_job", { p_job_id: jobId });
+  async markProcessing(jobId: string, execution: GenerationExecution) {
+    const { error } = await this.client.rpc("claim_generation_job", {
+      p_job_id: jobId,
+      p_skill_name: execution.skillName,
+      p_skill_version: execution.skillVersion,
+      p_image_provider: execution.imageProvider,
+      p_image_model: execution.imageModel,
+    });
     if (error) throw new Error(`Failed to claim generation job: ${error.message}`);
   }
 
@@ -40,6 +46,10 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     bucket: string;
     objectPath: string;
     prompt: string;
+    skillName: string;
+    skillVersion: string;
+    imageProvider: string;
+    imageModel: string;
     providerRequestId?: string;
   }) {
     const { error } = await this.client.from("generation_results").upsert(
@@ -49,6 +59,10 @@ export class SupabaseGenerationRepository implements GenerationRepository {
         storage_bucket: input.bucket,
         storage_path: input.objectPath,
         prompt: input.prompt,
+        skill_name: input.skillName,
+        skill_version: input.skillVersion,
+        image_provider: input.imageProvider,
+        image_model: input.imageModel,
         provider_request_id: input.providerRequestId ?? null,
       },
       { onConflict: "job_id,slot" },

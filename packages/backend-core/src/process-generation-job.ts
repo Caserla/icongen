@@ -19,7 +19,14 @@ export async function processGenerationJob(jobId: string, dependencies: ProcessG
 
   if (job.status === "failed") throw new Error(`Generation job ${jobId} is already failed`);
 
-  await dependencies.repository.markProcessing(jobId);
+  const execution = {
+    skillName: dependencies.promptCompiler.name,
+    skillVersion: dependencies.promptCompiler.version,
+    imageProvider: dependencies.imageProvider.name,
+    imageModel: dependencies.imageProvider.model,
+  };
+
+  await dependencies.repository.markProcessing(jobId, execution);
 
   for (const slot of [1, 2, 3, 4] as const) {
     const compiled = dependencies.promptCompiler.compile({
@@ -41,6 +48,7 @@ export async function processGenerationJob(jobId: string, dependencies: ProcessG
       bucket: asset.bucket,
       objectPath: asset.objectPath,
       prompt: compiled.prompt,
+      ...execution,
       providerRequestId: image.providerRequestId,
     });
   }

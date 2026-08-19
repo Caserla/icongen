@@ -1,3 +1,4 @@
+export const ICON_SKILL_NAME = "default-icon";
 export const ICON_SKILL_VERSION = "0.1.0";
 
 const directions = [

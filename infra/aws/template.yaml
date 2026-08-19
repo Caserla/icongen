@@ -3,15 +3,21 @@ Transform: AWS::Serverless-2016-10-31
 Description: IconGen asynchronous image generation worker
 
 Parameters:
-  OpenAIImageModel:
+  ImageProvider:
+    Type: String
+    Default: openai
+  ImageModel:
     Type: String
     Default: gpt-image-2
+  IconSkill:
+    Type: String
+    Default: default-icon
   SupabaseUrl:
     Type: String
   SupabaseServiceRoleKey:
     Type: String
     NoEcho: true
-  OpenAIApiKey:
+  ImageProviderApiKey:
     Type: String
     NoEcho: true
   ReservedConcurrency:
@@ -52,8 +58,10 @@ Resources:
       ReservedConcurrentExecutions: !Ref ReservedConcurrency
       Environment:
         Variables:
-          OPENAI_API_KEY: !Ref OpenAIApiKey
-          OPENAI_IMAGE_MODEL: !Ref OpenAIImageModel
+          IMAGE_PROVIDER: !Ref ImageProvider
+          IMAGE_MODEL: !Ref ImageModel
+          IMAGE_PROVIDER_API_KEY: !Ref ImageProviderApiKey
+          ICON_SKILL: !Ref IconSkill
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey
           SUPABASE_ICON_BUCKET: generated-icons
@@ -92,4 +100,3 @@ Outputs:
     Value: !GetAtt GenerationQueue.Arn
   GenerationDeadLetterQueueUrl:
     Value: !Ref GenerationDeadLetterQueue
-
