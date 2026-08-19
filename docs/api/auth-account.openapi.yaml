@@ -1,0 +1,402 @@
+openapi: 3.1.0
+info:
+  title: IconGen Auth and Account API
+  version: 1.0.0
+  description: |
+    Frontend-facing BFF API for email/password authentication and account management.
+    Authentication uses HttpOnly Supabase session cookies managed by the same-origin BFF.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://{host}
+    description: Deployed environment
+    variables:
+      host:
+        default: app.example.com
+tags:
+  - name: Authentication
+  - name: Account
+
+paths:
+  /api/auth/sign-up:
+    post:
+      tags: [Authentication]
+      summary: Register with email and password
+      operationId: signUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequest"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignUpResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/auth/sign-in:
+    post:
+      tags: [Authentication]
+      summary: Sign in with email and password
+      operationId: signIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: Signed in; session cookies are set by the response
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "403":
+          description: Email verification is required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /api/auth/sign-out:
+    post:
+      tags: [Authentication]
+      summary: Sign out and clear the current session
+      operationId: signOut
+      security:
+        - cookieAuth: []
+      responses:
+        "204":
+          description: Signed out
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/resend-verification:
+    post:
+      tags: [Authentication]
+      summary: Request another email verification message
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: Generic response that does not disclose account existence
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request a password reset email
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailRequest"
+      responses:
+        "200":
+          description: Generic response that does not disclose account existence
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Set a new password using an active recovery session
+      operationId: resetPassword
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [updated]
+                properties:
+                  updated: { type: boolean, const: true }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: A valid recovery session is required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+
+  /auth/callback:
+    get:
+      tags: [Authentication]
+      summary: Exchange a Supabase verification or recovery code for a session
+      operationId: authCallback
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema: { type: string }
+        - in: query
+          name: next
+          required: false
+          description: Same-origin path only; defaults to /create
+          schema: { type: string, example: /create }
+      responses:
+        "307":
+          description: Redirects to the safe next path or sign-in error page
+
+  /api/account:
+    get:
+      tags: [Account]
+      summary: Get the current account summary
+      operationId: getAccount
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Current account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/account/profile:
+    patch:
+      tags: [Account]
+      summary: Update the current user's display name
+      operationId: updateProfile
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [displayName, updatedAt]
+                properties:
+                  displayName:
+                    type: [string, "null"]
+                  updatedAt:
+                    type: string
+                    format: date-time
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/account/delete-request:
+    post:
+      tags: [Account]
+      summary: Submit an account deletion request
+      description: Re-authenticates with the current password, rejects active generation jobs, and locks the account as deletion_pending.
+      operationId: requestAccountDeletion
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+      responses:
+        "202":
+          description: Deletion request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requestId, status]
+                properties:
+                  requestId: { type: string, format: uuid }
+                  status: { type: string, const: deletion_pending }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          description: Authentication or password confirmation failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "409":
+          description: An active generation prevents deletion
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiError" }
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-<project-ref>-auth-token
+      description: Supabase SSR may use project-specific and chunked HttpOnly cookies. Browser code must not read or construct them; use same-origin fetch.
+
+  responses:
+    BadRequest:
+      description: Request validation or operation failure
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Unauthorized:
+      description: Authentication is required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Forbidden:
+      description: Email verification or an active account is required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    InternalError:
+      description: Internal operation failure
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+
+  schemas:
+    SignUpRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, acceptedTerms]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 128, writeOnly: true }
+        acceptedTerms: { type: boolean, const: true }
+        next: { type: string, example: /create }
+
+    SignUpResponse:
+      type: object
+      required: [requiresEmailVerification, next]
+      properties:
+        requiresEmailVerification: { type: boolean }
+        next: { type: string }
+
+    SignInRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, writeOnly: true }
+        next: { type: string, example: /create }
+
+    SignInResponse:
+      type: object
+      required: [userId, next]
+      properties:
+        userId: { type: string, format: uuid }
+        next: { type: string }
+
+    EmailRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+
+    ResetPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: { type: string, minLength: 8, maxLength: 128, writeOnly: true }
+
+    UpdateProfileRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName]
+      properties:
+        displayName:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 40
+
+    DeleteAccountRequest:
+      type: object
+      additionalProperties: false
+      required: [confirmation, password, idempotencyKey]
+      properties:
+        confirmation: { type: string, const: DELETE }
+        password: { type: string, writeOnly: true }
+        idempotencyKey: { type: string, format: uuid }
+
+    AccountSummary:
+      type: object
+      required: [id, email, emailVerified, displayName, creditBalance, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        emailVerified: { type: boolean }
+        displayName: { type: [string, "null"] }
+        creditBalance: { type: integer, minimum: 0 }
+        status:
+          type: string
+          enum: [active, restricted, deletion_pending]
+        createdAt: { type: string, format: date-time }
+
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+
+    ApiError:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Stable machine-readable error code
+        message:
+          type: string
+          description: English user-facing fallback message
+        details:
+          description: Optional validation details; structure may vary by endpoint
+

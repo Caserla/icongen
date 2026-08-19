@@ -14,3 +14,15 @@ export const publicEnv = {
 export function getServerEnv() {
   return serverEnv;
 }
+
+export function requirePublicSupabaseEnv() {
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required");
+  }
+  return { supabaseUrl: publicEnv.supabaseUrl, supabaseAnonKey: publicEnv.supabaseAnonKey };
+}
+
+export function requireServerEnv() {
+  if (!serverEnv.supabaseServiceRoleKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
+  return { ...serverEnv, supabaseServiceRoleKey: serverEnv.supabaseServiceRoleKey };
+}

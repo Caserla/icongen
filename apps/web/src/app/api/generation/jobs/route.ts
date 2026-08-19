@@ -1,10 +1,18 @@
 import { createGenerationSchema } from "@icongen/shared";
+import { requireActiveUser } from "@/lib/auth/require-user";
+import { authErrorResponse, apiError } from "@/lib/http/api-response";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = createGenerationSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: "INVALID_GENERATION_REQUEST", details: parsed.error.flatten() }, { status: 400 });
+    return apiError("INVALID_GENERATION_REQUEST", "Please check the generation request.", 400, parsed.error.flatten());
+  }
+
+  try {
+    await requireActiveUser();
+  } catch (error) {
+    return authErrorResponse(error) ?? apiError("AUTHORIZATION_FAILED", "We could not verify this account.", 500);
   }
 
   return Response.json(
