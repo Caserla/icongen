@@ -1,0 +1,20 @@
+{
+  "name": "icongen",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=@icongen/web",
+    "build": "npm run build --workspace=@icongen/web",
+    "start": "npm run start --workspace=@icongen/web",
+    "lint": "npm run lint --workspace=@icongen/web",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
