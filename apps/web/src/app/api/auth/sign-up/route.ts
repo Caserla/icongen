@@ -7,6 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const parsed = signUpSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError("VALIDATION_ERROR", "Please check your registration details.", 400, parsed.error.flatten());
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) return apiError("AUTH_SERVICE_UNAVAILABLE", "Authentication is not configured.", 503);
 
   const next = safeNextPath(parsed.data.next);
   const emailRedirectTo = new URL(`/auth/callback?next=${encodeURIComponent(next)}`, publicEnv.appUrl).toString();
@@ -20,4 +21,3 @@ export async function POST(request: Request) {
   if (error) return apiError("SIGN_UP_FAILED", "We could not create your account. Please try again.", 400);
   return Response.json({ requiresEmailVerification: !data.session, next }, { status: 201 });
 }
-

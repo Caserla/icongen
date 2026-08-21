@@ -1,24 +1,10 @@
-import type { Metadata } from "next";
+"use client";
 import Link from "next/link";
-
-export const metadata: Metadata = { title: "Sign in" };
-
-export default function SignInPage() {
-  return (
-    <main className="grid min-h-screen place-items-center px-5 py-12">
-      <section className="w-full max-w-md rounded-3xl border border-border bg-surface p-8 shadow-sm">
-        <Link href="/" className="text-lg font-extrabold">IconGen</Link>
-        <h1 className="mt-10 text-3xl font-bold tracking-tight">Sign in to your workspace</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Authentication UI is ready for the Supabase Auth integration.</p>
-        <form className="mt-8 space-y-5">
-          <label className="block text-sm font-semibold">
-            Email address
-            <input type="email" name="email" autoComplete="email" placeholder="you@example.com" className="mt-2 min-h-12 w-full rounded-xl border border-border bg-surface px-4 font-normal" />
-          </label>
-          <button type="submit" className="min-h-12 w-full rounded-xl bg-brand px-4 font-semibold text-white hover:bg-brand-strong">Continue with email</button>
-        </form>
-        <p className="mt-6 text-xs leading-5 text-muted">Password or magic-link behavior will be selected during the authentication module design.</p>
-      </section>
-    </main>
-  );
-}
+import { useState,useSyncExternalStore,type FormEvent } from "react";
+import { Brand } from "@/components/ui/brand";
+import { LanguageSwitch } from "@/components/i18n/language-switch";
+import { useLocale } from "@/components/i18n/locale-provider";
+import { PasswordInput } from "@/components/ui/password-input";
+export default function SignInPage(){const{t}=useLocale();const[busy,setBusy]=useState(false);const[error,setError]=useState("");const search=useSyncExternalStore(subscribeToLocation,getLocationSearch,()=>"");const params=new URLSearchParams(search);const nextPath=params.get("next")??"/create";const authUnavailable=params.get("reason")==="auth_unavailable";async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const form=new FormData(event.currentTarget);const response=await fetch("/api/auth/sign-in",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:form.get("email"),password:form.get("password"),next:nextPath})}).catch(()=>null);if(!response?.ok){setError(t("invalidLogin"));setBusy(false);return}const data=await response.json();window.location.assign(data.next)}const reasonQuery=authUnavailable?"&reason=auth_unavailable":"";return <main className="soft-spot min-h-screen p-3 sm:p-5"><header className="mx-auto mb-5 flex min-h-17 max-w-7xl items-center justify-between rounded-[18px] border border-border bg-surface/90 px-5"><Brand/><LanguageSwitch/></header><div className="panel-shadow mx-auto grid min-h-[calc(100vh-128px)] max-w-7xl overflow-hidden rounded-[28px] border border-border bg-surface lg:grid-cols-2"><section className="flex min-h-[420px] flex-col justify-center bg-foreground p-10 text-white sm:p-16"><h1 className="text-5xl font-black leading-[.96] tracking-[-.06em] sm:text-7xl">{t("hero")}</h1><p className="mt-6 max-w-xl leading-7 text-white/65">{t("heroCopy")}</p></section><section className="grid place-items-center p-7 sm:p-14"><form onSubmit={submit} className="w-full max-w-[440px]"><p className="text-xs font-black uppercase tracking-[.14em] text-brand-strong">{t("welcomeBack")}</p><h2 className="display-serif mt-3 text-4xl tracking-[-.045em] sm:text-5xl">{t("signInCreate")}</h2><p className="mt-3 text-sm text-muted">{t("waiting")}</p>{authUnavailable?<p role="status" className="mt-5 rounded-xl border border-border bg-background p-3 text-sm text-muted">{t("authUnavailable")}</p>:null}<Field label={t("email")} name="email" type="email" autoComplete="email"/><div className="mt-5 flex justify-between text-sm font-extrabold"><span>{t("password")}</span><Link href={`/auth/forgot-password?next=${encodeURIComponent(nextPath)}${reasonQuery}`} className="text-xs underline">{t("forgot")}</Link></div><PasswordInput required name="password" autoComplete="current-password" wrapperClassName="mt-2" className="focus-ring min-h-13 w-full rounded-[14px] border border-border bg-background px-4"/>{error?<p role="alert" className="mt-4 rounded-xl bg-[#fff1ed] p-3 text-sm text-danger">{error}</p>:null}<button disabled={busy||authUnavailable} className="focus-ring mt-6 min-h-14 w-full rounded-[14px] bg-brand px-5 font-black text-white shadow-[0_4px_0_#4930c9] disabled:cursor-not-allowed disabled:opacity-50">{busy?t("signingIn"):`${t("continue")} →`}</button><p className="mt-8 border-t border-border pt-6 text-center text-sm text-muted">{t("newHere")} <Link href={`/auth/sign-up?next=${encodeURIComponent(nextPath)}${reasonQuery}`} className="font-black text-foreground underline">{t("createAccount")}</Link></p></form></section></div></main>}
+function Field({label,name,type,autoComplete}:{label:string;name:string;type:string;autoComplete:string}){return <label className="mt-8 block text-sm font-extrabold">{label}<input required name={name} type={type} autoComplete={autoComplete} className="focus-ring mt-2 min-h-13 w-full rounded-[14px] border border-border bg-background px-4 font-normal"/></label>}
+function subscribeToLocation(){return()=>undefined}function getLocationSearch(){return window.location.search}

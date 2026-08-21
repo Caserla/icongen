@@ -11,7 +11,7 @@ Parameters:
     Default: gpt-image-2
   IconSkill:
     Type: String
-    Default: default-icon
+    Default: default-ui-icon
   SupabaseUrl:
     Type: String
   SupabaseServiceRoleKey:

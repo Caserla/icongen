@@ -1,14 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPrefixes = ["/create", "/icons", "/account"];
+const protectedPrefixes = ["/create", "/icons", "/account", "/checkout", "/admin"];
 const guestOnlyPrefixes = ["/auth/sign-in", "/auth/sign-up"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
+  const isProtectedRoute = protectedPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) return response;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (!isProtectedRoute) return response;
+    return redirectToSignIn(request, "auth_unavailable");
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -22,13 +29,8 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
-  if (!data.user && protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/auth/sign-in";
-    loginUrl.search = "";
-    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(loginUrl);
+  if (!data.user && isProtectedRoute) {
+    return redirectToSignIn(request);
   }
 
   if (data.user && guestOnlyPrefixes.includes(pathname)) {
@@ -37,7 +39,15 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+function redirectToSignIn(request: NextRequest, reason?: string) {
+  const loginUrl = request.nextUrl.clone();
+  loginUrl.pathname = "/auth/sign-in";
+  loginUrl.search = "";
+  loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+  if (reason) loginUrl.searchParams.set("reason", reason);
+  return NextResponse.redirect(loginUrl);
+}
+
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
-

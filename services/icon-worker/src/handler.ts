@@ -1,6 +1,6 @@
 import type { SQSBatchResponse, SQSEvent } from "aws-lambda";
 import { processGenerationJob } from "@icongen/backend-core";
-import { generationQueueMessageSchema } from "@icongen/shared";
+import { generationQueueMessageV2Schema } from "@icongen/shared";
 import { loadConfig } from "./config";
 import { createDependencies } from "./dependencies";
 
@@ -12,7 +12,7 @@ export async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
 
   for (const record of event.Records) {
     try {
-      const message = generationQueueMessageSchema.parse(JSON.parse(record.body));
+      const message = generationQueueMessageV2Schema.parse(JSON.parse(record.body));
       await processGenerationJob(message.jobId, dependencies);
     } catch (error) {
       const attempts = Number(record.attributes.ApproximateReceiveCount ?? "1");
@@ -24,7 +24,7 @@ export async function handler(event: SQSEvent): Promise<SQSBatchResponse> {
       });
 
       if (attempts >= config.GENERATION_MAX_ATTEMPTS) {
-        const parsed = generationQueueMessageSchema.safeParse(safeJson(record.body));
+        const parsed = generationQueueMessageV2Schema.safeParse(safeJson(record.body));
         if (parsed.success) {
           await dependencies.repository.markFailedAndRefund(parsed.data.jobId, "GENERATION_FAILED", message);
         }

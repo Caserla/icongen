@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: IconGen Auth and Account API
+  title: Bamboo IconGen Auth and Account API
   version: 1.0.0
   description: |
     Frontend-facing BFF API for email/password authentication and account management.
@@ -399,4 +399,3 @@ components:
           description: English user-facing fallback message
         details:
           description: Optional validation details; structure may vary by endpoint
-

@@ -1,45 +1,5 @@
+"use client";
 import { ButtonLink } from "@/components/ui/button-link";
-import { Card } from "@/components/ui/card";
-
-const steps = [
-  ["1", "Describe your app", "Share the product purpose, visual direction, and the feeling your icon should convey."],
-  ["2", "Generate four directions", "One brief becomes four independent icon concepts in a single tracked job."],
-  ["3", "Choose and download", "Review every result in your workspace and download the PNG you want to ship."],
-];
-
-export default function HomePage() {
-  return (
-    <main>
-      <section className="mx-auto grid max-w-6xl gap-12 px-5 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <div className="space-y-7">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand">AI app icon generator</p>
-          <h1 className="max-w-3xl text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">Four icon directions from one clear product brief.</h1>
-          <p className="max-w-2xl text-lg leading-8 text-muted">Turn your app idea into distinct, production-minded visual options without starting from a blank canvas.</p>
-          <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/create" className="min-h-12 px-6">Generate four icons</ButtonLink>
-            <ButtonLink href="/pricing" variant="secondary" className="min-h-12 px-6">View credit packs</ButtonLink>
-          </div>
-        </div>
-        <Card className="grid min-h-96 grid-cols-2 gap-4 bg-surface-muted">
-          {["A", "B", "C", "D"].map((label) => (
-            <div key={label} className="flex aspect-square items-center justify-center rounded-3xl border border-border bg-surface text-3xl font-black text-brand shadow-sm">{label}</div>
-          ))}
-        </Card>
-      </section>
-      <section className="border-y border-border bg-surface py-16">
-        <div className="mx-auto max-w-6xl px-5">
-          <h2 className="text-3xl font-bold tracking-tight">A focused three-step workflow</h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {steps.map(([number, title, description]) => (
-              <Card key={number}>
-                <span className="text-sm font-bold text-brand">STEP {number}</span>
-                <h3 className="mt-4 text-xl font-bold">{title}</h3>
-                <p className="mt-2 leading-7 text-muted">{description}</p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
+import { useLocale } from "@/components/i18n/locale-provider";
+const copy={en:{k:"AI UI icon generation",h:"Create the UI icon library you truly need.",p:"Enter multiple icon requirements, define the colors, backgrounds, and visual style, then generate a consistent UI icon set and choose the best result from multiple options.",a:"Generate icons",workflow:"Everything you need to create a complete icon set",steps:[["Generate multiple icons at once","Enter multiple icon requirements at once and generate a consistent icon set in one batch."],["Precisely shape your ideal icon style","Fine-tune the color, background, structure, and visual style to create exactly the icon look you want."],["Three options generated for every icon by default","Get three distinct options for every icon, making it easy to compare them and choose the best result."]]},zh:{k:"AI UI 图标生成",h:"生成一套真正你需要的 UI 图标库",p:"输入多个图标需求，设定颜色、背景与视觉风格，即可批量生成风格统一的 UI 图标，并从多种方案中选出最合适的结果。",a:"立即生成图标",workflow:"生成一套完整图标所需的核心能力",steps:[["批量生成多个图标","一次输入多个图标需求，批量生成一套风格统一的图标。"],["精准把控你想要的图标风格","精细设置颜色、背景、结构与视觉风格，生成你想要的图标效果。"],["每个图标默认生成三种备选方案","每个图标一次提供三种不同方案，方便对比并选出最合适的结果。"]]}};
+export default function HomePage(){const{locale}=useLocale();const c=copy[locale];return <main><section className="mx-auto grid max-w-7xl gap-12 px-5 py-20 lg:grid-cols-[1.08fr_.92fr] lg:items-center"><div><h1 className="display-serif max-w-4xl text-5xl font-medium leading-[1.04] tracking-[-.045em] sm:text-7xl">{c.h}</h1><p className="mt-7 max-w-2xl text-lg font-medium leading-8 tracking-[-.012em] text-muted sm:text-xl sm:leading-9">{c.p}</p><div className="mt-8"><ButtonLink href="/create" className="min-h-14 px-6">{c.a} →</ButtonLink></div></div><div className="panel-shadow grid min-h-96 grid-cols-2 gap-4 rounded-[28px] border border-border bg-foreground p-5">{["◒","◇","☺","✦"].map((v,i)=><div key={v} className={`grid aspect-square place-items-center rounded-[24px] text-5xl font-black ${["bg-accent","bg-brand text-white","bg-[#ff795e]","bg-surface"][i]}`}>{v}</div>)}</div></section><section className="border-y border-border bg-surface py-16"><div className="mx-auto max-w-7xl px-5"><h2 className="display-serif text-4xl font-medium tracking-[-.04em]">{c.workflow}</h2><div className="mt-8 grid gap-5 md:grid-cols-3">{c.steps.map(([title,description],i)=><article key={title} className="rounded-[20px] border border-border p-6"><span className="grid size-11 place-items-center rounded-xl bg-accent text-sm font-black">0{i+1}</span><h3 className="mt-5 text-xl font-black">{title}</h3><p className="mt-2 leading-7 text-muted">{description}</p></article>)}</div></div></section></main>}

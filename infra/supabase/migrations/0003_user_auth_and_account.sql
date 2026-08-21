@@ -51,7 +51,7 @@ begin
 
   select id into v_request_id
   from public.account_deletion_requests
-  where user_id = v_user_id or idempotency_key = p_idempotency_key;
+  where user_id = v_user_id and idempotency_key = p_idempotency_key;
   if v_request_id is not null then return v_request_id; end if;
 
   if exists (
@@ -78,4 +78,3 @@ $$;
 revoke all on function public.request_account_deletion(uuid) from public, anon, authenticated;
 grant execute on function public.request_account_deletion(uuid) to authenticated;
 grant execute on function public.request_account_deletion(uuid) to service_role;
-

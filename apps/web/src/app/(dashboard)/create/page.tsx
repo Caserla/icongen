@@ -1,15 +1,4 @@
-import type { Metadata } from "next";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+"use client";
 import { GenerationForm } from "@/features/generation/components/generation-form";
-
-export const metadata: Metadata = { title: "Create" };
-
-export default function CreatePage() {
-  return (
-    <div className="space-y-8">
-      <PageHeader eyebrow="New generation" title="Describe the icon your app needs" description="Give the model product context and a visual direction. The final input fields will be confirmed in the image-generation module specification." />
-      <Card className="max-w-3xl"><GenerationForm /></Card>
-    </div>
-  );
-}
+import { useLocale } from "@/components/i18n/locale-provider";
+export default function CreatePage(){const{locale}=useLocale();return <div><p className="text-xs font-black uppercase tracking-[.16em] text-brand">{locale==="zh"?"新建生成任务":"New generation"}</p><h1 className="display-serif mt-2 text-4xl font-medium tracking-[-.045em] sm:text-5xl">{locale==="zh"?"设计一套统一的 UI 图标":"Design a consistent UI icon set"}</h1><p className="mt-3 max-w-2xl leading-7 text-muted">{locale==="zh"?"添加一个或多个图标主体，系统将为每个主体生成 3 个统一风格的方案。":"Add one or more icon subjects. Each subject will receive three variants in one consistent visual system."}</p><section className="mt-8 max-w-3xl rounded-[20px] border border-border p-6"><GenerationForm/></section></div>}

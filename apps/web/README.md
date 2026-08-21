@@ -1,6 +1,6 @@
-# IconGen Web
+# Bamboo IconGen Web
 
-Next.js App Router frontend and BFF for the AI Icon Generator MVP.
+Next.js App Router frontend and BFF for the Bamboo IconGen MVP.
 
 ## Routes
 

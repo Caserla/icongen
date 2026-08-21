@@ -10,9 +10,12 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, url.origin));
+    if (!error) {
+      const verified = new URL("/auth/verified", url.origin);
+      verified.searchParams.set("next", next);
+      return NextResponse.redirect(verified);
+    }
   }
 
   return NextResponse.redirect(new URL("/auth/sign-in?error=invalid_callback", url.origin));
 }
-

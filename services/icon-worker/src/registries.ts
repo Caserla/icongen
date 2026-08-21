@@ -1,5 +1,6 @@
 import type { ImageProvider, PromptCompiler } from "@icongen/backend-core";
 import { iconSkillPromptCompiler } from "./adapters/icon-skill-prompt-compiler";
+import { MockImageProvider } from "./adapters/mock-image-provider";
 import { OpenAIImageProvider } from "./adapters/openai-image-provider";
 import type { WorkerConfig } from "./config";
 
@@ -15,10 +16,12 @@ export function createPromptCompiler(name: string): PromptCompiler {
 
 export function createImageProvider(config: WorkerConfig): ImageProvider {
   switch (config.IMAGE_PROVIDER) {
+    case "mock":
+      return new MockImageProvider();
     case "openai":
-      return new OpenAIImageProvider(config.IMAGE_PROVIDER_API_KEY, config.IMAGE_MODEL);
+      if (!config.IMAGE_PROVIDER_API_KEY) throw new Error("IMAGE_PROVIDER_API_KEY is required for OpenAI");
+      return new OpenAIImageProvider(config.IMAGE_PROVIDER_API_KEY, config.IMAGE_MODEL, config.IMAGE_QUALITY);
     default:
       throw new Error(`Unsupported IMAGE_PROVIDER: ${config.IMAGE_PROVIDER}`);
   }
 }
-

@@ -5,7 +5,7 @@ export class OpenAIImageProvider implements ImageProvider {
   readonly name = "openai";
   private readonly client: OpenAI;
 
-  constructor(apiKey: string, readonly model: string) {
+  constructor(apiKey: string, readonly model: string, private readonly quality: "low" | "medium" | "high" | "auto") {
     this.client = new OpenAI({ apiKey });
   }
 
@@ -13,6 +13,7 @@ export class OpenAIImageProvider implements ImageProvider {
     const response = await this.client.images.generate({
       model: this.model,
       prompt,
+      quality: this.quality,
     });
     const encoded = response.data?.[0]?.b64_json;
     if (!encoded) throw new Error("OpenAI image response did not include b64_json data");

@@ -3,6 +3,7 @@ import type { ProcessGenerationJobDependencies } from "@icongen/backend-core";
 import { logger } from "./adapters/logger";
 import { SupabaseAssetStore } from "./adapters/supabase-asset-store";
 import { SupabaseGenerationRepository } from "./adapters/supabase-generation-repository";
+import { SharpImageProcessor } from "./adapters/sharp-image-processor";
 import type { WorkerConfig } from "./config";
 import { createImageProvider, createPromptCompiler } from "./registries";
 
@@ -15,6 +16,7 @@ export function createDependencies(config: WorkerConfig): ProcessGenerationJobDe
     repository: new SupabaseGenerationRepository(supabase),
     assetStore: new SupabaseAssetStore(supabase, config.SUPABASE_ICON_BUCKET),
     imageProvider: createImageProvider(config),
+    imageProcessor: new SharpImageProcessor(),
     promptCompiler: createPromptCompiler(config.ICON_SKILL),
     logger,
   };

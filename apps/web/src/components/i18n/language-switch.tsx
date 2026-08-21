@@ -1,0 +1,3 @@
+"use client";
+import { useLocale } from "./locale-provider";
+export function LanguageSwitch(){const{locale,setLocale}=useLocale();return <div className="flex rounded-xl bg-surface-muted p-1" aria-label="Language / 语言"><button onClick={()=>setLocale("en")} aria-pressed={locale==="en"} className={`focus-ring min-h-10 min-w-11 rounded-lg px-3 text-xs font-black transition-colors ${locale==="en"?"bg-foreground text-white":"text-muted"}`}>EN</button><button onClick={()=>setLocale("zh")} aria-pressed={locale==="zh"} className={`focus-ring min-h-10 min-w-11 rounded-lg px-3 text-xs font-black transition-colors ${locale==="zh"?"bg-foreground text-white":"text-muted"}`}>中文</button></div>}

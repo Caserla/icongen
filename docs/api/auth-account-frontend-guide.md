@@ -6,7 +6,7 @@
 
 ## 1. 接入原则
 
-- 前端只调用 IconGen 同域 `/api/*` 接口，不直接管理 Supabase Session。
+- 前端只调用 Bamboo IconGen 同域 `/api/*` 接口，不直接管理 Supabase Session。
 - 登录状态通过 Supabase SSR 的 HttpOnly Cookie 保存。
 - 浏览器不得读取、拼接或保存认证 Cookie。
 - 同域 `fetch` 默认携带 Cookie；若前后端以后分域，必须重新设计 CORS、Cookie 和 CSRF 策略。
@@ -93,7 +93,7 @@ const result = await apiRequest<{
 
 ### 前端处理
 
-1. `201` 且 `requiresEmailVerification=true`：进入 `/auth/verify-email`。
+1. `201` 且 `requiresEmailVerification=true`：在注册页进入“检查邮箱”状态；用户点击邮件链接后由 `/auth/callback` 建立会话并进入 `/auth/verified`。
 2. 保存邮箱只用于验证页展示和重发，不保存密码。
 3. `VALIDATION_ERROR`：展示字段错误。
 4. `SIGN_UP_FAILED`：展示通用注册失败提示。
@@ -303,7 +303,8 @@ try {
 | 前端页面 | 使用接口 |
 | --- | --- |
 | `/auth/sign-up` | `POST /api/auth/sign-up` |
-| `/auth/verify-email` | `POST /api/auth/resend-verification` |
+| `/auth/sign-up` 的检查邮箱状态 | `POST /api/auth/resend-verification` |
+| `/auth/verified` | 验证成功展示、保留登录态并安全跳转，无额外业务 API |
 | `/auth/sign-in` | `POST /api/auth/sign-in` |
 | `/auth/forgot-password` | `POST /api/auth/forgot-password` |
 | `/auth/reset-password` | `POST /api/auth/reset-password` |
@@ -338,4 +339,3 @@ Supabase Auth 控制台还需要配置本地及生产 Site URL、允许的回调
 - 邮件限流仍依赖 Supabase 配置及后续应用层限流。
 - 账户删除接口只建立删除申请并锁定账户，不执行最终物理删除。
 - 真实邮件和认证流程必须连接实际 Supabase 测试项目后进行集成测试。
-

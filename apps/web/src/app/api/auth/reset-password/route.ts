@@ -1,10 +1,12 @@
 import { resetPasswordSchema } from "@icongen/shared";
 import { apiError } from "@/lib/http/api-response";
+import { publicEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   const parsed = resetPasswordSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError("VALIDATION_ERROR", "Use a password with at least 8 characters.", 400, parsed.error.flatten());
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) return apiError("AUTH_SERVICE_UNAVAILABLE", "Authentication is not configured.", 503);
 
   const supabase = await createServerSupabaseClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -13,4 +15,3 @@ export async function POST(request: Request) {
   if (error) return apiError("PASSWORD_RESET_FAILED", "We could not update your password.", 400);
   return Response.json({ updated: true });
 }
-

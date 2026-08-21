@@ -1,29 +1,6 @@
-import type { Metadata } from "next";
+"use client";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { mockJobs } from "@/features/generation/mock-data";
-
-export const metadata: Metadata = { title: "My Icons" };
-
-export default function IconsPage() {
-  return (
-    <div className="space-y-8">
-      <PageHeader eyebrow="Workspace" title="My Icons" description="Every generation job remains available here, including work still processing or requiring attention." />
-      <div className="grid gap-4">
-        {mockJobs.map((job) => (
-          <Link key={job.id} href={`/icons/${job.id}`}>
-            <Card className="flex items-center justify-between gap-5 transition hover:border-brand">
-              <div>
-                <p className="font-semibold">{job.description}</p>
-                <p className="mt-1 text-sm text-muted">{new Date(job.createdAt).toLocaleString("en-US")}</p>
-              </div>
-              <StatusBadge status={job.status} />
-            </Card>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { useLocale } from "@/components/i18n/locale-provider";
+export default function IconsPage(){const{locale}=useLocale();const zhNames:Record<string,string>={add:"新增",search:"查找",delete:"删除"};return <div><p className="text-xs font-black uppercase tracking-[.16em] text-brand">{locale==="zh"?"工作空间":"Workspace"}</p><h1 className="display-serif mt-2 text-4xl font-medium tracking-[-.045em] sm:text-5xl">{locale==="zh"?"我的图标":"My Icons"}</h1><p className="mt-3 max-w-2xl leading-7 text-muted">{locale==="zh"?"所有已完成、处理中或需要注意的生成任务都会保存在这里。":"Every completed, processing or attention-required generation stays here."}</p><section className="mt-8 grid gap-4">{mockJobs.map((job)=><Link key={job.id} href={`/icons/${job.id}`} className="focus-ring flex items-center justify-between gap-5 rounded-[20px] border border-border p-5 transition hover:border-brand"><div><p className="font-black">{job.subjects.map((subject)=>locale==="zh"?(zhNames[subject.clientId]??subject.name):subject.name).join(locale==="zh"?"、":", ")}</p><p className="mt-1 text-sm text-muted">{job.subjects.length} {locale==="zh"?"个图标主体":"icon subjects"} · {new Date(job.createdAt).toLocaleString(locale==="zh"?"zh-CN":"en-US")}</p></div><StatusBadge status={job.status}/></Link>)}</section></div>}

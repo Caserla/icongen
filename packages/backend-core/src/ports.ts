@@ -1,11 +1,14 @@
-import type { GenerationStatus } from "@icongen/shared";
+import type { ColorSetting, CoreSettings, CreateGenerationJobInput, GenerationJobStatusV2 } from "@icongen/shared";
+
+export type GenerationVariantRecord = { id: string; subjectId: string; slot: 1 | 2 | 3; status: "queued" | "processing" | "completed" | "failed" };
+export type GenerationSubjectRecord = { id: string; name: string; description: string; position: number; colorOverride?: ColorSetting; variants: GenerationVariantRecord[] };
 
 export type GenerationJobRecord = {
   id: string;
   userId: string;
-  description: string;
-  stylePreset?: string;
-  status: GenerationStatus;
+  status: GenerationJobStatusV2;
+  spec: CreateGenerationJobInput;
+  subjects: GenerationSubjectRecord[];
 };
 
 export type GeneratedImage = {
@@ -22,11 +25,20 @@ export type StoredAsset = {
 export interface GenerationRepository {
   getJob(jobId: string): Promise<GenerationJobRecord | null>;
   markProcessing(jobId: string, execution: GenerationExecution): Promise<void>;
-  saveResult(input: {
+  markVariantProcessing(variantId: string): Promise<void>;
+  saveAsset(input: {
     jobId: string;
-    slot: number;
+    subjectId: string;
+    variantId: string;
+    size: number;
+    width: number;
+    height: number;
+    hasAlpha: boolean;
     bucket: string;
     objectPath: string;
+  }): Promise<void>;
+  markVariantCompleted(input: {
+    variantId: string;
     prompt: string;
     skillName: string;
     skillVersion: string;
@@ -34,6 +46,7 @@ export interface GenerationRepository {
     imageModel: string;
     providerRequestId?: string;
   }): Promise<void>;
+  updateProgress(jobId: string, completedUnits: number, totalUnits: number): Promise<void>;
   markCompleted(jobId: string): Promise<void>;
   markFailedAndRefund(jobId: string, errorCode: string, errorMessage: string): Promise<void>;
 }
@@ -44,14 +57,26 @@ export interface ImageProvider {
   generate(input: { prompt: string }): Promise<GeneratedImage>;
 }
 
+export type ProcessedImage = {
+  bytes: Uint8Array;
+  mimeType: "image/png";
+  width: number;
+  height: number;
+  hasAlpha: boolean;
+};
+
+export interface ImageProcessor {
+  process(input: { bytes: Uint8Array; size: number }): Promise<ProcessedImage>;
+}
+
 export interface AssetStore {
-  put(input: { jobId: string; slot: number; bytes: Uint8Array; mimeType: string }): Promise<StoredAsset>;
+  put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; size: number; bytes: Uint8Array; mimeType: string }): Promise<StoredAsset>;
 }
 
 export interface PromptCompiler {
   readonly name: string;
   readonly version: string;
-  compile(input: { description: string; stylePreset?: string; slot: 1 | 2 | 3 | 4 }): {
+  compile(input: { name: string; description: string; color: ColorSetting; background: CreateGenerationJobInput["background"]; coreSettings: CoreSettings; sizes: number[]; slot: 1 | 2 | 3 }): {
     prompt: string;
     skillVersion: string;
   };

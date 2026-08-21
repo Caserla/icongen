@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "IconGen",
-  description: "Four app icon directions from one product brief.",
+  name: "Bamboo IconGen",
+  description: "Generate consistent UI icon sets with three variants per icon.",
   navigation: [
     { href: "/create", label: "Create" },
     { href: "/icons", label: "My Icons" },

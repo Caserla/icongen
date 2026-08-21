@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "dependencies": {
+    "@icongen/shared": "*"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

@@ -1,11 +1,13 @@
 import { signInSchema } from "@icongen/shared";
 import { safeNextPath } from "@/lib/auth/safe-next";
 import { apiError } from "@/lib/http/api-response";
+import { publicEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   const parsed = signInSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError("VALIDATION_ERROR", "Please check your email and password.", 400, parsed.error.flatten());
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) return apiError("AUTH_SERVICE_UNAVAILABLE", "Authentication is not configured.", 503);
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
@@ -17,4 +19,3 @@ export async function POST(request: Request) {
 
   return Response.json({ userId: data.user.id, next: safeNextPath(parsed.data.next) });
 }
-

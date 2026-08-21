@@ -1,25 +1,25 @@
-# IconGen AI 模型与 Skill 配置说明书
+# Bamboo IconGen AI 模型与 Skill 配置说明书
 
 文档版本：1.0  
-适用项目：IconGen  
-适用对象：IconGen 平台开发者、部署人员和管理员
+适用项目：Bamboo IconGen
+适用对象：Bamboo IconGen 平台开发者、部署人员和管理员
 
 ## 1. 文档目的
 
-本文说明如何为 IconGen 配置图片生成模型、API Key 和 Icon Skill。
+本文说明如何为 Bamboo IconGen 配置图片生成模型、API Key 和 Icon Skill。
 
-这些配置由 IconGen 平台提供方统一管理，不开放给网站普通用户。用户只能提交 App 产品描述和选择允许的图标风格，不能指定模型、供应商、API Key 或内部 Skill。
+这些配置由 Bamboo IconGen 平台提供方统一管理，不开放给网站普通用户。用户只能提交 UI 图标主体、颜色、背景、6 组核心设置和尺寸，不能指定模型、供应商、API Key 或内部 Skill。
 
 ## 2. 配置关系
 
 ```text
 普通用户
-  → 提交 App 描述和风格
-  → IconGen 后端生成任务
+  → 提交多个图标主体和结构化设计设置
+  → Bamboo IconGen 后端生成任务
   → Worker 读取平台部署配置
   → 调用已启用的 Icon Skill
   → 调用已启用的 AI 图片模型
-  → 保存并返回 4 个 PNG 方案
+  → 为每个主体保存并返回 3 个 PNG 方案
 ```
 
 平台方控制以下配置：
@@ -28,8 +28,9 @@
 | --- | --- | --- |
 | `IMAGE_PROVIDER` | `openai` | 图片模型供应商 |
 | `IMAGE_MODEL` | `gpt-image-2` | 使用的图片模型 |
+| `IMAGE_QUALITY` | `medium` | 平台统一使用的图片生成质量档位 |
 | `IMAGE_PROVIDER_API_KEY` | `sk-...` | 平台方持有的服务端 API Key |
-| `ICON_SKILL` | `default-icon` | 当前启用的 Icon Skill |
+| `ICON_SKILL` | `default-ui-icon` | 当前启用的 Icon Skill |
 
 ## 3. 申请 OpenAI API Key
 
@@ -69,9 +70,10 @@ services/icon-worker/.env
 ```env
 IMAGE_PROVIDER=openai
 IMAGE_MODEL=gpt-image-2
+IMAGE_QUALITY=medium
 IMAGE_PROVIDER_API_KEY=填写平台方的OpenAI密钥
 
-ICON_SKILL=default-icon
+ICON_SKILL=default-ui-icon
 
 SUPABASE_URL=填写Supabase项目地址
 SUPABASE_SERVICE_ROLE_KEY=填写Supabase服务端密钥
@@ -84,8 +86,9 @@ GENERATION_MAX_ATTEMPTS=3
 
 - `IMAGE_PROVIDER`：供应商注册名称。当前内置值为 `openai`。
 - `IMAGE_MODEL`：供应商提供的实际图片模型名称。
+- `IMAGE_QUALITY`：图片生成质量，首发固定为 `medium`，普通用户不能修改。
 - `IMAGE_PROVIDER_API_KEY`：平台方的服务端模型密钥。
-- `ICON_SKILL`：Skill 注册名称。当前内置值为 `default-icon`。
+- `ICON_SKILL`：Skill 注册名称。当前内置值为 `default-ui-icon`。
 - `SUPABASE_URL`：Supabase 项目 URL。
 - `SUPABASE_SERVICE_ROLE_KEY`：Supabase Service Role Key，只能在服务端使用。
 - `SUPABASE_ICON_BUCKET`：生成结果存储桶，默认是 `generated-icons`。
@@ -115,8 +118,9 @@ sam deploy --guided
 ```text
 ImageProvider: openai
 ImageModel: gpt-image-2
+ImageQuality: medium
 ImageProviderApiKey: 平台方的OpenAI API Key
-IconSkill: default-icon
+IconSkill: default-ui-icon
 SupabaseUrl: Supabase项目地址
 SupabaseServiceRoleKey: Supabase服务端密钥
 ReservedConcurrency: 5
@@ -139,15 +143,15 @@ packages/icon-skill/src/index.ts
 Skill 包含：
 
 - Skill 名称和版本。
-- 4 个图标方案的差异化设计方向。
-- 产品描述到图片提示词的编译逻辑。
+- 每个图标主体 3 个方案的差异化设计方向。
+- `GenerationSpec`（主体、颜色、背景、核心设置、尺寸）到图片提示词的编译逻辑。
 - 禁止文字、水印、现有品牌和受版权保护角色等约束。
-- 单个正方形 App Icon 的输出要求。
+- 单个独立正方形 UI 图标、透明通道和尺寸派生的输出要求。
 
 ### 6.2 名称和版本
 
 ```ts
-export const ICON_SKILL_NAME = "default-icon";
+export const ICON_SKILL_NAME = "default-ui-icon";
 export const ICON_SKILL_VERSION = "0.1.0";
 ```
 
@@ -161,7 +165,7 @@ export const ICON_SKILL_VERSION = "0.2.0";
 
 ### 6.3 Skill 的含义
 
-当前 Icon Skill 是 IconGen 后端中的 TypeScript 业务模块，不是安装在 ChatGPT 或 Codex 中的 `SKILL.md`。它会随 Lambda Worker 一起构建和部署。
+当前 Icon Skill 是 Bamboo IconGen 后端中的 TypeScript 业务模块，不是安装在 ChatGPT 或 Codex 中的 `SKILL.md`。它会随 Lambda Worker 一起构建和部署。
 
 ## 7. 修改默认 Skill
 
@@ -173,7 +177,7 @@ packages/icon-skill/src/index.ts
 
 建议步骤：
 
-1. 修改四个 `directions` 生成方向。
+1. 修改三个 `directions` 生成方向和结构化设置映射。
 2. 调整通用提示词和负向约束。
 3. 升级 `ICON_SKILL_VERSION`。
 4. 运行类型检查和测试。
@@ -205,9 +209,9 @@ interface PromptCompiler {
   readonly name: string;
   readonly version: string;
   compile(input: {
-    description: string;
-    stylePreset?: string;
-    slot: 1 | 2 | 3 | 4;
+    subject: { name: string; description: string };
+    spec: GenerationSpec;
+    slot: 1 | 2 | 3;
   }): {
     prompt: string;
     skillVersion: string;
@@ -225,7 +229,7 @@ services/icon-worker/src/registries.ts
 
 ```ts
 const promptCompilerRegistry = {
-  "default-icon": defaultIconSkill,
+  "default-ui-icon": defaultIconSkill,
   "premium-icon": premiumIconSkill,
 };
 ```
@@ -265,7 +269,7 @@ IMAGE_MODEL=新的模型名称
 interface ImageProvider {
   readonly name: string;
   readonly model: string;
-  generate(input: { prompt: string }): Promise<GeneratedImage>;
+  generate(input: { prompt: string; quality: "medium" }): Promise<GeneratedImage>;
 }
 ```
 
@@ -273,12 +277,23 @@ interface ImageProvider {
 
 ## 10. 普通用户请求边界
 
-普通用户允许提交：
+普通用户允许提交的业务参数示例：
 
 ```json
 {
-  "description": "A meditation app for better sleep",
-  "stylePreset": "minimal"
+  "subjects": [
+    { "name": "Search", "description": "Magnifier for finding content" }
+  ],
+  "settingsVersion": "core-settings-2026-08-20.1",
+  "coreSettings": {
+    "graphicStructure": "filled",
+    "visualTone": "neutral",
+    "strokeWeight": "regular",
+    "colorMode": "monochrome",
+    "backgroundContainer": "none",
+    "detailLevel": "auto"
+  },
+  "sizes": [24, 48, 128]
 }
 ```
 
@@ -336,9 +351,21 @@ interface ImageProvider {
 ```env
 IMAGE_PROVIDER=openai
 IMAGE_MODEL=gpt-image-2
-ICON_SKILL=default-icon
+IMAGE_QUALITY=medium
+ICON_SKILL=default-ui-icon
 GENERATION_MAX_ATTEMPTS=3
 ```
 
-先完成一个模型、一个 Skill、每次生成 4 个 PNG 的闭环，再根据成本和效果增加其他模型或 Skill。
+先完成一个模型、一个 Skill、每个主体 3 个 PNG 方案的闭环，再根据成本和效果增加其他模型或 Skill。核心设置与最终 Prompt 的映射由 Skill 负责，普通用户不能修改内部模板。
 
+## 14. 当前代码与真实 API 生效条件
+
+真实图片生成需要同时满足：
+
+1. 平台方在 Worker 环境配置有效的 `IMAGE_PROVIDER_API_KEY`。
+2. `IMAGE_MODEL` 设置为账户实际可用的模型名称。
+3. Worker 已读取 `IMAGE_QUALITY=medium`。
+4. OpenAI Provider 已在 `images.generate` 中显式传入质量配置。
+5. Worker 已部署，且队列、Supabase 和私有存储配置有效。
+
+当前代码已经支持 `IMAGE_PROVIDER`、`IMAGE_MODEL`、`IMAGE_QUALITY` 和平台 API Key。未配置真实 Key 时使用 Mock Provider 开发页面、任务状态、进度、点数和下载流程。
