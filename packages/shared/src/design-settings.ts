@@ -1,86 +1,40 @@
-export const DESIGN_SETTINGS_VERSION = "core-settings-2026-08-20.1" as const;
+export const DESIGN_SETTINGS_VERSION = "icon-style-2026-08-23.6" as const;
+export const BACKGROUND_TYPE_OPTION_IDS = ["rounded-square", "circle", "square"] as const;
 
 export type LocalizedLabel = { en: string; zh: string };
+export const ICON_STYLE_PRESET_IDS = ["clay-3d", "isometric-3d", "pixel-art", "low-poly", "neon", "cute-sticker", "flat-illustration", "minimal-logo", "line-icon"] as const;
+export type IconStylePresetId = (typeof ICON_STYLE_PRESET_IDS)[number];
+export type IconStylePreset = { id: IconStylePresetId; label: LocalizedLabel; description: LocalizedLabel; promptToken: string; previewImage: string };
+export type StyleAdjustmentGroup = { id: "strokeWeight" | "cornerStyle" | "detailLevel"; label: LocalizedLabel; options: readonly { id: string; label: LocalizedLabel; promptToken: string }[] };
 
-type CoreOption = {
-  id: string;
-  label: LocalizedLabel;
-  promptToken: string;
-};
+const option = (id: string, en: string, zh: string, promptToken = id) => ({ id, label: { en, zh }, promptToken });
 
-type CoreGroup = {
-  id: string;
-  label: LocalizedLabel;
-  options: readonly CoreOption[];
-};
+// A preset is the primary user decision. It locks the rendering language for every icon in one batch.
+export const ICON_STYLE_PRESETS: readonly IconStylePreset[] = [
+  { id: "clay-3d", label: { en: "Clay 3D", zh: "黏土 3D" }, description: { en: "Soft handmade volume and tactile detail", zh: "柔和手作体积与细腻材质" }, promptToken: "cute clay 3D icon, tactile handmade material, soft dimensional lighting", previewImage: "/images/icon-style-previews/hd-native/clay-3d-elephant-gardener.png" },
+  { id: "isometric-3d", label: { en: "Isometric 3D", zh: "等距 3D" }, description: { en: "Structured miniature scenes in isometric view", zh: "等距视角下的精致微缩场景" }, promptToken: "isometric 3D icon, structured miniature scene, consistent three-quarter view", previewImage: "/images/icon-style-previews/hd-native/isometric-3d-observatory.png" },
+  { id: "pixel-art", label: { en: "Pixel Art", zh: "像素艺术" }, description: { en: "Crisp retro pixels with readable silhouettes", zh: "清晰复古像素与易识别轮廓" }, promptToken: "pixel art icon, crisp square pixel grid, retro game aesthetic, no smoothing", previewImage: "/images/icon-style-previews/hd-native/pixel-art.png" },
+  { id: "low-poly", label: { en: "Low Poly", zh: "低多边形" }, description: { en: "Faceted geometry with bold dimensional color", zh: "鲜明切面结构与立体色彩" }, promptToken: "low-poly icon, clean faceted geometry, bold polygonal color planes", previewImage: "/images/icon-style-previews/hd-native/low-poly-v3.png" },
+  { id: "neon", label: { en: "Neon", zh: "霓虹" }, description: { en: "Electric glow on a deep blue-to-violet field", zh: "深蓝至靛紫渐变场景中的高对比霓虹光效" }, promptToken: "neon icon, controlled electric glow, deep blue to indigo violet gradient field, cyan and magenta light", previewImage: "/images/icon-style-previews/hd-native/neon-gradient-v3.png" },
+  { id: "cute-sticker", label: { en: "Cute Sticker", zh: "可爱贴纸" }, description: { en: "Friendly characters with a crisp sticker edge", zh: "亲和角色与清晰贴纸描边" }, promptToken: "cute sticker icon, friendly character, bold clean outline, polished sticker edge", previewImage: "/images/icon-style-previews/hd-native/cute-sticker-v3.png" },
+  { id: "flat-illustration", label: { en: "Flat Illustration", zh: "扁平插画" }, description: { en: "Narrative scenes with clean graphic layers", zh: "清晰色块构成的叙事插画" }, promptToken: "flat illustration icon, clean layered shapes, narrative composition, crisp edges", previewImage: "/images/icon-style-previews/hd-native/flat-illustration-v3.png" },
+  { id: "minimal-logo", label: { en: "Minimal Logo", zh: "极简标志" }, description: { en: "Simple memorable marks with strong silhouettes", zh: "简洁易记且轮廓鲜明的标志" }, promptToken: "minimal logo icon, strong memorable silhouette, precise vector-like geometry", previewImage: "/images/icon-style-previews/hd-native/minimal-logo-v4.png" },
+  { id: "line-icon", label: { en: "Line Icon", zh: "线性图标" }, description: { en: "Bold monochrome outlines with consistent rounded strokes", zh: "稍粗单色线条构成的清晰轮廓" }, promptToken: "modern monochrome monoline UI icon, bold precise outline only, consistent rounded stroke caps and joins, minimal geometry, no fill", previewImage: "/images/icon-style-previews/hd-native/line-icon-home-v2.png" },
+];
 
-const option = (id: string, en: string, zh: string, promptToken = id): CoreOption => ({
-  id, label: { en, zh }, promptToken,
-});
+export const STYLE_ADJUSTMENT_GROUPS: readonly StyleAdjustmentGroup[] = [
+  { id: "strokeWeight", label: { en: "Line weight", zh: "线条粗细" }, options: [option("light", "Light", "细", "light line weight"), option("regular", "Regular", "常规", "regular line weight"), option("bold", "Bold", "粗", "bold line weight")] },
+  { id: "cornerStyle", label: { en: "Corner language", zh: "转角语言" }, options: [option("soft", "Soft", "圆润", "soft rounded corners and terminals"), option("balanced", "Balanced", "平衡", "balanced corners and terminals"), option("sharp", "Sharp", "利落", "crisp angular corners and terminals")] },
+  { id: "detailLevel", label: { en: "Detail density", zh: "细节密度" }, options: [option("minimal", "Minimal", "极简", "minimal details"), option("standard", "Standard", "标准", "standard detail density"), option("detailed", "Detailed", "丰富", "richer but legible details")] },
+];
 
-export const CORE_SETTING_GROUPS = [
-  {
-    id: "graphicStructure", label: { en: "Graphic structure", zh: "图形结构" }, options: [
-      option("outline", "Outline", "线性", "outline UI icon"),
-      option("filled", "Filled", "面性", "filled UI icon"),
-      option("line-fill", "Line + Fill", "线面结合", "line and fill UI icon"),
-      option("duotone", "Duotone", "双色分层", "duotone layered UI icon"),
-    ],
-  },
-  {
-    id: "visualTone", label: { en: "Visual tone", zh: "视觉气质" }, options: [
-      option("neutral", "Neutral", "中性"), option("rounded", "Rounded", "圆润"),
-      option("bold", "Bold", "醒目"), option("playful", "Playful", "活泼"),
-      option("technical", "Technical", "技术感"),
-    ],
-  },
-  {
-    id: "strokeWeight", label: { en: "Stroke weight", zh: "线条粗细" }, options: [
-      option("light", "Light", "细"), option("regular", "Regular", "常规"),
-      option("medium", "Medium", "中粗"), option("bold", "Bold", "粗"),
-    ],
-  },
-  {
-    id: "colorMode", label: { en: "Color mode", zh: "配色方式" }, options: [
-      option("monochrome", "Monochrome", "单色"), option("two-tone", "Two-tone", "两色"),
-      option("multicolor", "Multicolor", "多色"), option("gradient", "Gradient", "渐变"),
-    ],
-  },
-  {
-    id: "backgroundContainer", label: { en: "Background container", zh: "背景容器" }, options: [
-      option("none", "None", "无背景"), option("circle", "Circle", "圆形"),
-      option("square", "Square", "方形"), option("rounded-square", "Rounded Square", "圆角方形"),
-      option("pill", "Pill", "胶囊形"),
-    ],
-  },
-  {
-    id: "detailLevel", label: { en: "Detail level", zh: "细节程度" }, options: [
-      option("auto", "Auto", "自动"), option("minimal", "Minimal", "极简"),
-      option("standard", "Standard", "标准"),
-    ],
-  },
-] as const satisfies readonly CoreGroup[];
+export const CORE_SYSTEM_DEFAULTS = { representation: "UI glyph", camera: "front orthographic", material: "flat", shadow: "none", consistencyLock: true } as const;
 
-// These are Skill-owned defaults, not user-facing settings in MVP.
-export const CORE_SYSTEM_DEFAULTS = {
-  representation: "UI glyph",
-  camera: "front orthographic",
-  material: "flat",
-  shadow: "none",
-  consistencyLock: true,
-} as const;
-
-export function validateCoreSettingsCatalog() {
+export function validateIconStyleCatalog() {
   const errors: string[] = [];
-  const optionIds = new Set<string>();
-  for (const group of CORE_SETTING_GROUPS) {
-    for (const item of group.options) {
-      const namespacedId = `${group.id}.${item.id}`;
-      if (optionIds.has(namespacedId)) errors.push(`duplicate core option: ${namespacedId}`);
-      optionIds.add(namespacedId);
-    }
-  }
-  if (CORE_SETTING_GROUPS.length !== 6) errors.push(`expected 6 groups, got ${CORE_SETTING_GROUPS.length}`);
-  if (optionIds.size !== 25) errors.push(`expected 25 options, got ${optionIds.size}`);
-  return { valid: errors.length === 0, errors, groupCount: CORE_SETTING_GROUPS.length, optionCount: optionIds.size };
+  if (ICON_STYLE_PRESETS.length !== 9) errors.push(`expected 9 style presets, got ${ICON_STYLE_PRESETS.length}`);
+  if (new Set(ICON_STYLE_PRESETS.map((preset) => preset.id)).size !== ICON_STYLE_PRESETS.length) errors.push("duplicate style preset");
+  if (STYLE_ADJUSTMENT_GROUPS.length !== 3) errors.push(`expected 3 adjustment groups, got ${STYLE_ADJUSTMENT_GROUPS.length}`);
+  for (const group of STYLE_ADJUSTMENT_GROUPS) if (new Set(group.options.map((item) => item.id)).size !== group.options.length) errors.push(`duplicate adjustment option in ${group.id}`);
+  return { valid: errors.length === 0, errors, presetCount: ICON_STYLE_PRESETS.length, adjustmentGroupCount: STYLE_ADJUSTMENT_GROUPS.length };
 }
