@@ -1,17 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { processGenerationJob, type GenerationJobRecord, type ProcessGenerationJobDependencies } from "@icongen/backend-core";
+import { DESIGN_SETTINGS_VERSION } from "@icongen/shared";
 
 const spec: GenerationJobRecord["spec"] = {
   idempotencyKey: "11111111-1111-4111-8111-111111111111",
-  settingsVersion: "core-settings-2026-08-20.1",
+  settingsVersion: DESIGN_SETTINGS_VERSION,
+  purpose: "app-icon",
   subjects: [
     { clientId: "add", name: "Add", description: "Add a new item" },
     { clientId: "search", name: "Search", description: "Find an existing item" },
   ],
   subjectColor: { mode: "solid", color: "#6750E8" },
   background: { enabled: false },
-  coreSettings: { graphicStructure: "outline", visualTone: "neutral", strokeWeight: "regular", colorMode: "monochrome", backgroundContainer: "none", detailLevel: "auto" },
+  style: { preset: "clay-3d", strokeWeight: "regular", cornerStyle: "balanced", detailLevel: "standard" },
   sizes: [24],
 };
 
@@ -28,6 +30,7 @@ function job(status: GenerationJobRecord["status"] = "queued"): GenerationJobRec
 
 test("generates exactly three variants for every subject", async () => {
   const completedVariants: string[] = [];
+  const purposes: Array<string | undefined> = [];
   let completed = false;
   const dependencies: ProcessGenerationJobDependencies = {
     repository: {
@@ -38,7 +41,7 @@ test("generates exactly three variants for every subject", async () => {
     imageProvider: { name: "test-provider", model: "test-model", async generate() { return { bytes: new Uint8Array([1]), mimeType: "image/png" }; } },
     imageProcessor: { async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; } },
     assetStore: { async put(input) { return { bucket: "icons", objectPath: `${input.jobId}/${input.subjectId}/${input.slot}/${input.size}.png` }; } },
-    promptCompiler: { name: "test-skill", version: "test", compile(input) { return { prompt: `${input.name}-${input.slot}`, skillVersion: "test" }; } },
+    promptCompiler: { name: "test-skill", version: "test", compile(input) { purposes.push(input.purpose); return { prompt: `${input.name}-${input.slot}`, skillVersion: "test" }; } },
     logger: { info() {}, error() {} },
   };
 
@@ -46,6 +49,7 @@ test("generates exactly three variants for every subject", async () => {
   assert.equal(completedVariants.length, 6);
   assert.equal(new Set(completedVariants).size, 6);
   assert.equal(completed, true);
+  assert.deepEqual(new Set(purposes), new Set(["app-icon"]));
 });
 
 test("does not regenerate a completed job", async () => {

@@ -18,19 +18,19 @@ function variants(subjectNumber: number, completed: boolean): GenerationJobV2["s
 
 export const mockJobs: GenerationJobV2[] = [
   {
-    id: completedJobId, status: "completed", settingsVersion: "core-settings-2026-08-20.1",
+    id: completedJobId, status: "completed", settingsVersion: "icon-style-2026-08-22.2",
     skillVersion: "0.2.0", model: "mock-image-provider",
     progress: { percent: 100, phase: "completed", completedSubjects: 2, totalSubjects: 2 },
-    creditSummary: { charged: 2, refunded: 0 }, createdAt: "2026-08-19T08:00:00.000Z", completedAt: "2026-08-19T08:02:00.000Z",
+    createdAt: "2026-08-19T08:00:00.000Z", completedAt: "2026-08-19T08:02:00.000Z",
     subjects: [
-      { id: "31000000-0000-4000-8000-000000000000", clientId: "add", name: "Add", description: "Add a new item", position: 0, status: "completed", variants: variants(3, true), creditRefunded: false },
-      { id: "41000000-0000-4000-8000-000000000000", clientId: "search", name: "Search", description: "Find an existing item", position: 1, status: "completed", variants: variants(4, true), creditRefunded: false },
+      { id: "31000000-0000-4000-8000-000000000000", clientId: "add", name: "Add", description: "Add a new item", position: 0, status: "completed", variants: variants(3, true) },
+      { id: "41000000-0000-4000-8000-000000000000", clientId: "search", name: "Search", description: "Find an existing item", position: 1, status: "completed", variants: variants(4, true) },
     ],
   },
   {
-    id: processingJobId, status: "processing", settingsVersion: "core-settings-2026-08-20.1",
+    id: processingJobId, status: "processing", settingsVersion: "icon-style-2026-08-22.2",
     progress: { percent: 36, phase: "generating", completedSubjects: 0, totalSubjects: 1, currentSubjectName: "Delete" },
-    creditSummary: { charged: 1, refunded: 0 }, createdAt: "2026-08-19T09:30:00.000Z",
-    subjects: [{ id: "51000000-0000-4000-8000-000000000000", clientId: "delete", name: "Delete", description: "Remove an item safely", position: 0, status: "processing", variants: variants(5, false), creditRefunded: false }],
+    createdAt: "2026-08-19T09:30:00.000Z",
+    subjects: [{ id: "51000000-0000-4000-8000-000000000000", clientId: "delete", name: "Delete", description: "Remove an item safely", position: 0, status: "processing", variants: variants(5, false) }],
   },
 ];

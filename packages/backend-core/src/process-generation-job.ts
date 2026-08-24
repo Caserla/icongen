@@ -37,11 +37,12 @@ export async function processGenerationJob(jobId: string, dependencies: ProcessG
     if (variant.status === "completed") continue;
     await dependencies.repository.markVariantProcessing(variant.id);
     const compiled = dependencies.promptCompiler.compile({
+      purpose: job.spec.purpose,
       name: subject.name,
       description: subject.description,
       color: subject.colorOverride ?? job.spec.subjectColor,
       background: job.spec.background,
-      coreSettings: job.spec.coreSettings,
+      style: job.spec.style,
       sizes: job.spec.sizes,
       slot: variant.slot,
     });

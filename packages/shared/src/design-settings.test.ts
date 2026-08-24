@@ -20,12 +20,14 @@ test("generation UI exposes exactly the three approved background types", () => 
 });
 
 test("accepts a style-led multi-subject generation contract", () => {
-  const result = createGenerationJobSchema.safeParse({ ...base, subjects: [...base.subjects, { clientId: "delete", name: "Delete", description: "Remove content" }], background: { enabled: true, container: "rounded-square", color: { mode: "solid", color: "#FFFFFF" } }, sizes: [24, 64, 256] });
+  const result = createGenerationJobSchema.safeParse({ ...base, purpose: "app-icon", subjects: [...base.subjects, { clientId: "delete", name: "Delete", description: "Remove content" }], background: { enabled: true, container: "rounded-square", color: { mode: "solid", color: "#FFFFFF" } }, sizes: [24, 64, 256] });
   assert.equal(result.success, true); assert.equal(VARIANTS_PER_SUBJECT, 3);
+  if (result.success) assert.equal(result.data.purpose, "app-icon");
   assert.deepEqual(OUTPUT_SIZES, [16, 24, 32, 64, 256, 1024]);
 });
 
 test("rejects unsupported style, duplicate subjects, and more than three sizes", () => {
+  assert.equal(createGenerationJobSchema.safeParse({ ...base, purpose: "marketing", background: { enabled: false } }).success, false);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, background: { enabled: true, container: "pill", color: { mode: "solid", color: "#FFFFFF" } } }).success, false);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, style: { ...base.style, preset: "technical" } }).success, false);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, subjects: [{ clientId: "same", name: "Search", description: "Find content" }, { clientId: "same", name: "Delete", description: "Remove content" }], background: { enabled: false }, sizes: [24, 24, 64, 256] }).success, false);

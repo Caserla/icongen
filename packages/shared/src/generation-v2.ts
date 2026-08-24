@@ -8,13 +8,13 @@ const LEGACY_OUTPUT_SIZES = [16, 20, 24, 32, 48, 64, 128, 256, 512, 1024] as con
 const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Expected a #RRGGBB color");
 const gradientDirectionSchema = z.enum(["top-to-bottom", "bottom-to-top", "left-to-right", "right-to-left", "top-left-to-bottom-right", "top-right-to-bottom-left", "radial"]);
 export const colorSettingSchema = z.discriminatedUnion("mode", [z.object({ mode: z.literal("solid"), color: hexColorSchema }), z.object({ mode: z.literal("gradient"), colors: z.tuple([hexColorSchema, hexColorSchema]), direction: gradientDirectionSchema })]);
-export const iconStyleSchema = z.object({ preset: z.enum(ICON_STYLE_PRESET_IDS), strokeWeight: z.enum(["light", "regular", "bold"]), cornerStyle: z.enum(["soft", "balanced", "sharp"]), detailLevel: z.enum(["minimal", "standard", "detailed"]) });
+export const iconStyleSchema = z.object({ preset: z.enum(ICON_STYLE_PRESET_IDS), graphicStructure: z.enum(["linear", "filled"]).optional(), strokeWeight: z.enum(["light", "regular", "bold"]), cornerStyle: z.enum(["soft", "balanced", "sharp"]), detailLevel: z.enum(["minimal", "standard", "detailed"]) });
 export const generationSubjectInputSchema = z.object({ clientId: z.string().trim().min(1).max(64), name: z.string().trim().min(1).max(40), description: z.string().trim().min(2).max(300), colorOverride: colorSettingSchema.optional() });
 const outputSizeSchema = z.union(OUTPUT_SIZES.map((size) => z.literal(size)));
 const legacyOutputSizeSchema = z.union(LEGACY_OUTPUT_SIZES.map((size) => z.literal(size)));
 
 export const createGenerationJobSchema = z.object({
-  idempotencyKey: z.string().uuid(), settingsVersion: z.literal(DESIGN_SETTINGS_VERSION), subjects: z.array(generationSubjectInputSchema).min(1), subjectColor: colorSettingSchema,
+  idempotencyKey: z.string().uuid(), settingsVersion: z.literal(DESIGN_SETTINGS_VERSION), purpose: z.enum(["interaction", "app-icon"]).optional(), subjects: z.array(generationSubjectInputSchema).min(1), subjectColor: colorSettingSchema,
   background: z.discriminatedUnion("enabled", [z.object({ enabled: z.literal(false) }), z.object({ enabled: z.literal(true), container: z.enum(["rounded-square", "circle", "square"]), color: colorSettingSchema })]),
   style: iconStyleSchema, sizes: z.array(outputSizeSchema).min(1).max(3),
 }).superRefine((value, context) => {

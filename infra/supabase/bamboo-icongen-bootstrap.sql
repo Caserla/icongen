@@ -443,7 +443,7 @@ alter table public.generation_jobs
   add column settings_version text,
   add column pricing_version text,
   add column generation_spec jsonb,
-  add column subject_count smallint check (subject_count between 1 and 20),
+  add column subject_count smallint check (subject_count >= 1),
   add column variants_per_subject smallint not null default 3 check (variants_per_subject = 3),
   add column progress_percent smallint not null default 0 check (progress_percent between 0 and 100),
   add column progress_phase text not null default 'queued',
@@ -461,7 +461,7 @@ create table public.generation_subjects (
   client_id text not null,
   name text not null check (char_length(name) between 1 and 40),
   description text not null check (char_length(description) between 2 and 300),
-  position smallint not null check (position between 0 and 19),
+  position smallint not null check (position >= 0),
   color_override jsonb,
   status public.generation_status not null default 'queued',
   credit_refunded_at timestamptz,
@@ -592,7 +592,7 @@ begin
   if jsonb_typeof(p_spec->'subjects') <> 'array' then raise exception 'subjects must be an array'; end if;
 
   v_credit_cost := jsonb_array_length(p_spec->'subjects');
-  if v_credit_cost < 1 or v_credit_cost > 20 then raise exception 'subject count must be between 1 and 20'; end if;
+  if v_credit_cost < 1 then raise exception 'at least one subject is required'; end if;
 
   select generation_job_id into v_existing_job_id
   from public.credit_ledger

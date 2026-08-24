@@ -18,7 +18,7 @@
 
 1. 图标主体。
 2. 颜色与背景。
-3. 6 组核心设置。
+3. 图标设计风格预设与微调。
 4. 尺寸、费用与提交确认。
 
 右侧设计摘要实时展示主体数量、颜色、背景、已选维度、尺寸、预计点数和自然语言语义预览。该预览用于帮助用户理解，不等于发送给模型的最终提示词。
@@ -59,7 +59,7 @@
 
 渐变字段：
 
-- 起始颜色和结束颜色；MVP 固定 2 个颜色节点。
+- 起始颜色和结束颜色；MVP 固定 2 个颜色节点，两端均提供颜色选择器和 `#RRGGBB` 手动输入框。
 - 渐变方向：上→下、下→上、左→右、右→左、左上→右下、右上→左下、径向。
 - 小型实时色块预览。
 
@@ -72,36 +72,25 @@
 - `No`：隐藏 Background Container 设置和背景颜色；提交 `background.enabled=false`；输出目标为透明背景 PNG。
 - `Yes`：显示 Background Container 分类、背景纯色/渐变设置和预览。
 
-背景颜色支持与主体颜色相同的纯色、双节点渐变和方向设置。前端计算主体与背景的基本对比度风险并给出提醒，但不阻止用户提交。
+背景颜色支持与主体颜色相同的纯色、双节点渐变和方向设置；纯色、渐变起始色和渐变结束色均支持 `#RRGGBB` 手动输入。前端计算主体与背景的基本对比度风险并给出提醒，但不阻止用户提交。
 
 关闭背景后，先前的背景设置可保留在本地草稿方便恢复，但不得发送为生效参数。重新开启时恢复最近一次合法设置。
 
 有背景任务只交付带背景版本，不额外赠送透明背景副本；用户需要透明结果时必须在设计阶段关闭背景。
 
-### GEN-004 6 组 25 个核心设置 — P0
+### GEN-004 图标设计风格 — P0
 
-MVP 只提供以下设置，不提供高级模式：
+生成器的核心是定义一套可在批量图标中复用的视觉语言，而不是让用户组合零散技术参数。首版提供 5 个单选风格预设：极简线性、圆润线性、实心符号、双色分层、粗线几何。
 
-| 设置组 | 选项 |
-| --- | --- |
-| 图形结构 | Outline、Filled、Line + Fill、Duotone |
-| 视觉气质 | Neutral、Rounded、Bold、Playful、Technical |
-| 线条粗细 | Light、Regular、Medium、Bold |
-| 配色方式 | Monochrome、Two-tone、Multicolor、Gradient |
-| 背景容器 | None、Circle、Square、Rounded Square、Pill |
-| 细节程度 | Auto、Minimal、Standard |
+选定预设后，用户可分别单选微调：线条粗细（细 / 常规 / 粗）、转角语言（圆润 / 平衡 / 利落）、细节密度（极简 / 标准 / 丰富）。每个预设和微调项均提供稳定 ID、中英文名称、说明与 Skill prompt token；前后端共享配置读取。
 
-交互与数据要求：
-
-- 每组单选，页面直接展示全部 25 个选项，不提供跨分类搜索或 `More`。
-- 每个选项提供稳定 ID、中英文标签和简短说明；前后端从共享配置读取。
-- 背景关闭时容器固定为 `None`；背景开启时必须选择其他容器。
-- Skill 内部固定 UI Glyph、正视正交、Flat、无阴影和批次一致性，不作为用户设置展示。
-- 原始 10 维度、266 项分类仅作为未来研究参考，不进入 MVP 请求、后端校验或 Skill 输入。
+背景形状属于「图标背景」而不属于设计风格：开启背景后，在背景颜色之前选择 Rounded、Circular、Square（圆角、圆形、方块）之一。主体/背景颜色同样为独立配置。Skill 内部固定 UI Glyph、正视正交、Flat、无阴影和批次一致性，不作为用户设置展示。
 
 ### GEN-005 尺寸设置 — P0
 
-首发开放全部常用 PNG 尺寸：`16、20、24、32、48、64、128、256、512、1024 px`。默认选择 `24、48、128 px`，用户至少选择一个。
+首发开放全部常用 PNG 尺寸：`16、20、24、32、48、64、128、256、512、1024 px`。默认选择 `24、48、128 px`，用户至少选择一个、最多选择三个。尝试选择第 4 个尺寸时不改变当前选择，并通过自动消失的双语警告 Toast 提示上限。
+
+全站 Toast 统一提供成功、失败、警告三种语义样式，分别使用独立的颜色与图标。失败信息使用 `alert / assertive` 及时播报；成功和警告信息使用 `status / polite` 播报，默认 6 秒后自动消失。
 
 业务规则：
 
@@ -123,7 +112,7 @@ MVP 只提供以下设置，不提供高级模式：
 用户点击 Generate 后：
 
 1. 前端生成幂等键并提交标准化请求。
-2. 服务端验证身份、账户状态、核心设置版本、主体数量、选项规则、点数和账户级并发限制。
+2. 服务端验证身份、账户状态、图标设计风格版本、主体数量、选项规则、点数和账户级并发限制。
 3. 服务端重新计算价格，在事务内扣点、创建父任务和主体子项。
 4. 成功后立即跳转 `/icons/[jobId]`。
 5. 点数不足返回购买入口并保留草稿。
@@ -140,7 +129,7 @@ MVP 只提供以下设置，不提供高级模式：
 ```json
 {
   "idempotencyKey": "uuid",
-  "settingsVersion": "core-settings-2026-08-20.1",
+  "settingsVersion": "icon-style-2026-08-22.1",
   "subjects": [
     { "clientId": "s1", "name": "Search", "description": "Magnifier for finding content" },
     { "clientId": "s2", "name": "Delete", "description": "Trash can for deleting an item" }
@@ -153,13 +142,11 @@ MVP 只提供以下设置，不提供高级模式：
   "background": {
     "enabled": false
   },
-  "coreSettings": {
-    "graphicStructure": "filled",
-    "visualTone": "rounded",
+  "style": {
+    "preset": "rounded-outline",
     "strokeWeight": "regular",
-    "colorMode": "gradient",
-    "backgroundContainer": "none",
-    "detailLevel": "auto"
+    "cornerStyle": "soft",
+    "detailLevel": "standard"
   },
   "sizes": [24, 48, 128]
 }
@@ -229,10 +216,10 @@ MVP 只提供以下设置，不提供高级模式：
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| `GET` | `/api/generation/settings` | 获取 6 组核心设置和版本 |
+| `GET` | `/api/generation/settings` | 获取图标设计风格预设、微调项和版本 |
 | `GET` | `/api/generation/config` | 获取主体上限、尺寸、3 方案数和价格摘要 |
-| `POST` | `/api/generation/jobs` | 校验、扣点并创建批量任务 |
-| `GET` | `/api/generation/jobs/{jobId}` | 获取进度、主体和结果 |
+| `POST` | `/api/generation/jobs` | 校验设计参数并创建批量任务；生成模块不接收、计算或返回点数字段 |
+| `GET` | `/api/generation/jobs/{jobId}` | 获取百分比、阶段文本所需状态、当前主体、完成数、主体和结果；不返回点数摘要 |
 | `POST` | `/api/generation/jobs/{jobId}/retry` | 对允许的失败单元安全重试 |
 | `POST` | `/api/generation/jobs/{jobId}/downloads` | 根据结果 ID 与尺寸创建 ZIP |
 
@@ -271,7 +258,7 @@ MVP 只提供以下设置，不提供高级模式：
 P0 验收场景：
 
 1. 5 个主体、透明背景、纯色、合法维度和 3 个尺寸能够提交并生成 15 个方案槽位。
-2. 背景关闭时背景分类与颜色隐藏，接口不携带生效背景值。
+2. 背景关闭时颜色与可选背景分类隐藏，第 6 个维度保留只读的 `None` 状态，接口不携带生效背景值。
 3. 渐变模式必须有 2 个合法颜色和方向。
 4. 进度刷新后不倒退，断网恢复后继续。
 5. 每个主体始终独立成组显示 3 个方案槽位。

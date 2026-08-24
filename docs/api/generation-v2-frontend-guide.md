@@ -6,14 +6,14 @@
 
 ## 0. 获取生成设置
 
-`GET /api/generation/settings` 是创建页的设置项来源，无需登录。响应包含 `version`、6 组 25 个核心选项、10 个允许的 PNG 尺寸，以及每批最多 20 个主体、每主体 3 个方案的限制。创建任务时必须原样提交响应中的 `version`，前端不得另行维护设置 ID。
+`GET /api/generation/settings` 是创建页的设置项来源，无需登录。响应包含 `version`、5 个图标设计风格预设、3 组风格微调、10 个允许的 PNG 尺寸、最多 3 种参考尺寸和每主体 3 个方案的规则。创建任务时必须原样提交响应中的 `version`，前端不得另行维护设置 ID。
 
 ## 1. 版本边界
 
 - 新版生成单位为 `job → subjects → 3 variants → assets`。
-- 每次任务包含 1–20 个主体，每个主体固定 3 个方案。
-- 设置版本固定为 `core-settings-2026-08-20.1`。
-- MVP 只使用 6 组 25 个核心选项，不提供高级模式。
+- 每次任务至少包含 1 个主体，不设置产品层面的主体数量上限；每个主体固定 3 个方案。
+- 设置版本固定为 `icon-style-2026-08-22.1`。
+- MVP 先选择一套图标设计风格，再作有限的风格微调，不提供高级模式。
 - `packages/shared/src/generation.ts` 是旧版单主体/4 结果过渡契约，新页面不得继续新增依赖。
 
 ## 2. 前端必须从共享包读取的常量
@@ -22,25 +22,26 @@
 import {
   CORE_SETTING_GROUPS,
   DESIGN_SETTINGS_VERSION,
-  MAX_SUBJECTS_PER_JOB,
   OUTPUT_SIZES,
   VARIANTS_PER_SUBJECT,
   createGenerationJobSchema,
 } from "@icongen/shared";
 ```
 
-前端不得复制主体上限、尺寸、方案数或核心设置到页面文件中。
+前端不得复制尺寸、方案数或核心设置到页面文件中。
 
 ## 3. 创建任务
 
 ### `POST /api/generation/jobs`
+
+本接口只处理图标设计规格与生成任务。点数展示、报价、扣点和退款属于独立商业化模块，不是本接口的请求或响应字段。
 
 请求必须先通过 `createGenerationJobSchema`。示例：
 
 ```json
 {
   "idempotencyKey": "4c6be3f8-df54-4df1-b2ce-9fa2ec735705",
-  "settingsVersion": "core-settings-2026-08-20.1",
+  "settingsVersion": "icon-style-2026-08-22.1",
   "subjects": [
     {
       "clientId": "search",
@@ -60,43 +61,41 @@ import {
   "background": {
     "enabled": false
   },
-  "coreSettings": {
-    "graphicStructure": "outline",
-    "visualTone": "rounded",
+  "style": {
+    "preset": "rounded-outline",
     "strokeWeight": "regular",
-    "colorMode": "monochrome",
-    "backgroundContainer": "none",
-    "detailLevel": "auto"
+    "cornerStyle": "soft",
+    "detailLevel": "standard"
   },
   "sizes": [24, 48, 128]
 }
 ```
 
-成功响应目标格式：
+成功响应格式：
 
 ```json
 {
-  "jobId": "uuid",
-  "status": "queued",
-  "chargedCredits": 2,
-  "resultUrl": "/icons/uuid"
+  "id": "uuid",
+  "status": "queued"
 }
 ```
 
-前端提交成功后立即跳转 `resultUrl`，不等待图片生成。
+前端提交成功后使用 `id` 跳转 `/icons/{id}`，不等待图片生成。
 
 ## 4. 字段关联规则
 
 - `subjects[].clientId` 在同一请求内必须唯一。
-- `sizes` 至少一项且不得重复，只能使用 `OUTPUT_SIZES`。
-- `background.enabled=false` 时，`coreSettings.backgroundContainer` 必须为 `none`。
-- `background.enabled=true` 时必须提供容器和背景颜色，核心容器不能为 `none`。
+- `sizes` 至少一项、最多三项且不得重复，只能使用 `OUTPUT_SIZES`。
+- `style` 是本次批量任务的统一设计语言：必须选择一个预设，并提供线条粗细、转角语言、细节密度三项微调。
+- `background.enabled=true` 时必须提供背景颜色，并在 `rounded-square / circle / square` 中选择一种容器。
 - 主体颜色和背景颜色隐藏后不得继续作为生效字段提交。
-- 接口不接受 Advanced settings 或原始 266 项分类值。
+- 接口不接受原始 6 维 / 25 项分类值或模型运行参数。
 
 ## 5. 查询任务
 
 ### `GET /api/generation/jobs/{jobId}`
+
+返回 `progress.percent`、`progress.phase`、`completedSubjects`、`totalSubjects` 和可选的 `currentSubjectName`，供结果页展示真实百分比与双语提示文本；响应不包含点数摘要。
 
 响应使用 `generationJobResponseSchema`，至少包含：
 
@@ -105,7 +104,6 @@ import {
 - 有序 `subjects[]`。
 - 每个主体固定 3 个 `variants[]` 槽位。
 - 每个成功方案的可用尺寸 `assets[]`。
-- 本任务扣除和返还点数摘要。
 
 轮询建议：前台每 2 秒一次；页面进入后台后降低频率；完成、部分成功或失败后停止。
 

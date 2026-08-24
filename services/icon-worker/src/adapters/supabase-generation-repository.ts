@@ -1,5 +1,5 @@
 import type { GenerationExecution, GenerationJobRecord, GenerationRepository } from "@icongen/backend-core";
-import { createGenerationJobSchema } from "@icongen/shared";
+import { parseStoredGenerationJobSpec } from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type JobRow = { id: string; user_id: string; status: GenerationJobRecord["status"]; generation_spec: unknown };
@@ -13,7 +13,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     const jobResult = await this.client.from("generation_jobs").select("id,user_id,status,generation_spec").eq("id", jobId).maybeSingle<JobRow>();
     if (jobResult.error) throw new Error(`Failed to load generation job: ${jobResult.error.message}`);
     if (!jobResult.data) return null;
-    const spec = createGenerationJobSchema.parse(jobResult.data.generation_spec);
+    const spec = parseStoredGenerationJobSpec(jobResult.data.generation_spec);
 
     const subjectResult = await this.client.from("generation_subjects").select("id,name,description,position,color_override").eq("job_id", jobId).order("position");
     if (subjectResult.error) throw new Error(`Failed to load generation subjects: ${subjectResult.error.message}`);

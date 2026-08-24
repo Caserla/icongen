@@ -1,4 +1,4 @@
-import type { ColorSetting, CoreSettings, CreateGenerationJobInput, GenerationJobStatusV2 } from "@icongen/shared";
+import type { ColorSetting, CreateGenerationJobInput, GenerationJobStatusV2, IconStyle } from "@icongen/shared";
 
 export type GenerationVariantRecord = { id: string; subjectId: string; slot: 1 | 2 | 3; status: "queued" | "processing" | "completed" | "failed" };
 export type GenerationSubjectRecord = { id: string; name: string; description: string; position: number; colorOverride?: ColorSetting; variants: GenerationVariantRecord[] };
@@ -76,7 +76,7 @@ export interface AssetStore {
 export interface PromptCompiler {
   readonly name: string;
   readonly version: string;
-  compile(input: { name: string; description: string; color: ColorSetting; background: CreateGenerationJobInput["background"]; coreSettings: CoreSettings; sizes: number[]; slot: 1 | 2 | 3 }): {
+  compile(input: { purpose?: CreateGenerationJobInput["purpose"]; name: string; description: string; color: ColorSetting; background: CreateGenerationJobInput["background"]; style: IconStyle; sizes: number[]; slot: 1 | 2 | 3 }): {
     prompt: string;
     skillVersion: string;
   };

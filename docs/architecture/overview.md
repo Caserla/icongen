@@ -16,7 +16,7 @@
 - `apps/web`：用户界面、管理界面和 BFF。
 - `services/icon-worker`：消费生成任务、调用模型、保存结果和更新状态。
 - `packages/icon-skill`：提示词结构、负向约束、输出要求和 Skill 版本。
-- 版本化核心设置：为生成页提供 6 组 25 个选项及稳定 ID；MVP 不提供高级设置。
+- 版本化图标设计风格：为生成页提供 5 个预设、3 组微调及稳定 ID；MVP 不提供高级设置。
 - `packages/shared`：共享类型、Zod Schema、状态枚举和业务常量。
 
 ## 前端工程结构

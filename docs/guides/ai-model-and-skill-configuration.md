@@ -8,7 +8,7 @@
 
 本文说明如何为 Bamboo IconGen 配置图片生成模型、API Key 和 Icon Skill。
 
-这些配置由 Bamboo IconGen 平台提供方统一管理，不开放给网站普通用户。用户只能提交 UI 图标主体、颜色、背景、6 组核心设置和尺寸，不能指定模型、供应商、API Key 或内部 Skill。
+这些配置由 Bamboo IconGen 平台提供方统一管理，不开放给网站普通用户。用户只能提交 UI 图标主体、颜色、背景、图标设计风格及尺寸，不能指定模型、供应商、API Key 或内部 Skill。
 
 ## 2. 配置关系
 
@@ -284,14 +284,12 @@ interface ImageProvider {
   "subjects": [
     { "name": "Search", "description": "Magnifier for finding content" }
   ],
-  "settingsVersion": "core-settings-2026-08-20.1",
-  "coreSettings": {
-    "graphicStructure": "filled",
-    "visualTone": "neutral",
+  "settingsVersion": "icon-style-2026-08-22.1",
+  "style": {
+    "preset": "solid-glyph",
     "strokeWeight": "regular",
-    "colorMode": "monochrome",
-    "backgroundContainer": "none",
-    "detailLevel": "auto"
+    "cornerStyle": "balanced",
+    "detailLevel": "standard"
   },
   "sizes": [24, 48, 128]
 }
