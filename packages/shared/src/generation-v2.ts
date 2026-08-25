@@ -16,7 +16,7 @@ const legacyOutputSizeSchema = z.union(LEGACY_OUTPUT_SIZES.map((size) => z.liter
 
 export const createGenerationJobSchema = z.object({
   idempotencyKey: z.string().uuid(), settingsVersion: z.literal(DESIGN_SETTINGS_VERSION), purpose: z.enum(["interaction", "app-icon"]).optional(), subjects: z.array(generationSubjectInputSchema).min(1).max(MAX_SUBJECTS), subjectColor: colorSettingSchema,
-  background: z.discriminatedUnion("enabled", [z.object({ enabled: z.literal(false) }), z.object({ enabled: z.literal(true), container: z.enum(["rounded-square", "circle", "square"]), color: colorSettingSchema })]),
+  background: z.discriminatedUnion("enabled", [z.object({ enabled: z.literal(false) }), z.object({ enabled: z.literal(true), container: z.enum(["rounded-square", "circle", "square"]), color: colorSettingSchema, cornerRadius: z.number().int().min(0).max(50).optional() })]),
   style: iconStyleSchema, sizes: z.array(outputSizeSchema).min(1).max(3),
 }).superRefine((value, context) => {
   if (new Set(value.subjects.map((subject) => subject.clientId)).size !== value.subjects.length) context.addIssue({ code: "custom", path: ["subjects"], message: "Subject clientId values must be unique" });
@@ -58,8 +58,8 @@ export const generationJobStatusV2Schema = z.enum(["queued", "processing", "comp
 export const generationSubjectStatusSchema = z.enum(["queued", "processing", "completed", "partial", "failed"]);
 export const generationVariantStatusSchema = z.enum(["queued", "processing", "completed", "failed"]);
 export const generationProgressPhaseSchema = z.enum(["queued", "compiling", "generating", "processing-assets", "saving", "completed"]);
-export const generationAssetSchema = z.object({ id: z.string().uuid(), size: outputSizeSchema, width: z.number().int().positive(), height: z.number().int().positive(), hasAlpha: z.boolean(), previewUrl: z.string().url().optional() });
-export const generationVariantSchema = z.object({ id: z.string().uuid(), slot: z.number().int().min(1).max(VARIANTS_PER_SUBJECT), status: generationVariantStatusSchema, isPrimary: z.boolean(), assets: z.array(generationAssetSchema), errorCode: z.string().optional() });
+export const generationAssetSchema = z.object({ id: z.string().uuid(), assetRole: z.literal("output").default("output"), size: outputSizeSchema, width: z.number().int().positive(), height: z.number().int().positive(), hasAlpha: z.boolean(), previewUrl: z.string().url().optional() });
+export const generationVariantSchema = z.object({ id: z.string().uuid(), slot: z.number().int().min(1).max(VARIANTS_PER_SUBJECT), status: generationVariantStatusSchema, isPrimary: z.boolean(), previewUrl: z.string().url().optional(), assets: z.array(generationAssetSchema), errorCode: z.string().optional() });
 export const generationSubjectSchema = z.object({ id: z.string().uuid(), clientId: z.string(), name: z.string(), description: z.string(), position: z.number().int().nonnegative(), status: generationSubjectStatusSchema, variants: z.array(generationVariantSchema).length(VARIANTS_PER_SUBJECT) });
 export const generationJobResponseSchema = z.object({ id: z.string().uuid(), status: generationJobStatusV2Schema, settingsVersion: z.string(), skillVersion: z.string().optional(), model: z.string().optional(), progress: z.object({ percent: z.number().int().min(0).max(100), phase: generationProgressPhaseSchema, completedSubjects: z.number().int().nonnegative(), totalSubjects: z.number().int().positive(), currentSubjectName: z.string().optional() }), subjects: z.array(generationSubjectSchema), createdAt: z.string().datetime(), completedAt: z.string().datetime().optional() });
 export type GenerationJobV2 = z.infer<typeof generationJobResponseSchema>;

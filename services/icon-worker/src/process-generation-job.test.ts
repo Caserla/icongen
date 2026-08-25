@@ -39,7 +39,7 @@ test("generates exactly three variants for every subject", async () => {
       async updateProgress() {}, async markCompleted() { completed = true; }, async markFailedAndRefund() {},
     },
     imageProvider: { name: "test-provider", model: "test-model", async generate() { return { bytes: new Uint8Array([1]), mimeType: "image/png" }; } },
-    imageProcessor: { async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; } },
+    imageProcessor: { async inspect() { return { width: 1024, height: 1024, hasAlpha: true }; }, async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; } },
     assetStore: { async put(input) { return { bucket: "icons", objectPath: `${input.jobId}/${input.subjectId}/${input.slot}/${input.size}.png` }; } },
     promptCompiler: { name: "test-skill", version: "test", compile(input) { purposes.push(input.purpose); return { prompt: `${input.name}-${input.slot}`, skillVersion: "test" }; } },
     logger: { info() {}, error() {} },
@@ -52,6 +52,30 @@ test("generates exactly three variants for every subject", async () => {
   assert.deepEqual(new Set(purposes), new Set(["app-icon"]));
 });
 
+test("runs up to three image generations in parallel", async () => {
+  let active = 0;
+  let maxActive = 0;
+  const dependencies: ProcessGenerationJobDependencies = {
+    repository: {
+      async getJob() { return job(); }, async markProcessing() {}, async markVariantProcessing() {},
+      async saveAsset() {}, async markVariantCompleted() {}, async updateProgress() {}, async markCompleted() {}, async markFailedAndRefund() {},
+    },
+    imageProvider: { name: "test-provider", model: "test-model", async generate() {
+      active += 1; maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return { bytes: new Uint8Array([1]), mimeType: "image/png" };
+    } },
+    imageProcessor: { async inspect() { return { width: 1024, height: 1024, hasAlpha: true }; }, async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; } },
+    assetStore: { async put() { return { bucket: "icons", objectPath: "parallel-test.png" }; } },
+    promptCompiler: { name: "test-skill", version: "test", compile() { return { prompt: "parallel", skillVersion: "test" }; } },
+    logger: { info() {}, error() {} },
+  };
+
+  await processGenerationJob("job-1", dependencies);
+  assert.equal(maxActive, 3);
+});
+
 test("does not regenerate a completed job", async () => {
   let providerCalls = 0;
   const dependencies: ProcessGenerationJobDependencies = {
@@ -60,7 +84,7 @@ test("does not regenerate a completed job", async () => {
       async saveAsset() {}, async markVariantCompleted() {}, async updateProgress() {}, async markCompleted() {}, async markFailedAndRefund() {},
     },
     imageProvider: { name: "test-provider", model: "test-model", async generate() { providerCalls += 1; return { bytes: new Uint8Array(), mimeType: "image/png" }; } },
-    imageProcessor: { async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; } },
+    imageProcessor: { async inspect() { return { width: 1024, height: 1024, hasAlpha: true }; }, async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; } },
     assetStore: { async put() { return { bucket: "icons", objectPath: "unused" }; } },
     promptCompiler: { name: "test-skill", version: "test", compile() { return { prompt: "unused", skillVersion: "test" }; } },
     logger: { info() {}, error() {} },

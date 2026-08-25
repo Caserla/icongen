@@ -4,8 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export class SupabaseAssetStore implements AssetStore {
   constructor(private readonly client: SupabaseClient, private readonly bucket: string) {}
 
-  async put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; size: number; bytes: Uint8Array; mimeType: string }) {
-    const objectPath = `${input.jobId}/${input.subjectId}/variant-${input.slot}/${input.size}.png`;
+  async put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; assetRole: "source" | "preview" | "output"; size: number; bytes: Uint8Array; mimeType: string }) {
+    const filename = input.assetRole === "output" ? `${input.size}.png` : `${input.assetRole}.png`;
+    const objectPath = `${input.jobId}/${input.subjectId}/variant-${input.slot}/${filename}`;
     const { error } = await this.client.storage.from(this.bucket).upload(objectPath, input.bytes, {
       contentType: input.mimeType,
       upsert: true,

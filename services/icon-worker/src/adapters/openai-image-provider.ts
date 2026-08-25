@@ -19,6 +19,7 @@ export class OpenAIImageProvider implements ImageProvider {
       model: this.model,
       prompt,
       quality: this.quality,
+      size: "1024x1024",
     });
     const encoded = response.data?.[0]?.b64_json;
     if (!encoded) throw new Error("OpenAI image response did not include b64_json data");

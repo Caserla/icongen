@@ -16,7 +16,7 @@ Marketing home, pricing, sign-in, sign-up, password recovery, icon creation, ico
 8. Public home, pricing, sign-in, and sign-up: PASS. They remain reachable without authentication.
 9. Create submission → generation job: BLOCKED BY UNFINISHED IMPLEMENTATION. The form currently validates a temporary payload but does not create a generation job.
 10. Generation progress and result refresh: BLOCKED BY UNFINISHED IMPLEMENTATION. Pages still use mock jobs.
-11. Single PNG and ZIP download: BLOCKED BY UNFINISHED IMPLEMENTATION. Mock asset URLs do not exist in `public/`.
+11. Selected-result ZIP download: BLOCKED BY UNFINISHED IMPLEMENTATION. Mock asset URLs do not exist in `public/`.
 12. Stripe payment completion: BLOCKED BY UNFINISHED IMPLEMENTATION. Checkout routing is complete, but `/api/billing/checkout` intentionally returns `501 NOT_IMPLEMENTED` until Stripe is configured.
 13. Authenticated end-to-end regression: NOT RUN. The local environment does not contain Supabase credentials, so real login/session, authenticated account data, generation creation, and Stripe return/webhook behavior cannot be exercised yet.
 

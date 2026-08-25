@@ -57,11 +57,11 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     if (error) throw new Error(`Failed to claim generation variant: ${error.message}`);
   }
 
-  async saveAsset(input: { variantId: string; size: number; width: number; height: number; hasAlpha: boolean; bucket: string; objectPath: string }) {
+  async saveAsset(input: { variantId: string; assetRole: "source" | "preview" | "output"; size: number; width: number; height: number; hasAlpha: boolean; bucket: string; objectPath: string }) {
     const { error } = await this.client.from("generation_assets").upsert({
-      variant_id: input.variantId, size: input.size, width: input.width, height: input.height,
+      variant_id: input.variantId, asset_role: input.assetRole, size: input.size, width: input.width, height: input.height,
       has_alpha: input.hasAlpha, storage_bucket: input.bucket, storage_path: input.objectPath,
-    }, { onConflict: "variant_id,size" });
+    }, { onConflict: "variant_id,asset_role,size" });
     if (error) throw new Error(`Failed to save generation asset: ${error.message}`);
   }
 

@@ -30,16 +30,9 @@
 
 - 复用图片生成模块的阶段二页面。
 - 显示提交时的主体、颜色、背景、10 维度选择、尺寸和版本摘要。
-- 选择状态可先保存在浏览器；标记“首选方案”必须保存到服务端，跨设备可恢复。
+- 选择状态保存在当前结果页，用于批量 ZIP 下载。
 - 用户可复制当前任务为新草稿；复制使用当前仍有效的核心设置映射，失效选项需重新确认。
 - 已删除或过期资产显示明确状态，不展示损坏图片。
-
-### WORK-003 单张预览与下载 — P0
-
-- 点击方案打开大图预览，支持切换尺寸、透明棋盘背景和深浅背景检查。
-- 用户可下载单张某尺寸 PNG，也可通过底部操作栏批量 ZIP 下载。
-- 服务端签名 URL 必须短时有效，并验证资源所有权。
-- 浏览器截图不视为生产下载。
 
 ### WORK-004 ZIP 归档 — P0
 
@@ -65,8 +58,6 @@ ZIP 包含：
 | --- | --- | --- |
 | `GET` | `/api/generation/jobs` | 筛选和分页查询自己的任务 |
 | `GET` | `/api/generation/jobs/{jobId}` | 查询详情、进度和结果 |
-| `PATCH` | `/api/generation/subjects/{subjectId}/primary` | 标记该主体首选方案 |
-| `POST` | `/api/generation/variants/{variantId}/download-url` | 获取单图短时下载链接 |
 | `POST` | `/api/generation/jobs/{jobId}/downloads` | 创建选中结果 ZIP |
 | `DELETE` | `/api/generation/jobs/{jobId}` | P1 删除作品记录 |
 | `POST` | `/api/account/data-export` | 删除宽限期内创建用户资产归档 |

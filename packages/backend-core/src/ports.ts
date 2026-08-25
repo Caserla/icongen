@@ -22,6 +22,8 @@ export type StoredAsset = {
   objectPath: string;
 };
 
+export type GenerationAssetRole = "source" | "preview" | "output";
+
 export interface GenerationRepository {
   getJob(jobId: string): Promise<GenerationJobRecord | null>;
   markProcessing(jobId: string, execution: GenerationExecution): Promise<void>;
@@ -30,6 +32,7 @@ export interface GenerationRepository {
     jobId: string;
     subjectId: string;
     variantId: string;
+    assetRole: GenerationAssetRole;
     size: number;
     width: number;
     height: number;
@@ -66,11 +69,12 @@ export type ProcessedImage = {
 };
 
 export interface ImageProcessor {
+  inspect(input: { bytes: Uint8Array }): Promise<{ width: number; height: number; hasAlpha: boolean }>;
   process(input: { bytes: Uint8Array; size: number }): Promise<ProcessedImage>;
 }
 
 export interface AssetStore {
-  put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; size: number; bytes: Uint8Array; mimeType: string }): Promise<StoredAsset>;
+  put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; assetRole: GenerationAssetRole; size: number; bytes: Uint8Array; mimeType: string }): Promise<StoredAsset>;
 }
 
 export interface PromptCompiler {

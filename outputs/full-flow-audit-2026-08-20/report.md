@@ -21,7 +21,7 @@ Home, pricing, sign-in, sign-up, forgot password, reset password, create, icon h
 11. Checkout completion — BLOCKED. Stripe checkout API is intentionally not implemented/configured.
 12. Authenticated account/profile/security — BLOCKED. No Supabase configuration or real session exists in the local environment.
 13. Create form → generation → progress → result — BLOCKED. The current form only validates a temporary payload and the history/result pages still use mock jobs.
-14. Single PNG and ZIP download — BLOCKED. Mock result asset URLs are not production files.
+14. Selected-result ZIP download — BLOCKED. Mock result asset URLs are not production files.
 15. Account data export and deletion mutation — BLOCKED FOR LIVE VERIFICATION. Routes exist, but require a real authenticated Supabase account.
 
 ## Bugs fixed during this audit

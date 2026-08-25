@@ -20,8 +20,12 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
     const { data: variants } = subjectIds.length ? await client.from("generation_variants").select("id,subject_id,slot").in("id", body.data.variantIds).in("subject_id", subjectIds).eq("status", "completed") : { data: [] };
     if ((variants ?? []).length !== body.data.variantIds.length) return apiError("RESOURCE_FORBIDDEN", "One or more selected results are unavailable.", 403);
     const variantIds = (variants ?? []).map((variant) => variant.id);
-    const { data: assets, error } = await client.from("generation_assets").select("variant_id,storage_bucket,storage_path").in("variant_id", variantIds).eq("size", body.data.size);
-    if (error) throw error;
+    let assetResult = await client.from("generation_assets").select("variant_id,storage_bucket,storage_path").in("variant_id", variantIds).eq("asset_role", "output").eq("size", body.data.size);
+    if (assetResult.error?.code === "42703") {
+      assetResult = await client.from("generation_assets").select("variant_id,storage_bucket,storage_path").in("variant_id", variantIds).eq("size", body.data.size);
+    }
+    if (assetResult.error) throw assetResult.error;
+    const assets = assetResult.data;
     if ((assets ?? []).length !== variantIds.length) return apiError("DOWNLOAD_NOT_READY", "The selected size is not ready for every result.", 409);
     const zip = new JSZip();
     for (const variant of variants ?? []) {

@@ -503,20 +503,28 @@ create unique index generation_variants_one_primary_per_subject_idx
 create table public.generation_assets (
   id uuid primary key default gen_random_uuid(),
   variant_id uuid not null references public.generation_variants(id) on delete cascade,
-  size smallint not null check (size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024)),
+  asset_role text not null default 'output' check (asset_role in ('source', 'preview', 'output')),
+  size smallint not null check (
+    (asset_role in ('source', 'preview') and size > 0)
+    or
+    (
+      asset_role = 'output'
+      and size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024)
+    )
+  ),
   width smallint not null check (width > 0),
   height smallint not null check (height > 0),
   has_alpha boolean not null,
   storage_bucket text not null,
   storage_path text not null,
   created_at timestamptz not null default now(),
-  unique (variant_id, size),
+  unique (variant_id, asset_role, size),
   unique (storage_bucket, storage_path)
 );
 
 create index generation_subjects_job_position_idx on public.generation_subjects(job_id, position);
 create index generation_variants_subject_slot_idx on public.generation_variants(subject_id, slot);
-create index generation_assets_variant_size_idx on public.generation_assets(variant_id, size);
+create index generation_assets_variant_role_size_idx on public.generation_assets(variant_id, asset_role, size);
 
 create trigger generation_subjects_set_updated_at
   before update on public.generation_subjects

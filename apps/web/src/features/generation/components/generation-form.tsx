@@ -77,7 +77,7 @@ export function GenerationForm() {
     setMessage("");
     const parsed = createGenerationJobSchema.safeParse({
       idempotencyKey: crypto.randomUUID(), settingsVersion: DESIGN_SETTINGS_VERSION, purpose: iconPurpose, subjects, subjectColor,
-      background: backgroundMode !== "transparent" ? { enabled: true as const, container: backgroundContainer, color: backgroundColor } : { enabled: false as const },
+      background: backgroundMode !== "transparent" ? { enabled: true as const, container: backgroundContainer, color: backgroundColor, cornerRadius: backgroundContainer === "rounded-square" ? backgroundCornerRadius : undefined } : { enabled: false as const },
       style: { ...style, graphicStructure: iconStructure }, sizes,
     });
     if (!parsed.success) {
