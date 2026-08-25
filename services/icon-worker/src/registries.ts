@@ -20,7 +20,12 @@ export function createImageProvider(config: WorkerConfig): ImageProvider {
       return new MockImageProvider();
     case "openai":
       if (!config.IMAGE_PROVIDER_API_KEY) throw new Error("IMAGE_PROVIDER_API_KEY is required for OpenAI");
-      return new OpenAIImageProvider(config.IMAGE_PROVIDER_API_KEY, config.IMAGE_MODEL, config.IMAGE_QUALITY);
+      return new OpenAIImageProvider(
+        config.IMAGE_PROVIDER_API_KEY,
+        config.IMAGE_MODEL,
+        config.IMAGE_QUALITY,
+        config.IMAGE_PROVIDER_BASE_URL,
+      );
     default:
       throw new Error(`Unsupported IMAGE_PROVIDER: ${config.IMAGE_PROVIDER}`);
   }

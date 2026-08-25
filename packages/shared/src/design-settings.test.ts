@@ -6,7 +6,7 @@ import { createGenerationJobSchema, OUTPUT_SIZES, parseStoredGenerationJobSpec, 
 const base = {
   idempotencyKey: "4c6be3f8-df54-4df1-b2ce-9fa2ec735705", settingsVersion: DESIGN_SETTINGS_VERSION,
   subjects: [{ clientId: "search", name: "Search", description: "Find content" }], subjectColor: { mode: "solid" as const, color: "#6D4AFF" },
-  style: { preset: "clay-3d" as const, strokeWeight: "regular" as const, cornerStyle: "balanced" as const, detailLevel: "standard" as const }, sizes: [24],
+  style: { preset: "clay-3d" as const, strokeWeight: "regular" as const, cornerStyle: "balanced" as const, detailLevel: "standard" as const }, sizes: [32],
 };
 
 test("style catalog provides nine visual presets and three refinements", () => {
@@ -20,17 +20,17 @@ test("generation UI exposes exactly the three approved background types", () => 
 });
 
 test("accepts a style-led multi-subject generation contract", () => {
-  const result = createGenerationJobSchema.safeParse({ ...base, purpose: "app-icon", subjects: [...base.subjects, { clientId: "delete", name: "Delete", description: "Remove content" }], background: { enabled: true, container: "rounded-square", color: { mode: "solid", color: "#FFFFFF" } }, sizes: [24, 64, 256] });
+  const result = createGenerationJobSchema.safeParse({ ...base, purpose: "app-icon", subjects: [...base.subjects, { clientId: "delete", name: "Delete", description: "Remove content" }], background: { enabled: true, container: "rounded-square", color: { mode: "solid", color: "#FFFFFF" } }, sizes: [32, 64, 256] });
   assert.equal(result.success, true); assert.equal(VARIANTS_PER_SUBJECT, 3);
   if (result.success) assert.equal(result.data.purpose, "app-icon");
-  assert.deepEqual(OUTPUT_SIZES, [16, 24, 32, 64, 256, 1024]);
+  assert.deepEqual(OUTPUT_SIZES, [16, 32, 48, 64, 128, 256]);
 });
 
 test("rejects unsupported style, duplicate subjects, and more than three sizes", () => {
   assert.equal(createGenerationJobSchema.safeParse({ ...base, purpose: "marketing", background: { enabled: false } }).success, false);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, background: { enabled: true, container: "pill", color: { mode: "solid", color: "#FFFFFF" } } }).success, false);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, style: { ...base.style, preset: "technical" } }).success, false);
-  assert.equal(createGenerationJobSchema.safeParse({ ...base, subjects: [{ clientId: "same", name: "Search", description: "Find content" }, { clientId: "same", name: "Delete", description: "Remove content" }], background: { enabled: false }, sizes: [24, 24, 64, 256] }).success, false);
+  assert.equal(createGenerationJobSchema.safeParse({ ...base, subjects: [{ clientId: "same", name: "Search", description: "Find content" }, { clientId: "same", name: "Delete", description: "Remove content" }], background: { enabled: false }, sizes: [32, 32, 64, 256] }).success, false);
 });
 
 test("maps an existing queued legacy job to an equivalent icon design style", () => {

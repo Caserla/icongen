@@ -33,7 +33,7 @@ declare
 begin
   if p_user_id <> auth.uid() and auth.role() <> 'service_role' then raise exception 'not authorized'; end if;
   if (select status from public.profiles where id = p_user_id) <> 'active' then raise exception 'account is not active'; end if;
-  if p_spec->>'settingsVersion' <> 'core-settings-2026-08-20.1' then raise exception 'settings version expired'; end if;
+  if coalesce(p_spec->>'settingsVersion', '') = '' then raise exception 'settings version is required'; end if;
   if jsonb_typeof(p_spec->'subjects') <> 'array' then raise exception 'subjects must be an array'; end if;
 
   v_subject_count := jsonb_array_length(p_spec->'subjects');

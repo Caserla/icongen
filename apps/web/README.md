@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` before connecting Supabase, Stripe, or AWS.
+Copy `.env.example` to `.env.local` before connecting Supabase or Stripe.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

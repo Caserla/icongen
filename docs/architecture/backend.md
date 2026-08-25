@@ -14,26 +14,23 @@ flowchart LR
   BFF --> Stripe[Stripe Checkout]
   Stripe --> Webhook[Signed webhook]
   Webhook --> DB
-  BFF --> Queue[AWS SQS]
-  Queue --> Worker[Lambda icon-worker]
+  DB --> Worker[后台生成执行器（待定）]
   Worker --> Skill[icon-skill]
   Worker --> OpenAI[OpenAI Image API]
   Worker --> Storage[Supabase private Storage]
   Worker --> DB
-  Queue --> DLQ[SQS DLQ]
 ```
 
 ## 3. 代码模块
 
 - `apps/web`：浏览器页面与 BFF。负责会话校验、任务创建、查询、签名下载 URL、Stripe Checkout 和 Webhook。
-- `packages/shared`：前后端共用输入校验、任务状态和 SQS 消息协议。
+- `packages/shared`：前后端共用输入校验、任务状态和生成协议。
 - `packages/backend-core`：不依赖供应商 SDK 的领域接口与生成任务用例。
 - `packages/icon-skill`：把版本化 `GenerationSpec` 按主体编译为 3 个差异化提示词，并记录 Skill 与核心设置版本。
-- `services/icon-worker`：SQS Lambda 入口及 OpenAI、Supabase 适配器。
+- `services/icon-worker`：与运行平台无关的生成核心及 OpenAI、Supabase 适配器。
 - `infra/supabase`：数据库表、RLS、私有文件桶与事务函数。
-- `infra/aws`：SQS、DLQ、Lambda 和 CloudWatch 告警。
 
-模型和 Skill 都通过 Worker 注册表选择。`IMAGE_PROVIDER`、`IMAGE_MODEL`、`IMAGE_QUALITY` 和 `ICON_SKILL` 是部署配置；首发质量固定为 `medium`。新增供应商只实现 `ImageProvider`，新增 Skill 只实现 `PromptCompiler`，不会影响任务、扣点、队列和存储代码。任务及每个结果都会记录实际使用的 Provider、模型、质量、Skill 名称与版本。
+模型和 Skill 都通过 Worker 注册表选择。`IMAGE_PROVIDER`、`IMAGE_MODEL`、`IMAGE_QUALITY` 和 `ICON_SKILL` 是服务端配置；首发质量固定为 `medium`。新增供应商只实现 `ImageProvider`，新增 Skill 只实现 `PromptCompiler`，不会影响任务、扣点和存储代码。任务及每个结果都会记录实际使用的 Provider、模型、质量、Skill 名称与版本。
 
 ## 4. 核心流程
 
@@ -42,12 +39,11 @@ flowchart LR
 1. BFF 校验用户会话和描述字段。
 2. BFF 使用客户端幂等键调用 `create_generation_job_and_debit`。
 3. PostgreSQL 在同一事务中锁定点数账户、扣点、建立任务并写账本。
-4. BFF 将版本化消息 `{ version, jobId, requestedAt }` 发送到 SQS。
-5. 若发送暂时失败，BFF 可用相同幂等键重试；后台补偿任务可重新投递仍处于 `queued` 的任务。
+4. 后台生成执行方式尚未确定；不得在未确认的情况下引入新的云服务或队列。
 
 ### 批量生成每主体 3 个方案
 
-1. Lambda 消费一个 SQS 消息并验证协议。
+1. 服务端执行器领取一个待处理任务并验证任务状态。
 2. Worker 读取任务规格快照，按主体建立 3 个 variant 工作单元；Icon Skill 为每个工作单元编译提示词。
 3. OpenAI Provider 生成高分辨率 PNG，后处理为用户选择的尺寸，保存至私有 Storage，并逐个写入 variant 与 asset 记录。
 4. 任务进度由完成或最终失败的工作单元计算；全部处理结束后进入 `completed`、`partial` 或 `failed`。
@@ -73,7 +69,7 @@ flowchart LR
 ## 5. 数据与安全
 
 - 所有用户数据表开启 RLS，用户仅能读取自己的资料、余额、订单、任务和结果。
-- 浏览器不得持有 OpenAI、Stripe Secret、Supabase Service Role 或 AWS 凭据。
+- 浏览器不得持有 OpenAI、Stripe Secret 或 Supabase Service Role 凭据。
 - Worker 仅使用服务端密钥；生成文件桶不公开，下载使用短期签名 URL。
 - 个人数据导出桶保持私有；订单只导出非敏感支付引用和金额状态，不得包含模型 API Key、完整内部 Prompt、支付卡数据、Stripe 密钥、管理员备注或管理审计详情。
 - `credit_ledger` 是不可变账本，余额是高效读取的账户快照。
@@ -82,23 +78,21 @@ flowchart LR
 
 ## 6. 可靠性与成本控制
 
-- SQS 可见性超时必须大于 Lambda 超时；当前分别为 960 秒和 900 秒。
-- 父任务拆分为主体 × 3 的幂等工作单元；Lambda 预留并发默认 5，避免模型 API 突发费用。
-- 最多消费 3 次后进入 DLQ，并通过 CloudWatch Alarm 报警。
+- 父任务拆分为主体 × 3 的幂等工作单元；后台执行器必须限制并发，避免模型 API 突发费用。
 - variant 表以 `(subject_id, slot)` 唯一，文件路径包含 `{jobId}/{subjectId}/variant-{slot}/{size}.png`，重试可安全跳过已成功资产。
-- 后续应加入“已完成 slot 跳过生成”和 queued 任务补偿投递，进一步降低重复生成成本。
+- 后续应加入“已完成 slot 跳过生成”和 queued 任务恢复机制，进一步降低重复生成成本。
 
 ## 7. 环境与部署
 
 - Web：Vercel，生产域名和 Edge/CDN 面向海外用户。
 - 数据：Supabase 项目优先选择美国东部区域。
-- Worker：AWS Lambda + SQS，优先 `us-east-1`，减少跨区延迟。
-- 监控：Vercel Logs、CloudWatch、Sentry；关键指标包括成功率、P95 耗时、每任务模型成本、退款率和 DLQ 数量。
+- Worker：执行方式待结合现有 Supabase 架构确定，不预设额外云服务。
+- 监控：Vercel Logs、Supabase Logs、Sentry；关键指标包括成功率、P95 耗时、每任务模型成本和退款率。
 
 ## 8. 后端环境变量
 
-Worker 变量见 `services/icon-worker/.env.example`。本地默认使用 `IMAGE_PROVIDER=mock`，不需要模型 API Key；真实生成切换为 `IMAGE_PROVIDER=openai` 后必须由平台方配置 API Key。`IMAGE_QUALITY` 默认并固定为 `medium`，OpenAI Provider 会显式传入该值。Web BFF 需要 Supabase URL/Anon Key/Service Role、Stripe Secret/Webhook Secret、AWS 区域及生成队列 URL；所有生产密钥只保存在部署平台的加密环境变量或 Secrets Manager。
+Worker 变量见 `services/icon-worker/.env.example`。本地默认使用 `IMAGE_PROVIDER=mock`，不需要模型 API Key；真实生成切换为 `IMAGE_PROVIDER=openai` 后必须由平台方配置 API Key。`IMAGE_QUALITY` 默认并固定为 `medium`，OpenAI Provider 会显式传入该值。Web BFF 需要 Supabase URL/Anon Key/Service Role 和 Stripe Secret/Webhook Secret；所有生产密钥只保存在服务端安全环境变量中。
 
 ## 9. 当前实现边界
 
-共享 v2 Schema、版本化图标设计风格配置及批量数据库迁移已经建立。MVP 不支持完整 266 项或高级模式。Worker 已切换到 subjects × 3 variants，能够真实缩放 PNG、汇总主体与任务状态，并对未完整交付的主体按 1 点退款。真实模型、SQS、进度查询和下载接口仍需完成部署联调；具体状态以开发计划和需求一致性审计为准。
+共享 v2 Schema、版本化图标设计风格配置及批量数据库迁移已经建立。MVP 不支持完整 266 项或高级模式。Worker 已切换到 subjects × 3 variants，能够真实缩放 PNG、汇总主体与任务状态。真实模型、后台执行、进度查询和下载接口仍需完成部署联调；具体状态以开发计划和需求一致性审计为准。

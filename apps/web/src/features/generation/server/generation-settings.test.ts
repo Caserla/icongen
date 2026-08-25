@@ -8,8 +8,8 @@ test("returns the versioned icon-style catalog", () => {
   assert.equal(settings.stylePresets.length, 9);
   assert.ok(settings.stylePresets.every((preset) => preset.previewImage.startsWith("/images/icon-style-previews/hd-native/")));
   assert.equal(settings.styleAdjustments.length, 3);
-  assert.deepEqual(settings.outputSizes, [16, 24, 32, 64, 256, 1024]);
-  assert.deepEqual(settings.limits, { maxOutputSizes: 3, variantsPerSubject: 3 });
+  assert.deepEqual(settings.outputSizes, [16, 32, 48, 64, 128, 256]);
+  assert.deepEqual(settings.limits, { maxSubjects: 20, maxOutputSizes: 3, variantsPerSubject: 3 });
 });
 
 test("serves the public settings endpoint consistently with cache headers", async () => {

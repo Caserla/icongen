@@ -94,41 +94,23 @@ GENERATION_MAX_ATTEMPTS=3
 - `SUPABASE_ICON_BUCKET`：生成结果存储桶，默认是 `generated-icons`。
 - `GENERATION_MAX_ATTEMPTS`：任务最大处理次数，默认是 3。
 
-## 5. AWS 正式环境配置
+## 5. 正式环境配置
 
-### 5.1 部署模板
+后台生成执行方式尚未确定。选型必须复用现有 Supabase 架构并经项目确认，不得默认引入额外云服务。
 
-AWS SAM 模板位于：
-
-```text
-infra/aws/template.yaml
-```
-
-### 5.2 部署命令
-
-```bash
-sam build --template-file infra/aws/template.yaml
-sam deploy --guided
-```
-
-### 5.3 部署参数
-
-部署过程中填写：
+服务端执行环境最终至少需要以下变量：
 
 ```text
-ImageProvider: openai
-ImageModel: gpt-image-2
-ImageQuality: medium
-ImageProviderApiKey: 平台方的OpenAI API Key
-IconSkill: default-ui-icon
-SupabaseUrl: Supabase项目地址
-SupabaseServiceRoleKey: Supabase服务端密钥
-ReservedConcurrency: 5
+IMAGE_PROVIDER=openai
+IMAGE_MODEL=gpt-image-2
+IMAGE_QUALITY=medium
+IMAGE_PROVIDER_API_KEY=平台方的OpenAI API Key
+ICON_SKILL=default-ui-icon
+SUPABASE_URL=Supabase项目地址
+SUPABASE_SERVICE_ROLE_KEY=Supabase服务端密钥
 ```
 
-部署完成后，Lambda Worker 会读取这些服务端环境变量。网站用户无法看到或修改这些配置。
-
-生产环境建议把模型 API Key 和 Supabase Service Role Key 存储在 AWS Secrets Manager，并通过动态引用提供给 Lambda。
+这些变量只能保存在服务端安全环境中，网站用户无法看到或修改。
 
 ## 6. 默认 Icon Skill
 
@@ -165,7 +147,7 @@ export const ICON_SKILL_VERSION = "0.2.0";
 
 ### 6.3 Skill 的含义
 
-当前 Icon Skill 是 Bamboo IconGen 后端中的 TypeScript 业务模块，不是安装在 ChatGPT 或 Codex 中的 `SKILL.md`。它会随 Lambda Worker 一起构建和部署。
+当前 Icon Skill 是 Bamboo IconGen 后端中的 TypeScript 业务模块，不是安装在 ChatGPT 或 Codex 中的 `SKILL.md`。它会随后台生成服务一起构建和部署。
 
 ## 7. 修改默认 Skill
 
@@ -181,7 +163,7 @@ packages/icon-skill/src/index.ts
 2. 调整通用提示词和负向约束。
 3. 升级 `ICON_SKILL_VERSION`。
 4. 运行类型检查和测试。
-5. 重新部署 Lambda Worker。
+5. 重新部署后台生成服务。
 
 验证命令：
 
@@ -273,7 +255,7 @@ interface ImageProvider {
 }
 ```
 
-更换 Provider 不需要修改前端、任务状态、扣点、SQS 或 Supabase Storage 逻辑。
+更换 Provider 不需要修改前端、任务状态、扣点或 Supabase Storage 逻辑。
 
 ## 10. 普通用户请求边界
 
@@ -311,7 +293,7 @@ interface ImageProvider {
 - [ ] API Key 没有出现在浏览器请求和前端构建结果中。
 - [ ] Supabase Service Role Key 只存在于服务端。
 - [ ] 生产密钥存储在加密环境变量或 Secrets Manager。
-- [ ] Lambda 日志不会输出 API Key。
+- [ ] 服务端日志不会输出 API Key。
 - [ ] 模型供应商设置了费用上限或告警。
 - [ ] Skill 修改后升级了版本。
 - [ ] 上线前运行了类型检查和测试。

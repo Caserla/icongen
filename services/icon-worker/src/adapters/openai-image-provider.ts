@@ -5,8 +5,13 @@ export class OpenAIImageProvider implements ImageProvider {
   readonly name = "openai";
   private readonly client: OpenAI;
 
-  constructor(apiKey: string, readonly model: string, private readonly quality: "low" | "medium" | "high" | "auto") {
-    this.client = new OpenAI({ apiKey });
+  constructor(
+    apiKey: string,
+    readonly model: string,
+    private readonly quality: "low" | "medium" | "high" | "auto",
+    baseURL?: string,
+  ) {
+    this.client = new OpenAI({ apiKey, baseURL });
   }
 
   async generate({ prompt }: { prompt: string }) {

@@ -3,7 +3,7 @@ import { createGenerationDownloadSchema } from "@icongen/shared";
 import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const paramsSchema = z.object({ jobId: z.string().uuid() });
 
@@ -12,7 +12,7 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
   const body = createGenerationDownloadSchema.safeParse(await request.json().catch(() => null));
   if (!params.success || !body.success) return apiError("NO_RESULTS_SELECTED", "Select at least one valid icon result.", 400);
   try {
-    const user = await requireActiveUser(); const client = await createServerSupabaseClient();
+    const user = await requireActiveUser(); const client = createAdminSupabaseClient();
     const { data: job } = await client.from("generation_jobs").select("id").eq("id", params.data.jobId).eq("user_id", user.id).maybeSingle();
     if (!job) return apiError("GENERATION_JOB_NOT_FOUND", "The generation task was not found.", 404);
     const { data: subjects } = await client.from("generation_subjects").select("id,name").eq("job_id", job.id);
@@ -33,5 +33,8 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
     const archive = await zip.generateAsync({ type: "uint8array" });
     const archiveBuffer = archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength) as ArrayBuffer;
     return new Response(archiveBuffer, { headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="bamboo-icongen-${job.id}.zip"`, "cache-control": "private, no-store" } });
-  } catch (error) { return authErrorResponse(error) ?? apiError("DOWNLOAD_CREATE_FAILED", "We could not create the ZIP download.", 500); }
+  } catch (error) {
+    console.error("Failed to create generation ZIP", { jobId: params.success ? params.data.jobId : undefined, error });
+    return authErrorResponse(error) ?? apiError("DOWNLOAD_CREATE_FAILED", "We could not create the ZIP download.", 500);
+  }
 }

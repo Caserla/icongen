@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BACKGROUND_TYPE_OPTION_IDS, createGenerationJobSchema, DESIGN_SETTINGS_VERSION, OUTPUT_SIZES, type ColorSetting, type GenerationSettingsResponse, type IconStyle } from "@icongen/shared";
+import { BACKGROUND_TYPE_OPTION_IDS, createGenerationJobSchema, DESIGN_SETTINGS_VERSION, MAX_SUBJECTS, OUTPUT_SIZES, type ColorSetting, type GenerationSettingsResponse, type IconStyle } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { Toast, type ToastVariant } from "@/components/ui/toast";
 import { AppIconStyleSelector } from "./app-icon-style-selector";
@@ -10,32 +10,24 @@ import { IconPurposeSelector, type IconPurpose } from "./icon-purpose-selector";
 import { IconSubjectEditor } from "./icon-subject-editor";
 import { InteractionIconEditor, type BackgroundMode, type IconStructure } from "./interaction-icon-editor";
 import { ReferenceSizeSelector } from "./reference-size-selector";
+import { parseSubjectRows } from "../subject-parser";
 
 const defaultStyle: IconStyle = { preset: "clay-3d", strokeWeight: "regular", cornerStyle: "balanced", detailLevel: "standard" };
 const defaultBackgroundType = BACKGROUND_TYPE_OPTION_IDS[0];
 
-function parseSubjects(input: string) {
-  return input.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line, index) => {
-    const separator = line.search(/[：:]/);
-    const name = separator > 0 ? line.slice(0, separator).trim() : line;
-    const description = separator > 0 ? line.slice(separator + 1).trim() : line;
-    return { clientId: `subject-${index + 1}`, name: name.slice(0, 40), description };
-  });
-}
-
 export function GenerationForm() {
   const { locale } = useLocale();
   const router = useRouter();
-  const [subjectInput, setSubjectInput] = useState("");
+  const [subjectInputs, setSubjectInputs] = useState([""]);
   const [iconPurpose, setIconPurpose] = useState<IconPurpose>("interaction");
   const [iconStructure, setIconStructure] = useState<IconStructure>("linear");
-  const [subjectColor, setSubjectColor] = useState<ColorSetting>({ mode: "solid", color: "#46474A" });
+  const [subjectColor, setSubjectColor] = useState<ColorSetting>({ mode: "solid", color: "#61666E" });
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("transparent");
-  const [backgroundColor, setBackgroundColor] = useState<ColorSetting>({ mode: "gradient", colors: ["#F2EEFF", "#DDD6FE"], direction: "top-left-to-bottom-right" });
+  const [backgroundColor, setBackgroundColor] = useState<ColorSetting>({ mode: "gradient", colors: ["#FFFFFF", "#FFFFFF"], direction: "top-left-to-bottom-right" });
   const [backgroundCornerRadius, setBackgroundCornerRadius] = useState(22);
   const [backgroundContainer, setBackgroundContainer] = useState<(typeof BACKGROUND_TYPE_OPTION_IDS)[number]>(defaultBackgroundType);
   const [style, setStyle] = useState<IconStyle>(defaultStyle);
-  const [sizes, setSizes] = useState<number[]>([64, 256, 1024]);
+  const [sizes, setSizes] = useState<number[]>([64, 128, 256]);
   const [settings, setSettings] = useState<GenerationSettingsResponse | null>(null);
   const [message, setMessage] = useState("");
   const [toast, setToast] = useState<{ message: string; variant: ToastVariant } | null>(null);
@@ -51,7 +43,17 @@ export function GenerationForm() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
-  const subjects = useMemo(() => parseSubjects(subjectInput), [subjectInput]);
+  const subjects = useMemo(() => parseSubjectRows(subjectInputs), [subjectInputs]);
+  function updateSubject(index: number, value: string) {
+    setSubjectInputs((current) => current.map((item, itemIndex) => itemIndex === index ? value : item));
+  }
+  function addSubject() {
+    if (subjectInputs.length >= MAX_SUBJECTS) return;
+    setSubjectInputs((current) => [...current, ""]);
+  }
+  function removeSubject(index: number) {
+    setSubjectInputs((current) => current.length === 1 ? [""] : current.filter((_, itemIndex) => itemIndex !== index));
+  }
   function toggleSize(size: number) {
     if (sizes.includes(size)) {
       setSizes((current) => current.filter((item) => item !== size));
@@ -68,7 +70,7 @@ export function GenerationForm() {
   function selectBackgroundMode(mode: BackgroundMode) {
     setBackgroundMode(mode);
     if (mode === "solid" && backgroundColor.mode === "gradient") setBackgroundColor({ mode: "solid", color: "#FFFFFF" });
-    if (mode === "gradient" && backgroundColor.mode === "solid") setBackgroundColor({ mode: "gradient", colors: [backgroundColor.color, "#DDD6FE"], direction: "top-left-to-bottom-right" });
+    if (mode === "gradient" && backgroundColor.mode === "solid") setBackgroundColor({ mode: "gradient", colors: ["#FFFFFF", "#FFFFFF"], direction: "top-left-to-bottom-right" });
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,7 +81,10 @@ export function GenerationForm() {
       style: { ...style, graphicStructure: iconStructure }, sizes,
     });
     if (!parsed.success) {
-      setMessage(locale === "zh" ? "请至少填写一个图标主体的描述。" : "Describe at least one icon subject.");
+      const hasSubjects = subjects.length > 0;
+      setMessage(hasSubjects
+        ? (locale === "zh" ? "部分图标主体格式不完整，请检查填写内容。" : "Some icon subjects are incomplete. Check the entered content.")
+        : (locale === "zh" ? "请至少填写一个图标主体的描述。" : "Describe at least one icon subject."));
       return;
     }
     setBusy(true);
@@ -109,7 +114,7 @@ export function GenerationForm() {
         cornerRadius={backgroundCornerRadius} onCornerRadiusChange={setBackgroundCornerRadius}
       /> : <AppIconStyleSelector presets={settings?.stylePresets ?? []} value={style} onChange={setStyle} loading={!settings} locale={locale}/>}
     </section>
-    <IconSubjectEditor value={subjectInput} onChange={setSubjectInput} locale={locale}/>
+    <IconSubjectEditor values={subjectInputs} onChange={updateSubject} onAdd={addSubject} onRemove={removeSubject} maxSubjects={MAX_SUBJECTS} locale={locale}/>
     <ReferenceSizeSelector options={OUTPUT_SIZES} selected={sizes} onToggle={toggleSize} locale={locale}/>
     <div className="sticky bottom-4 z-10 flex justify-end"><button type="submit" disabled={busy || !settings} className="min-h-12 rounded-xl bg-brand px-7 font-black text-white shadow-[0_4px_0_#4930c9] disabled:opacity-50">{busy ? (locale === "zh" ? "正在创建任务…" : "Creating task…") : (locale === "zh" ? "生成图标" : "Generate icons")}</button></div>
     {message ? <p role="alert" className="rounded-xl bg-[#fff1ed] px-4 py-3 text-sm text-danger">{message}</p> : null}

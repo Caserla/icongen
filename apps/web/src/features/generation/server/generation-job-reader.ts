@@ -25,7 +25,8 @@ export async function readGenerationJob(client: SupabaseClient, userId: string, 
 
   const assetRows = await Promise.all((assets ?? []).map(async (asset) => {
     const signed = await client.storage.from(asset.storage_bucket).createSignedUrl(asset.storage_path, 3600);
-    return { ...asset, previewUrl: signed.data?.signedUrl };
+    if (signed.error) throw new Error(`Failed to create generated icon preview URL: ${signed.error.message}`);
+    return { ...asset, previewUrl: signed.data.signedUrl };
   }));
   const completedSubjects = (subjects ?? []).filter((subject) => subject.status === "completed").length;
   const currentSubject = (subjects ?? []).find((subject) => subject.status === "processing");
@@ -63,7 +64,7 @@ export async function readGenerationJob(client: SupabaseClient, userId: string, 
         })),
       })),
     })),
-    createdAt: job.created_at,
-    completedAt: job.completed_at ?? undefined,
+    createdAt: new Date(job.created_at).toISOString(),
+    completedAt: job.completed_at ? new Date(job.completed_at).toISOString() : undefined,
   });
 }

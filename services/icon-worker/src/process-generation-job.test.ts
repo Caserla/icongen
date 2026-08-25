@@ -14,7 +14,7 @@ const spec: GenerationJobRecord["spec"] = {
   subjectColor: { mode: "solid", color: "#6750E8" },
   background: { enabled: false },
   style: { preset: "clay-3d", strokeWeight: "regular", cornerStyle: "balanced", detailLevel: "standard" },
-  sizes: [24],
+  sizes: [32],
 };
 
 function job(status: GenerationJobRecord["status"] = "queued"): GenerationJobRecord {

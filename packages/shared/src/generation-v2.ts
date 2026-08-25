@@ -2,19 +2,20 @@ import { z } from "zod";
 import { DESIGN_SETTINGS_VERSION, ICON_STYLE_PRESET_IDS } from "./design-settings";
 
 export const VARIANTS_PER_SUBJECT = 3 as const;
-export const OUTPUT_SIZES = [16, 24, 32, 64, 256, 1024] as const;
+export const MAX_SUBJECTS = 20 as const;
+export const OUTPUT_SIZES = [16, 32, 48, 64, 128, 256] as const;
 const LEGACY_OUTPUT_SIZES = [16, 20, 24, 32, 48, 64, 128, 256, 512, 1024] as const;
 
 const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Expected a #RRGGBB color");
 const gradientDirectionSchema = z.enum(["top-to-bottom", "bottom-to-top", "left-to-right", "right-to-left", "top-left-to-bottom-right", "top-right-to-bottom-left", "radial"]);
 export const colorSettingSchema = z.discriminatedUnion("mode", [z.object({ mode: z.literal("solid"), color: hexColorSchema }), z.object({ mode: z.literal("gradient"), colors: z.tuple([hexColorSchema, hexColorSchema]), direction: gradientDirectionSchema })]);
 export const iconStyleSchema = z.object({ preset: z.enum(ICON_STYLE_PRESET_IDS), graphicStructure: z.enum(["linear", "filled"]).optional(), strokeWeight: z.enum(["light", "regular", "bold"]), cornerStyle: z.enum(["soft", "balanced", "sharp"]), detailLevel: z.enum(["minimal", "standard", "detailed"]) });
-export const generationSubjectInputSchema = z.object({ clientId: z.string().trim().min(1).max(64), name: z.string().trim().min(1).max(40), description: z.string().trim().min(2).max(300), colorOverride: colorSettingSchema.optional() });
+export const generationSubjectInputSchema = z.object({ clientId: z.string().trim().min(1).max(64), name: z.string().trim().min(1).max(40), description: z.string().trim().min(1).max(300), colorOverride: colorSettingSchema.optional() });
 const outputSizeSchema = z.union(OUTPUT_SIZES.map((size) => z.literal(size)));
 const legacyOutputSizeSchema = z.union(LEGACY_OUTPUT_SIZES.map((size) => z.literal(size)));
 
 export const createGenerationJobSchema = z.object({
-  idempotencyKey: z.string().uuid(), settingsVersion: z.literal(DESIGN_SETTINGS_VERSION), purpose: z.enum(["interaction", "app-icon"]).optional(), subjects: z.array(generationSubjectInputSchema).min(1), subjectColor: colorSettingSchema,
+  idempotencyKey: z.string().uuid(), settingsVersion: z.literal(DESIGN_SETTINGS_VERSION), purpose: z.enum(["interaction", "app-icon"]).optional(), subjects: z.array(generationSubjectInputSchema).min(1).max(MAX_SUBJECTS), subjectColor: colorSettingSchema,
   background: z.discriminatedUnion("enabled", [z.object({ enabled: z.literal(false) }), z.object({ enabled: z.literal(true), container: z.enum(["rounded-square", "circle", "square"]), color: colorSettingSchema })]),
   style: iconStyleSchema, sizes: z.array(outputSizeSchema).min(1).max(3),
 }).superRefine((value, context) => {
@@ -63,11 +64,9 @@ export const generationSubjectSchema = z.object({ id: z.string().uuid(), clientI
 export const generationJobResponseSchema = z.object({ id: z.string().uuid(), status: generationJobStatusV2Schema, settingsVersion: z.string(), skillVersion: z.string().optional(), model: z.string().optional(), progress: z.object({ percent: z.number().int().min(0).max(100), phase: generationProgressPhaseSchema, completedSubjects: z.number().int().nonnegative(), totalSubjects: z.number().int().positive(), currentSubjectName: z.string().optional() }), subjects: z.array(generationSubjectSchema), createdAt: z.string().datetime(), completedAt: z.string().datetime().optional() });
 export type GenerationJobV2 = z.infer<typeof generationJobResponseSchema>;
 export type GenerationJobStatusV2 = z.infer<typeof generationJobStatusV2Schema>;
-export const generationQueueMessageV2Schema = z.object({ version: z.literal(2), jobId: z.string().uuid(), requestedAt: z.string().datetime() });
-export type GenerationQueueMessageV2 = z.infer<typeof generationQueueMessageV2Schema>;
 const labelSchema = z.object({ en: z.string().min(1), zh: z.string().min(1) });
 const optionSchema = z.object({ id: z.string().min(1), label: labelSchema, promptToken: z.string().min(1) });
-export const generationSettingsResponseSchema = z.object({ version: z.string().min(1), stylePresets: z.array(optionSchema.extend({ description: labelSchema, previewImage: z.string().startsWith("/") })).length(9), styleAdjustments: z.array(z.object({ id: z.string().min(1), label: labelSchema, options: z.array(optionSchema).min(1) })).length(3), outputSizes: z.array(outputSizeSchema).length(OUTPUT_SIZES.length), limits: z.object({ maxOutputSizes: z.literal(3), variantsPerSubject: z.literal(VARIANTS_PER_SUBJECT) }) });
+export const generationSettingsResponseSchema = z.object({ version: z.string().min(1), stylePresets: z.array(optionSchema.extend({ description: labelSchema, previewImage: z.string().startsWith("/") })).length(9), styleAdjustments: z.array(z.object({ id: z.string().min(1), label: labelSchema, options: z.array(optionSchema).min(1) })).length(3), outputSizes: z.array(outputSizeSchema).length(OUTPUT_SIZES.length), limits: z.object({ maxSubjects: z.literal(MAX_SUBJECTS), maxOutputSizes: z.literal(3), variantsPerSubject: z.literal(VARIANTS_PER_SUBJECT) }) });
 export type GenerationSettingsResponse = z.infer<typeof generationSettingsResponseSchema>;
 export const markPrimaryVariantSchema = z.object({ variantId: z.string().uuid() });
 export const createGenerationDownloadSchema = z.object({ variantIds: z.array(z.string().uuid()).min(1), size: outputSizeSchema }).superRefine((value, context) => { if (new Set(value.variantIds).size !== value.variantIds.length) context.addIssue({ code: "custom", path: ["variantIds"], message: "Variant IDs must be unique" }); });

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "process-job": "node --env-file=.env --import tsx src/run-job.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/*.test.ts src/**/*.test.ts"
   },
@@ -17,7 +18,6 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.0",
     "tsx": "^4.0.0",
     "typescript": "^5"
   }

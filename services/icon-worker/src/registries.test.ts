@@ -28,3 +28,21 @@ test("uses the mock provider without an API key", async () => {
   assert.equal(image.mimeType, "image/png");
   assert.ok(image.bytes.length > 0);
 });
+
+test("creates an OpenAI-compatible provider with a custom base URL", () => {
+  const provider = createImageProvider({
+    IMAGE_PROVIDER: "openai",
+    IMAGE_MODEL: "gpt-image-2",
+    IMAGE_QUALITY: "medium",
+    IMAGE_PROVIDER_BASE_URL: "https://gateway.example.com/v1",
+    IMAGE_PROVIDER_API_KEY: "test-gateway-key",
+    ICON_SKILL: "default-ui-icon",
+    SUPABASE_URL: "https://example.supabase.co",
+    SUPABASE_SERVICE_ROLE_KEY: "test-service-role",
+    SUPABASE_ICON_BUCKET: "generated-icons",
+    GENERATION_MAX_ATTEMPTS: 3,
+  });
+
+  assert.equal(provider.name, "openai");
+  assert.equal(provider.model, "gpt-image-2");
+});
