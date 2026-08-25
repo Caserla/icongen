@@ -15,8 +15,8 @@
 
 - `apps/web`：用户界面、管理界面和 BFF。
 - `services/icon-worker`：消费生成任务、调用模型、保存结果和更新状态。
-- `packages/icon-skill`：提示词结构、负向约束、输出要求和 Skill 版本。
-- 版本化图标设计风格：为生成页提供 5 个预设、3 组微调及稳定 ID；MVP 不提供高级设置。
+- `packages/icon-skill`：用途模板、共享生产边界、每种 App 图标风格的详细 style spec、A/B/C 方案差异、输出要求和 Skill 版本。
+- 版本化图标设计风格：共享目录提供 10 个稳定预设；App 图标页面展示除线性图标外的 9 种风格，交互图标使用独立结构/颜色/背景设置。
 - `packages/shared`：共享类型、Zod Schema、状态枚举和业务常量。
 
 ## 前端工程结构

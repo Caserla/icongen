@@ -26,7 +26,7 @@ flowchart LR
 - `apps/web`：浏览器页面与 BFF。负责会话校验、任务创建、查询、签名下载 URL、Stripe Checkout 和 Webhook。
 - `packages/shared`：前后端共用输入校验、任务状态和生成协议。
 - `packages/backend-core`：不依赖供应商 SDK 的领域接口与生成任务用例。
-- `packages/icon-skill`：把版本化 `GenerationSpec` 按主体编译为 3 个差异化提示词，并记录 Skill 与核心设置版本。
+- `packages/icon-skill`：以 imagegen 式结构化流程把版本化 `GenerationSpec` 编译为用途模板、风格规范、共享生产边界和 3 个差异化方案，并记录 Skill 与核心设置版本。
 - `services/icon-worker`：与运行平台无关的生成核心及 OpenAI、Supabase 适配器。
 - `infra/supabase`：数据库表、RLS、私有文件桶与事务函数。
 
@@ -44,8 +44,8 @@ flowchart LR
 ### 批量生成每主体 3 个方案
 
 1. 服务端执行器领取一个待处理任务并验证任务状态。
-2. Worker 读取任务规格快照，按主体建立 3 个 variant 工作单元；Icon Skill 为每个工作单元编译提示词。
-3. OpenAI Provider 生成高分辨率 PNG，后处理为用户选择的尺寸，保存至私有 Storage，并逐个写入 variant 与 asset 记录。
+2. Worker 读取任务规格快照，按主体建立 3 个 variant 工作单元；Icon Skill 根据用途与风格加载独立 style spec，再组合共享生产边界和 A/B/C 构图差异。
+3. OpenAI-compatible Image2 Provider 生成高分辨率 PNG；非付费质量门禁检查母版尺寸、方形画布和 App 图标明显深色外底并记录结构化告警，然后派生 512px 预览与用户选择的正式尺寸，保存至私有 Storage。
 4. 任务进度由完成或最终失败的工作单元计算；全部处理结束后进入 `completed`、`partial` 或 `failed`。
 5. 临时错误只重试未成功工作单元；最终失败按版本化规则原子返还点数。
 6. 用户提交选中的 variant 和尺寸后，服务端校验所有权并建立短时 ZIP 下载归档。

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ICON_STYLE_PRESET_IDS } from "@icongen/shared";
 import { compileIconPrompt, type CompileIconPromptInput } from "./index";
 
 const base: Omit<CompileIconPromptInput, "purpose"> = {
@@ -24,8 +25,23 @@ test("interaction template includes visible interaction settings and excludes hi
 test("app icon template includes app style and excludes hidden interaction settings", () => {
   const result = compileIconPrompt({ ...base, purpose: "app-icon" });
   assert.match(result.prompt, /home screen, launcher, and app store/);
-  assert.match(result.prompt, /cute clay 3D icon/);
+  assert.match(result.prompt, /matte hand-molded clay/);
+  assert.match(result.prompt, /opaque background fills the complete canvas edge to edge/);
+  assert.match(result.prompt, /solid white #FFFFFF/);
+  assert.match(result.prompt, /no second presentation backdrop/);
   assert.doesNotMatch(result.prompt, /#61666E|22% corner radius|transparent canvas|linear outline glyph|regular visual weight|balanced corner language|standard detail density/);
+});
+
+test("every app icon preset has a detailed isolated style specification", () => {
+  const appPresets = ICON_STYLE_PRESET_IDS.filter((preset) => preset !== "line-icon");
+  const prompts = appPresets.map((preset) => compileIconPrompt({ ...base, purpose: "app-icon", style: { ...base.style, preset } }).prompt);
+  for (const prompt of prompts) {
+    assert.match(prompt, /Geometry and composition:/);
+    assert.match(prompt, /Color and material:|Color and background:/);
+    assert.match(prompt, /Small-size rule:/);
+    assert.match(prompt, /PRODUCTION BOUNDARY/);
+  }
+  assert.equal(new Set(prompts).size, appPresets.length);
 });
 
 test("the three slots request materially different design concepts", () => {

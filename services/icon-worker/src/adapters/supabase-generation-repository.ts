@@ -70,6 +70,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
       status: "completed", completed_at: new Date().toISOString(), prompt: input.prompt,
       skill_name: input.skillName, skill_version: input.skillVersion, image_provider: input.imageProvider,
       image_model: input.imageModel, provider_request_id: input.providerRequestId ?? null,
+      error_code: null, error_message: null,
     }).eq("id", input.variantId);
     if (error) throw new Error(`Failed to complete generation variant: ${error.message}`);
   }
@@ -88,5 +89,18 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   async markFailedAndRefund(jobId: string, errorCode: string, errorMessage: string) {
     const { error } = await this.client.rpc("finalize_generation_job_v2_failure", { p_job_id: jobId, p_error_code: errorCode, p_error_message: errorMessage.slice(0, 1000) });
     if (error) throw new Error(`Failed to mark generation job failed: ${error.message}`);
+
+    // Keep local and not-yet-migrated environments consistent: any delivered
+    // variant makes this a partial result, never a wholly failed job.
+    const subjects = await this.client.from("generation_subjects").select("id").eq("job_id", jobId);
+    if (subjects.error) throw new Error(`Failed to inspect finalized generation subjects: ${subjects.error.message}`);
+    const subjectIds = (subjects.data ?? []).map((subject) => subject.id);
+    if (subjectIds.length === 0) return;
+    const completed = await this.client.from("generation_variants").select("id", { count: "exact", head: true }).in("subject_id", subjectIds).eq("status", "completed");
+    if (completed.error) throw new Error(`Failed to inspect finalized generation variants: ${completed.error.message}`);
+    if ((completed.count ?? 0) > 0) {
+      const partial = await this.client.from("generation_jobs").update({ status: "partial" }).eq("id", jobId).eq("status", "failed");
+      if (partial.error) throw new Error(`Failed to mark generation job partial: ${partial.error.message}`);
+    }
   }
 }

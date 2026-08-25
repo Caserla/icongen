@@ -1,9 +1,10 @@
-import type { AppLogger, AssetStore, GenerationRepository, ImageProcessor, ImageProvider, PromptCompiler } from "./ports";
+import type { AppLogger, AssetStore, GenerationRepository, ImageProcessor, ImageProvider, ImageQualityGate, PromptCompiler } from "./ports";
 
 export type ProcessGenerationJobDependencies = {
   repository: GenerationRepository;
   imageProvider: ImageProvider;
   imageProcessor: ImageProcessor;
+  imageQualityGate?: ImageQualityGate;
   assetStore: AssetStore;
   promptCompiler: PromptCompiler;
   logger: AppLogger;
@@ -47,42 +48,52 @@ export async function processGenerationJob(jobId: string, dependencies: ProcessG
   const totalUnits = variants.length;
   let completedUnits = variants.filter(({ variant }) => variant.status === "completed").length;
   let progressUpdate = Promise.resolve();
+  const failures: Array<{ variantId: string; message: string }> = [];
 
-  await runWithConcurrency(variants.filter(({ variant }) => variant.status !== "completed"), GENERATION_CONCURRENCY, async ({ subject, variant }) => {
-    await dependencies.repository.markVariantProcessing(variant.id);
-    const compiled = dependencies.promptCompiler.compile({
-      purpose: job.spec.purpose,
-      name: subject.name,
-      description: subject.description,
-      color: subject.colorOverride ?? job.spec.subjectColor,
-      background: job.spec.background,
-      style: job.spec.style,
-      sizes: job.spec.sizes,
-      slot: variant.slot,
-    });
-    const image = await dependencies.imageProvider.generate({ prompt: compiled.prompt });
-    const sourceMetadata = await dependencies.imageProcessor.inspect({ bytes: image.bytes });
-    const sourceSize = Math.max(sourceMetadata.width, sourceMetadata.height);
-    const sourceAsset = await dependencies.assetStore.put({ jobId, subjectId: subject.id, variantId: variant.id, slot: variant.slot, assetRole: "source", size: sourceSize, bytes: image.bytes, mimeType: image.mimeType });
-    await dependencies.repository.saveAsset({ jobId, subjectId: subject.id, variantId: variant.id, assetRole: "source", size: sourceSize, width: sourceMetadata.width, height: sourceMetadata.height, hasAlpha: sourceMetadata.hasAlpha, bucket: sourceAsset.bucket, objectPath: sourceAsset.objectPath });
+  await runWithConcurrency(variants.filter(({ variant }) => variant.status === "queued" || variant.status === "processing"), GENERATION_CONCURRENCY, async ({ subject, variant }) => {
+    try {
+      await dependencies.repository.markVariantProcessing(variant.id);
+      const compiled = dependencies.promptCompiler.compile({
+        purpose: job.spec.purpose,
+        name: subject.name,
+        description: subject.description,
+        color: subject.colorOverride ?? job.spec.subjectColor,
+        background: job.spec.background,
+        style: job.spec.style,
+        sizes: job.spec.sizes,
+        slot: variant.slot,
+      });
+      const image = await dependencies.imageProvider.generate({ prompt: compiled.prompt });
+      const sourceMetadata = await dependencies.imageProcessor.inspect({ bytes: image.bytes });
+      const qualityWarnings = await dependencies.imageQualityGate?.inspect({ bytes: image.bytes, purpose: job.spec.purpose }) ?? [];
+      for (const warning of qualityWarnings) dependencies.logger.info("Generated image quality warning", { jobId, variantId: variant.id, qualityWarningCode: warning.code, qualityWarning: warning.message });
+      const sourceSize = Math.max(sourceMetadata.width, sourceMetadata.height);
+      const sourceAsset = await dependencies.assetStore.put({ jobId, subjectId: subject.id, variantId: variant.id, slot: variant.slot, assetRole: "source", size: sourceSize, bytes: image.bytes, mimeType: image.mimeType });
+      await dependencies.repository.saveAsset({ jobId, subjectId: subject.id, variantId: variant.id, assetRole: "source", size: sourceSize, width: sourceMetadata.width, height: sourceMetadata.height, hasAlpha: sourceMetadata.hasAlpha, bucket: sourceAsset.bucket, objectPath: sourceAsset.objectPath });
 
-    const preview = await dependencies.imageProcessor.process({ bytes: image.bytes, size: 512 });
-    const previewAsset = await dependencies.assetStore.put({ jobId, subjectId: subject.id, variantId: variant.id, slot: variant.slot, assetRole: "preview", size: 512, bytes: preview.bytes, mimeType: preview.mimeType });
-    await dependencies.repository.saveAsset({ jobId, subjectId: subject.id, variantId: variant.id, assetRole: "preview", size: 512, width: preview.width, height: preview.height, hasAlpha: preview.hasAlpha, bucket: previewAsset.bucket, objectPath: previewAsset.objectPath });
+      const preview = await dependencies.imageProcessor.process({ bytes: image.bytes, size: 512 });
+      const previewAsset = await dependencies.assetStore.put({ jobId, subjectId: subject.id, variantId: variant.id, slot: variant.slot, assetRole: "preview", size: 512, bytes: preview.bytes, mimeType: preview.mimeType });
+      await dependencies.repository.saveAsset({ jobId, subjectId: subject.id, variantId: variant.id, assetRole: "preview", size: 512, width: preview.width, height: preview.height, hasAlpha: preview.hasAlpha, bucket: previewAsset.bucket, objectPath: previewAsset.objectPath });
 
-    for (const size of job.spec.sizes) {
-      const processed = await dependencies.imageProcessor.process({ bytes: image.bytes, size });
-      if (!job.spec.background.enabled && !processed.hasAlpha) throw new Error(`Generated icon ${variant.id} is missing an alpha channel`);
-      const asset = await dependencies.assetStore.put({ jobId, subjectId: subject.id, variantId: variant.id, slot: variant.slot, assetRole: "output", size, bytes: processed.bytes, mimeType: processed.mimeType });
-      await dependencies.repository.saveAsset({ jobId, subjectId: subject.id, variantId: variant.id, assetRole: "output", size, width: processed.width, height: processed.height, hasAlpha: processed.hasAlpha, bucket: asset.bucket, objectPath: asset.objectPath });
+      for (const size of job.spec.sizes) {
+        const processed = await dependencies.imageProcessor.process({ bytes: image.bytes, size });
+        if (job.spec.purpose !== "app-icon" && !job.spec.background.enabled && !processed.hasAlpha) throw new Error(`Generated icon ${variant.id} is missing an alpha channel`);
+        const asset = await dependencies.assetStore.put({ jobId, subjectId: subject.id, variantId: variant.id, slot: variant.slot, assetRole: "output", size, bytes: processed.bytes, mimeType: processed.mimeType });
+        await dependencies.repository.saveAsset({ jobId, subjectId: subject.id, variantId: variant.id, assetRole: "output", size, width: processed.width, height: processed.height, hasAlpha: processed.hasAlpha, bucket: asset.bucket, objectPath: asset.objectPath });
+      }
+      await dependencies.repository.markVariantCompleted({ variantId: variant.id, prompt: compiled.prompt, ...execution, providerRequestId: image.providerRequestId });
+      completedUnits += 1;
+      const currentCompletedUnits = completedUnits;
+      progressUpdate = progressUpdate.then(() => dependencies.repository.updateProgress(jobId, currentCompletedUnits, totalUnits));
+      await progressUpdate;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown variant generation error";
+      failures.push({ variantId: variant.id, message });
+      dependencies.logger.error("Generation variant failed", { jobId, variantId: variant.id, error: message });
     }
-    await dependencies.repository.markVariantCompleted({ variantId: variant.id, prompt: compiled.prompt, ...execution, providerRequestId: image.providerRequestId });
-    completedUnits += 1;
-    const currentCompletedUnits = completedUnits;
-    progressUpdate = progressUpdate.then(() => dependencies.repository.updateProgress(jobId, currentCompletedUnits, totalUnits));
-    await progressUpdate;
   });
 
+  if (failures.length > 0) throw new Error(failures.map((failure) => `${failure.variantId}: ${failure.message}`).join("; "));
   await dependencies.repository.markCompleted(jobId);
   dependencies.logger.info("Generation job completed", { jobId, subjectCount: job.subjects.length, variantCount: totalUnits });
 }

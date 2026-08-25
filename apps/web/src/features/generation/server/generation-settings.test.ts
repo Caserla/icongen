@@ -5,7 +5,7 @@ import { GET } from "@/app/api/generation/settings/route";
 
 test("returns the versioned icon-style catalog", () => {
   const settings = getGenerationSettings();
-  assert.equal(settings.stylePresets.length, 9);
+  assert.equal(settings.stylePresets.length, 10);
   assert.ok(settings.stylePresets.every((preset) => preset.previewImage.startsWith("/images/icon-style-previews/hd-native/")));
   assert.equal(settings.styleAdjustments.length, 3);
   assert.deepEqual(settings.outputSizes, [16, 32, 48, 64, 128, 256]);

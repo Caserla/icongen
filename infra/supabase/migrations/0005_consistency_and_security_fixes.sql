@@ -112,8 +112,8 @@ begin
   for v_subject in select id from public.generation_subjects where job_id = p_job_id order by position loop
     select count(*) into v_completed from public.generation_variants
     where subject_id = v_subject.id and status = 'completed';
+    if v_completed > 0 then v_any_completed := true; end if;
     if v_completed = 3 then
-      v_any_completed := true;
       update public.generation_subjects set status = 'completed' where id = v_subject.id;
     else
       update public.generation_variants set

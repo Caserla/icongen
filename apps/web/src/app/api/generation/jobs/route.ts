@@ -12,13 +12,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    const generationSpec = parsed.data.purpose === "app-icon"
+      ? { ...parsed.data, background: { enabled: true as const, container: "rounded-square" as const, color: { mode: "solid" as const, color: "#FFFFFF" }, cornerRadius: 22 } }
+      : parsed.data;
     const user = await requireActiveUser();
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.rpc("create_generation_job_v2", {
       p_user_id: user.id,
-      p_spec: parsed.data,
-      p_skill_version: "default-ui-icon@1",
-      p_idempotency_key: parsed.data.idempotencyKey,
+      p_spec: generationSpec,
+      p_skill_version: "default-ui-icon@0.5.0",
+      p_idempotency_key: generationSpec.idempotencyKey,
     });
     if (error) {
       console.error("create_generation_job_v2 failed", { code: error.code, message: error.message, details: error.details, hint: error.hint });

@@ -75,9 +75,14 @@ export function GenerationForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    const background = iconPurpose === "app-icon"
+      ? { enabled: true as const, container: "rounded-square" as const, color: { mode: "solid" as const, color: "#FFFFFF" }, cornerRadius: 22 }
+      : backgroundMode !== "transparent"
+        ? { enabled: true as const, container: backgroundContainer, color: backgroundColor, cornerRadius: backgroundContainer === "rounded-square" ? backgroundCornerRadius : undefined }
+        : { enabled: false as const };
     const parsed = createGenerationJobSchema.safeParse({
       idempotencyKey: crypto.randomUUID(), settingsVersion: DESIGN_SETTINGS_VERSION, purpose: iconPurpose, subjects, subjectColor,
-      background: backgroundMode !== "transparent" ? { enabled: true as const, container: backgroundContainer, color: backgroundColor, cornerRadius: backgroundContainer === "rounded-square" ? backgroundCornerRadius : undefined } : { enabled: false as const },
+      background,
       style: { ...style, graphicStructure: iconStructure }, sizes,
     });
     if (!parsed.success) {

@@ -116,31 +116,35 @@ SUPABASE_SERVICE_ROLE_KEY=Supabase服务端密钥
 
 ### 6.1 文件位置
 
-默认 Skill 位于：
+默认 Skill 入口位于：
 
 ```text
 packages/icon-skill/src/index.ts
 ```
 
-Skill 包含：
+Skill `0.5.0` 使用与 imagegen 相同的分层生成思路，但部署时不会调用 Codex 内置工具；Worker 仍通过 OpenAI-compatible Image2 Provider 调用模型。Skill 包含：
 
 - Skill 名称和版本。
 - 每个图标主体 3 个方案的差异化设计方向。
-- `GenerationSpec`（主体、颜色、背景、核心设置、尺寸）到图片提示词的编译逻辑。
-- 禁止文字、水印、现有品牌和受版权保护角色等约束。
-- 单个独立正方形 UI 图标、透明通道和尺寸派生的输出要求。
+- 交互图标与 App 图标两套用途模板。
+- 黏土 3D、等距 3D、像素艺术、低多边形、霓虹、可爱贴纸、扁平插画、扁平活泼、极简标志的独立详细 style spec。
+- 所有风格共用的单资产、可见元素、安全边距、禁止合集/展示板等生产边界。
+- `GenerationSpec`（主体、颜色、背景、风格、尺寸）到结构化模型提示词的编译逻辑。
+- 原图、512px 预览和正式输出三层资产要求；Worker 另执行不调用模型的质量告警检查。
+
+创建页的风格目录预览与生成 Skill 相互独立。当前「扁平活泼」预览使用 `flat-playful-v3.png`：画面必须为完整原始背景，不得以棋盘格、黑色外底或展示板补足圆角区域；该资源只用于前端选择风格时的视觉说明，不会作为生成任务的输入图。
 
 ### 6.2 名称和版本
 
 ```ts
 export const ICON_SKILL_NAME = "default-ui-icon";
-export const ICON_SKILL_VERSION = "0.1.0";
+export const ICON_SKILL_VERSION = "0.5.0";
 ```
 
-修改提示词规则后应升级版本。例如：
+修改提示词或 style spec 后应升级版本。例如：
 
 ```ts
-export const ICON_SKILL_VERSION = "0.2.0";
+export const ICON_SKILL_VERSION = "0.5.1";
 ```
 
 数据库会记录任务实际使用的供应商、模型、Skill 名称和 Skill 版本，方便追踪历史结果。
@@ -159,11 +163,12 @@ packages/icon-skill/src/index.ts
 
 建议步骤：
 
-1. 修改三个 `directions` 生成方向和结构化设置映射。
-2. 调整通用提示词和负向约束。
-3. 升级 `ICON_SKILL_VERSION`。
-4. 运行类型检查和测试。
-5. 重新部署后台生成服务。
+1. 在 `purpose-specs/` 修改用途模板。
+2. 在 `style-specs/` 修改某一风格的几何、色彩、材质、光照、边缘和小尺寸规则。
+3. 在 `production-boundaries.ts` 修改所有风格共享的生产边界。
+4. 升级 `ICON_SKILL_VERSION`。
+5. 运行类型检查和测试。
+6. 重新部署后台生成服务。
 
 验证命令：
 

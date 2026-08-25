@@ -73,6 +73,12 @@ export interface ImageProcessor {
   process(input: { bytes: Uint8Array; size: number }): Promise<ProcessedImage>;
 }
 
+export type ImageQualityWarning = { code: "SOURCE_TOO_SMALL" | "SOURCE_NOT_SQUARE" | "APP_ICON_DARK_OUTER_CORNERS"; message: string };
+
+export interface ImageQualityGate {
+  inspect(input: { bytes: Uint8Array; purpose?: CreateGenerationJobInput["purpose"] }): Promise<ImageQualityWarning[]>;
+}
+
 export interface AssetStore {
   put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; assetRole: GenerationAssetRole; size: number; bytes: Uint8Array; mimeType: string }): Promise<StoredAsset>;
 }

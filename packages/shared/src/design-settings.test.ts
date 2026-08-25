@@ -9,10 +9,10 @@ const base = {
   style: { preset: "clay-3d" as const, strokeWeight: "regular" as const, cornerStyle: "balanced" as const, detailLevel: "standard" as const }, sizes: [32],
 };
 
-test("style catalog provides nine visual presets and three refinements", () => {
+test("style catalog provides ten visual presets and three refinements", () => {
   const result = validateIconStyleCatalog();
   assert.equal(result.valid, true); assert.deepEqual(result.errors, []);
-  assert.equal(ICON_STYLE_PRESETS.length, 9); assert.equal(STYLE_ADJUSTMENT_GROUPS.length, 3);
+  assert.equal(ICON_STYLE_PRESETS.length, 10); assert.equal(STYLE_ADJUSTMENT_GROUPS.length, 3);
 });
 
 test("generation UI exposes exactly the three approved background types", () => {

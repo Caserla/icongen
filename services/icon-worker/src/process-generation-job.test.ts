@@ -76,6 +76,32 @@ test("runs up to three image generations in parallel", async () => {
   assert.equal(maxActive, 3);
 });
 
+test("waits for every parallel variant before reporting a partial failure", async () => {
+  const completedVariants: string[] = [];
+  let providerCalls = 0;
+  const dependencies: ProcessGenerationJobDependencies = {
+    repository: {
+      async getJob() { return job(); }, async markProcessing() {}, async markVariantProcessing() {},
+      async saveAsset() {}, async markVariantCompleted(input) { completedVariants.push(input.variantId); },
+      async updateProgress() {}, async markCompleted() { assert.fail("a partially failed job must not be completed"); }, async markFailedAndRefund() {},
+    },
+    imageProvider: { name: "test-provider", model: "test-model", async generate() {
+      providerCalls += 1;
+      if (providerCalls === 1) throw new Error("provider rejected one variant");
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      return { bytes: new Uint8Array([1]), mimeType: "image/png" };
+    } },
+    imageProcessor: { async inspect() { return { width: 1024, height: 1024, hasAlpha: false }; }, async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: false }; } },
+    assetStore: { async put() { return { bucket: "icons", objectPath: "partial-test.png" }; } },
+    promptCompiler: { name: "test-skill", version: "test", compile() { return { prompt: "partial", skillVersion: "test" }; } },
+    logger: { info() {}, error() {} },
+  };
+
+  await assert.rejects(processGenerationJob("job-1", dependencies), /provider rejected one variant/);
+  assert.equal(providerCalls, 6);
+  assert.equal(completedVariants.length, 5);
+});
+
 test("does not regenerate a completed job", async () => {
   let providerCalls = 0;
   const dependencies: ProcessGenerationJobDependencies = {
