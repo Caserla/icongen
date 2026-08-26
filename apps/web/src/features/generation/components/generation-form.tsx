@@ -34,7 +34,7 @@ export function GenerationForm() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetch("/api/generation/settings").then((response) => response.ok ? response.json() : Promise.reject()).then(setSettings)
+    fetch("/api/generation/settings", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject()).then(setSettings)
       .catch(() => setMessage(locale === "zh" ? "设计设置加载失败，请刷新页面。" : "Design settings failed to load. Refresh the page."));
   }, [locale]);
   useEffect(() => {

@@ -1,6 +1,6 @@
 # 图片生成 API v2 前端调用手册
 
-状态：共享契约已实现，后端接口待接入
+状态：共享契约、创建/查询接口和本地真实生成链路已实现；生产运行环境仍需单独配置服务端密钥与执行器。
 契约源码：`packages/shared/src/generation-v2.ts`
 设置源码：`packages/shared/src/design-settings.ts`
 
@@ -12,7 +12,7 @@
 
 - 新版生成单位为 `job → subjects → 3 variants → assets`。
 - 每次任务至少包含 1 个主体，不设置产品层面的主体数量上限；每个主体固定 3 个方案。
-- 当前设置版本为 `icon-style-2026-08-25.7`；前端必须使用设置接口返回值，不得硬编码。
+- 设置版本以接口响应为准；前端必须原样提交该值，不得硬编码或在文档中固定版本号。
 - MVP 先选择一套图标设计风格，再作有限的风格微调，不提供高级模式。
 - `packages/shared/src/generation.ts` 是旧版单主体/4 结果过渡契约，新页面不得继续新增依赖。
 
@@ -41,7 +41,7 @@ import {
 ```json
 {
   "idempotencyKey": "4c6be3f8-df54-4df1-b2ce-9fa2ec735705",
-  "settingsVersion": "icon-style-2026-08-22.1",
+  "settingsVersion": "<version from GET /api/generation/settings>",
   "subjects": [
     {
       "clientId": "search",
@@ -62,7 +62,7 @@ import {
     "enabled": false
   },
   "style": {
-    "preset": "rounded-outline",
+    "preset": "isometric-3d",
     "strokeWeight": "regular",
     "cornerStyle": "soft",
     "detailLevel": "standard"
@@ -86,7 +86,7 @@ import {
 
 - `subjects[].clientId` 在同一请求内必须唯一。
 - `sizes` 至少一项、最多三项且不得重复，只能使用 `OUTPUT_SIZES`。
-- `style` 是本次批量任务的统一设计语言：必须选择一个预设，并提供线条粗细、转角语言、细节密度三项微调。
+- `style` 是本次批量任务的统一设计语言：必须选择一个预设；当前创建页使用产品默认的图形结构、线条粗细、转角语言和细节密度值提交兼容字段，不再向用户暴露这些高级微调。
 - `background.enabled=true` 时必须提供背景颜色，并在 `rounded-square / circle / square` 中选择一种容器。
 - 主体颜色和背景颜色隐藏后不得继续作为生效字段提交。
 - 接口不接受原始 6 维 / 25 项分类值或模型运行参数。
@@ -121,8 +121,8 @@ import {
 
 ## 7. 当前迁移顺序
 
-1. 数据库迁移到 job/subject/variant/asset 模型。
-2. `POST /api/generation/jobs` 改用 `createGenerationJobSchema`。
-3. Worker 消费 v2 Queue Message，并按主体创建 3 个工作单元。
-4. `/create` 改为 v2 表单；结果页改用 `generationJobResponseSchema`。
+1. 数据库已迁移到 job/subject/variant/asset 模型。
+2. `POST /api/generation/jobs` 已使用 `createGenerationJobSchema`。
+3. 本地开发环境由 BFF 启动 Worker，Worker 按主体创建并行的 3 个工作单元。
+4. `/create` 已使用 v2 表单，结果页使用 `generationJobResponseSchema` 轮询进度并回显结果。
 5. 旧 `createGenerationSchema` 和旧 `GenerationJob` 已删除，前端不得重新引入 v1 类型。

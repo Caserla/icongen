@@ -5,7 +5,7 @@ import type { CompileIconPromptInput } from "./types";
 import { VARIANT_DIRECTIONS } from "./variant-directions";
 
 export const ICON_SKILL_NAME = "default-ui-icon";
-export const ICON_SKILL_VERSION = "0.5.0";
+export const ICON_SKILL_VERSION = "0.5.1";
 
 export type { CompileIconPromptInput } from "./types";
 

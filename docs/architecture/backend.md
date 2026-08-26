@@ -14,7 +14,8 @@ flowchart LR
   BFF --> Stripe[Stripe Checkout]
   Stripe --> Webhook[Signed webhook]
   Webhook --> DB
-  DB --> Worker[后台生成执行器（待定）]
+  BFF --> Worker[本地 Worker 启动器]
+  DB --> Worker[读取/更新任务]
   Worker --> Skill[icon-skill]
   Worker --> OpenAI[OpenAI Image API]
   Worker --> Storage[Supabase private Storage]
@@ -39,7 +40,7 @@ flowchart LR
 1. BFF 校验用户会话和描述字段。
 2. BFF 使用客户端幂等键调用 `create_generation_job_and_debit`。
 3. PostgreSQL 在同一事务中锁定点数账户、扣点、建立任务并写账本。
-4. 后台生成执行方式尚未确定；不得在未确认的情况下引入新的云服务或队列。
+4. 本地开发环境由 BFF 在创建任务后直接启动 Worker；生产执行器由部署环境配置，不得在未确认的情况下引入新的云服务或队列。
 
 ### 批量生成每主体 3 个方案
 
@@ -86,7 +87,7 @@ flowchart LR
 
 - Web：Vercel，生产域名和 Edge/CDN 面向海外用户。
 - 数据：Supabase 项目优先选择美国东部区域。
-- Worker：执行方式待结合现有 Supabase 架构确定，不预设额外云服务。
+- Worker：本地开发由 Web BFF 启动；生产执行器独立配置，不预设额外云服务。
 - 监控：Vercel Logs、Supabase Logs、Sentry；关键指标包括成功率、P95 耗时、每任务模型成本和退款率。
 
 ## 8. 后端环境变量
@@ -95,4 +96,4 @@ Worker 变量见 `services/icon-worker/.env.example`。本地默认使用 `IMAGE
 
 ## 9. 当前实现边界
 
-共享 v2 Schema、版本化图标设计风格配置及批量数据库迁移已经建立。MVP 不支持完整 266 项或高级模式。Worker 已切换到 subjects × 3 variants，能够真实缩放 PNG、汇总主体与任务状态。真实模型、后台执行、进度查询和下载接口仍需完成部署联调；具体状态以开发计划和需求一致性审计为准。
+共享 v2 Schema、版本化图标设计风格配置及批量数据库迁移已经建立。MVP 不支持完整 266 项或高级模式。Worker 已切换到 subjects × 3 variants，能够真实缩放 PNG、汇总主体与任务状态；本地真实模型、进度查询和下载接口链路已贯通。生产部署仍需配置服务端密钥与执行器；具体状态以开发计划和需求一致性审计为准。

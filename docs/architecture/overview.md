@@ -7,7 +7,7 @@
 - BFF：Next.js Route Handlers，承载用户 API 和 Stripe Webhook。
 - 身份、数据库和对象存储：Supabase Auth、PostgreSQL、Storage。
 - 支付：Stripe Checkout 和经过签名校验的 Webhook。
-- 后台生成：执行方式待结合现有 Supabase 架构确定，不预设额外云服务。
+- 后台生成：本地开发由 Next.js BFF 直接启动 Worker；生产执行器保持为独立部署配置，不预设额外云服务。
 - 图片模型：OpenAI GPT Image 2，通过 Provider Adapter 调用。
 - 可观测性：Vercel Logs、Supabase Logs、Sentry。
 

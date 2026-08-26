@@ -51,11 +51,11 @@ const APP_ICON_STYLE_SPECS: Partial<Record<IconStylePresetId, string>> = {
     "Small-size rule: the dominant subject must remain recognizable at 48px; collapse background narrative into one supporting shape when necessary.",
   ].join(" "),
   "flat-playful": [
-    "Geometry and composition: one friendly subject built from thick rounded simple geometry, a buoyant compact pose, and a memorable silhouette with balanced safe margins.",
-    "Color and material: 2–4 high-saturation solid colors with clear warm/cool separation, matte flat surfaces, and no muddy business palette.",
-    "Lighting and depth: preserve an 80–90% flat appearance; show restrained structural depth only through overlap, one darker side plane, or one separate layered color block.",
-    "Edges and detail: crisp closed shapes, smooth rounded turns, simple friendly features, and no realistic texture, glossy plastic, mirror highlight, cast shadow, external glow, dramatic 3D lighting, or brand-character imitation.",
-    "Small-size rule: keep the main silhouette and one semantic or expressive feature clear at 48px; remove decorative micro-detail first.",
+    "Geometry and composition: build one friendly subject from 3–6 large soft-edged closed shapes, with an oversized rounded silhouette, simple front or three-quarter view, and generous safe margins.",
+    "Color and material: use 2–4 high-saturation matte solid colors with clear warm/cool separation; each color is a clean flat plane, never a material, texture, or realistic surface.",
+    "Lighting and depth: preserve a decisively flat 2D appearance; express depth only through one intentional overlap or one secondary darker color plane. Do not use bevels, ambient occlusion, gradients, highlights, realistic cast shadows, or volumetric lighting.",
+    "Edges and detail: use thick rounded contours, crisp simple cutouts, and at most 3 essential internal details. Avoid glossy plastic, 3D toy rendering, painterly shading, external glow, decorative clutter, or brand-character imitation.",
+    "Small-size rule: keep the silhouette and one semantic feature clear at 48px; merge all subordinate details into the nearest major color plane.",
   ].join(" "),
   "minimal-logo": [
     "Geometry and composition: one original compact mark reduced to one dominant silhouette or a disciplined relationship between two essential geometric forms.",

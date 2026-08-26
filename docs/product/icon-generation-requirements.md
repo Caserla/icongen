@@ -129,7 +129,7 @@
 ```json
 {
   "idempotencyKey": "uuid",
-  "settingsVersion": "icon-style-2026-08-22.1",
+  "settingsVersion": "<version from GET /api/generation/settings>",
   "subjects": [
     { "clientId": "s1", "name": "Search", "description": "Magnifier for finding content" },
     { "clientId": "s2", "name": "Delete", "description": "Trash can for deleting an item" }
@@ -143,12 +143,12 @@
     "enabled": false
   },
   "style": {
-    "preset": "rounded-outline",
+    "preset": "isometric-3d",
     "strokeWeight": "regular",
     "cornerStyle": "soft",
     "detailLevel": "standard"
   },
-  "sizes": [24, 48, 128]
+  "sizes": [16, 48, 128]
 }
 ```
 

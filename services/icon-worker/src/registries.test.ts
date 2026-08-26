@@ -5,7 +5,7 @@ import { createImageProvider, createPromptCompiler } from "./registries";
 test("selects the configured icon skill", () => {
   const compiler = createPromptCompiler("default-ui-icon");
   assert.equal(compiler.name, "default-ui-icon");
-  assert.equal(compiler.version, "0.5.0");
+  assert.equal(compiler.version, "0.5.1");
 });
 
 test("rejects an unregistered icon skill", () => {

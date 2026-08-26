@@ -1,6 +1,6 @@
 # Icon Generation Worker
 
-Provider-neutral UI icon generation core. It processes 1–20 subjects per job and exactly three variants per subject. The production execution mechanism has not been selected yet.
+Provider-neutral UI icon generation core. It processes 1–20 subjects per job and exactly three variants per subject. Local development is started directly by the Web BFF; production execution is configured separately without adding an assumed queue or cloud vendor.
 
 ## Runtime flow
 

@@ -96,7 +96,7 @@ GENERATION_MAX_ATTEMPTS=3
 
 ## 5. 正式环境配置
 
-后台生成执行方式尚未确定。选型必须复用现有 Supabase 架构并经项目确认，不得默认引入额外云服务。
+本地开发由 Web BFF 在创建任务后直接启动 Worker。生产执行器仍需由部署环境单独配置；选型必须复用现有 Supabase 架构并经项目确认，不得默认引入额外云服务。
 
 服务端执行环境最终至少需要以下变量：
 
@@ -122,7 +122,7 @@ SUPABASE_SERVICE_ROLE_KEY=Supabase服务端密钥
 packages/icon-skill/src/index.ts
 ```
 
-Skill `0.5.0` 使用与 imagegen 相同的分层生成思路，但部署时不会调用 Codex 内置工具；Worker 仍通过 OpenAI-compatible Image2 Provider 调用模型。Skill 包含：
+Skill `0.5.1` 使用与 imagegen 相同的分层生成思路，但部署时不会调用 Codex 内置工具；Worker 仍通过 OpenAI-compatible Image2 Provider 调用模型。Skill 包含：
 
 - Skill 名称和版本。
 - 每个图标主体 3 个方案的差异化设计方向。
@@ -132,13 +132,13 @@ Skill `0.5.0` 使用与 imagegen 相同的分层生成思路，但部署时不�
 - `GenerationSpec`（主体、颜色、背景、风格、尺寸）到结构化模型提示词的编译逻辑。
 - 原图、512px 预览和正式输出三层资产要求；Worker 另执行不调用模型的质量告警检查。
 
-创建页的风格目录预览与生成 Skill 相互独立。当前「扁平活泼」预览使用 `flat-playful-v3.png`：画面必须为完整原始背景，不得以棋盘格、黑色外底或展示板补足圆角区域；该资源只用于前端选择风格时的视觉说明，不会作为生成任务的输入图。
+创建页的风格目录预览与生成 Skill 相互独立。当前「扁平活泼」预览使用 `flat-playful-girl-fullbleed-v24.png`：原图为满版直角粉色背景，页面与其他风格一致，统一由前端 18% 遮罩处理圆角；该资源只用于前端选择风格时的视觉说明，不会作为生成任务的输入图。
 
 ### 6.2 名称和版本
 
 ```ts
 export const ICON_SKILL_NAME = "default-ui-icon";
-export const ICON_SKILL_VERSION = "0.5.0";
+export const ICON_SKILL_VERSION = "0.5.1";
 ```
 
 修改提示词或 style spec 后应升级版本。例如：
@@ -271,9 +271,9 @@ interface ImageProvider {
   "subjects": [
     { "name": "Search", "description": "Magnifier for finding content" }
   ],
-  "settingsVersion": "icon-style-2026-08-22.1",
+  "settingsVersion": "<version from GET /api/generation/settings>",
   "style": {
-    "preset": "solid-glyph",
+    "preset": "isometric-3d",
     "strokeWeight": "regular",
     "cornerStyle": "balanced",
     "detailLevel": "standard"
