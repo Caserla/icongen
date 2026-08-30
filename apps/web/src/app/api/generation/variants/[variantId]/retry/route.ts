@@ -36,6 +36,6 @@ export async function POST(_request: Request, context: { params: Promise<{ varia
     startLocalGenerationJob(jobResult.data.id);
     return Response.json({ jobId: jobResult.data.id, variantId: parsed.data.variantId, status: "queued" }, { status: 202 });
   } catch (error) {
-    return authErrorResponse(error) ?? apiError("GENERATION_VARIANT_RETRY_FAILED", "We could not regenerate this icon variant.", 500);
+    return authErrorResponse(error) ?? apiError("GENERATION_VARIANT_RETRY_FAILED", "This option could not restart. Try again in a moment.", 500);
   }
 }

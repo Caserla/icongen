@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       p_idempotency_key: parsed.data.idempotencyKey,
     });
     if (error?.message.includes("active generation")) {
-      return apiError("ACTIVE_GENERATION_EXISTS", "Wait for active icon generations to finish.", 409);
+      return apiError("ACTIVE_GENERATION_EXISTS", "An icon set is still generating. Wait for it to finish, then try again.", 409);
     }
     if (error) return apiError("ACCOUNT_DELETION_REQUEST_FAILED", "We could not submit the deletion request.", 500);
     const requestRecord = await supabase.from("account_deletion_requests").select("scheduled_deletion_at").eq("id", data).single();

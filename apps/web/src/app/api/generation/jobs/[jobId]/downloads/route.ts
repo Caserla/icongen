@@ -20,25 +20,37 @@ export async function POST(request: Request, context: { params: Promise<{ jobId:
     const { data: variants } = subjectIds.length ? await client.from("generation_variants").select("id,subject_id,slot").in("id", body.data.variantIds).in("subject_id", subjectIds).eq("status", "completed") : { data: [] };
     if ((variants ?? []).length !== body.data.variantIds.length) return apiError("RESOURCE_FORBIDDEN", "One or more selected results are unavailable.", 403);
     const variantIds = (variants ?? []).map((variant) => variant.id);
-    let assetResult = await client.from("generation_assets").select("variant_id,storage_bucket,storage_path").in("variant_id", variantIds).eq("asset_role", "output").eq("size", body.data.size);
-    if (assetResult.error?.code === "42703") {
-      assetResult = await client.from("generation_assets").select("variant_id,storage_bucket,storage_path").in("variant_id", variantIds).eq("size", body.data.size);
-    }
-    if (assetResult.error) throw assetResult.error;
-    const assets = assetResult.data;
-    if ((assets ?? []).length !== variantIds.length) return apiError("DOWNLOAD_NOT_READY", "The selected size is not ready for every result.", 409);
+    const resolvedAssets = await client.from("generation_assets").select("variant_id,asset_role,format,size,storage_bucket,storage_path").in("variant_id", variantIds);
+    if (resolvedAssets.error) throw resolvedAssets.error;
+    const assets = (resolvedAssets.data ?? []).filter((asset) => {
+      if (body.data.format === "svg") return asset.asset_role === "output" && asset.format === "svg";
+      if (asset.format === "png" && asset.asset_role === "source") return true;
+      if (asset.format === "png" && asset.asset_role === "output") return body.data.size ? asset.size === body.data.size : true;
+      return body.data.includeSvg && asset.format === "svg" && asset.asset_role === "output";
+    });
+    const ready = variantIds.every((variantId) => {
+      const variantAssets = assets.filter((asset) => asset.variant_id === variantId);
+      if (body.data.format === "svg") return variantAssets.some((asset) => asset.format === "svg");
+      const hasOriginal = variantAssets.some((asset) => asset.format === "png" && asset.asset_role === "source");
+      const hasSizedPng = variantAssets.some((asset) => asset.format === "png" && asset.asset_role === "output");
+      const hasRequestedSvg = !body.data.includeSvg || variantAssets.some((asset) => asset.format === "svg");
+      return hasOriginal && hasSizedPng && hasRequestedSvg;
+    });
+    if (!ready) return apiError("DOWNLOAD_NOT_READY", "Some selected icon files are not ready. Wait for processing to finish or exclude SVG.", 409);
     const zip = new JSZip();
     for (const variant of variants ?? []) {
-      const asset = (assets ?? []).find((item) => item.variant_id === variant.id); if (!asset) continue;
-      const file = await client.storage.from(asset.storage_bucket).download(asset.storage_path); if (file.error) throw file.error;
       const subject = (subjects ?? []).find((item) => item.id === variant.subject_id);
-      zip.file(`${subject?.name ?? "icon"}-variant-${variant.slot}-${body.data.size}.png`, await file.data.arrayBuffer());
+      for (const asset of assets.filter((item) => item.variant_id === variant.id)) {
+        const file = await client.storage.from(asset.storage_bucket).download(asset.storage_path); if (file.error) throw file.error;
+        const suffix = asset.format === "svg" ? "" : asset.asset_role === "source" ? "-original" : `-${asset.size}`;
+        zip.file(`${subject?.name ?? "icon"}-variant-${variant.slot}${suffix}.${asset.format}`, await file.data.arrayBuffer());
+      }
     }
     const archive = await zip.generateAsync({ type: "uint8array" });
     const archiveBuffer = archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength) as ArrayBuffer;
     return new Response(archiveBuffer, { headers: { "content-type": "application/zip", "content-disposition": `attachment; filename="bamboo-icongen-${job.id}.zip"`, "cache-control": "private, no-store" } });
   } catch (error) {
     console.error("Failed to create generation ZIP", { jobId: params.success ? params.data.jobId : undefined, error });
-    return authErrorResponse(error) ?? apiError("DOWNLOAD_CREATE_FAILED", "We could not create the ZIP download.", 500);
+    return authErrorResponse(error) ?? apiError("DOWNLOAD_CREATE_FAILED", "The download could not be prepared. Your icons are safe; try again.", 500);
   }
 }

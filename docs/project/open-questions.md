@@ -64,6 +64,10 @@
 
 ## 4. 已冻结基线摘要
 
+- 短期测试使用东京区域月付4 GB VPS，合并运行Caddy、Next.js Web/BFF、独立Worker、Sub2API及其专用PostgreSQL/Redis；配置2–4 GB swap，Worker和图片网关并发均为1。
+- Worker通过私有容器网络调用同机Sub2API；Sub2API API、PostgreSQL和Redis不暴露公网，Bamboo使用独立限额Key。
+- 业务数据继续使用Supabase Auth、PostgreSQL和私有Storage；VPS上的PostgreSQL只供Sub2API使用，正式生产托管方案在公开上线前重新评估。
+- 测试期默认只开放每批1–3个主体；开放注册、常态更大批次或出现内存压力时升级到至少8 GB或拆分Sub2API/Worker。
 - 每任务最多 20 个主体；每主体生成 3 个方案并消耗 1 点。
 - 新用户赠送 6 点；首发点数包为 `$2.99 / 30`、`$6.49 / 75`、`$12.99 / 180`。
 - 模型为 `gpt-image-2`、`medium`；API Key、模型和 Skill 仅由平台方配置。

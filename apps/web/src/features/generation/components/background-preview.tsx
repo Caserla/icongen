@@ -29,7 +29,7 @@ export function BackgroundPreview({ container, color, subjectColor, iconStructur
   };
 
   return <div className="rounded-3xl border border-border bg-background p-4 shadow-sm md:p-5">
-    <h3 className="mb-4 text-lg font-black">{locale === "zh" ? "图标批处理规格设置和预览" : "Batch icon specifications and preview"}</h3>
+    <h3 className="mb-4 text-lg font-black">{locale === "zh" ? "图标设置与实时预览" : "Icon settings and live preview"}</h3>
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)]">
       <div className="sticky top-2 z-10 rounded-2xl border border-border bg-surface-muted p-3 lg:top-6">
         <div className="flex min-h-44 items-center justify-center rounded-xl p-3" style={enabled ? undefined : transparencyGrid}>

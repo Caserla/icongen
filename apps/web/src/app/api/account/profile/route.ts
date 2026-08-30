@@ -16,9 +16,9 @@ export async function PATCH(request: Request) {
       .eq("id", user.id)
       .select("display_name,updated_at")
       .single();
-    if (error) return apiError("PROFILE_UPDATE_FAILED", "We could not update your profile.", 500);
+    if (error) return apiError("PROFILE_UPDATE_FAILED", "Your profile was not saved. Check your connection and try again.", 500);
     return Response.json({ displayName: data.display_name, updatedAt: data.updated_at });
   } catch (error) {
-    return authErrorResponse(error) ?? apiError("PROFILE_UPDATE_FAILED", "We could not update your profile.", 500);
+    return authErrorResponse(error) ?? apiError("PROFILE_UPDATE_FAILED", "Your profile was not saved. Check your connection and try again.", 500);
   }
 }

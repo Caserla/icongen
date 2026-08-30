@@ -504,11 +504,14 @@ create table public.generation_assets (
   id uuid primary key default gen_random_uuid(),
   variant_id uuid not null references public.generation_variants(id) on delete cascade,
   asset_role text not null default 'output' check (asset_role in ('source', 'preview', 'output')),
+  format text not null default 'png' check (format in ('png', 'svg')),
+  mime_type text not null default 'image/png',
   size smallint not null check (
-    (asset_role in ('source', 'preview') and size > 0)
+    (format = 'svg' and asset_role = 'output' and size > 0)
+    or (format = 'png' and asset_role in ('source', 'preview') and size > 0)
     or
     (
-      asset_role = 'output'
+      format = 'png' and asset_role = 'output'
       and size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024)
     )
   ),
@@ -518,13 +521,14 @@ create table public.generation_assets (
   storage_bucket text not null,
   storage_path text not null,
   created_at timestamptz not null default now(),
-  unique (variant_id, asset_role, size),
+  unique (variant_id, asset_role, size, format),
   unique (storage_bucket, storage_path)
 );
 
 create index generation_subjects_job_position_idx on public.generation_subjects(job_id, position);
 create index generation_variants_subject_slot_idx on public.generation_variants(subject_id, slot);
 create index generation_assets_variant_role_size_idx on public.generation_assets(variant_id, asset_role, size);
+create index generation_assets_variant_format_idx on public.generation_assets(variant_id, format, asset_role);
 
 create trigger generation_subjects_set_updated_at
   before update on public.generation_subjects
@@ -795,7 +799,7 @@ begin
       update public.generation_variants set
         status = 'failed', error_code = p_error_code,
         error_message = left(p_error_message, 1000), updated_at = now()
-      where subject_id = v_subject.id and status <> 'completed';
+      where subject_id = v_subject.id and status in ('queued', 'processing');
       update public.generation_subjects set
         status = case when v_completed > 0 then 'partial'::public.generation_status else 'failed'::public.generation_status end,
         credit_refunded_at = coalesce(credit_refunded_at, now()),

@@ -24,6 +24,7 @@ export function createImageProvider(config: WorkerConfig): ImageProvider {
         config.IMAGE_PROVIDER_API_KEY,
         config.IMAGE_MODEL,
         config.IMAGE_QUALITY,
+        config.IMAGE_SIZE,
         config.IMAGE_PROVIDER_BASE_URL,
       );
     default:

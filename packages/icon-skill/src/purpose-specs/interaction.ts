@@ -20,7 +20,7 @@ export function compileInteractionPrompt(input: CompileIconPromptInput, directio
     `SUBJECT\nName: ${input.name}\nMeaning: ${input.description}`,
     `VISUAL SYSTEM\nGraphic structure: ${input.style.graphicStructure === "filled" ? "filled solid glyph with clear negative space" : "linear outline glyph with no fill"}.\nSubject color: ${describeColor(input.color)}.\nIcon background: ${describeBackground(input.background)}.\nUse consistent optical weight, balanced geometry, and crisp edges.`,
     `VARIANT\n${direction}`,
-    `SIZE AND LEGIBILITY\nReference sizes: ${input.sizes.join(", ")}px. Smallest target: ${Math.min(...input.sizes)}px. Simplify details for the smallest target.`,
+    "LEGIBILITY\nUse a clear silhouette, crisp contours, and restrained detail suitable for a production UI icon.",
     `PRODUCTION BOUNDARY\n${INTERACTION_ASSET_SPEC} ${SHARED_PRODUCTION_BOUNDARIES}`,
     "OUTPUT\nReturn one square PNG-ready production asset. A requested transparent background must contain a real alpha channel.",
   ].join("\n\n");

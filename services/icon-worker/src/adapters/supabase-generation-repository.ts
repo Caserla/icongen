@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 type JobRow = { id: string; user_id: string; status: GenerationJobRecord["status"]; generation_spec: unknown };
 type SubjectRow = { id: string; name: string; description: string; position: number; color_override: unknown };
 type VariantRow = { id: string; subject_id: string; slot: 1 | 2 | 3; status: "queued" | "processing" | "completed" | "failed" };
+type FailedVariantRow = { id: string; error_code: string | null; error_message: string | null };
 
 export class SupabaseGenerationRepository implements GenerationRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -57,11 +58,19 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     if (error) throw new Error(`Failed to claim generation variant: ${error.message}`);
   }
 
-  async saveAsset(input: { variantId: string; assetRole: "source" | "preview" | "output"; size: number; width: number; height: number; hasAlpha: boolean; bucket: string; objectPath: string }) {
+  async markVariantFailed(input: { variantId: string; errorCode: string; errorMessage: string }) {
+    const { error } = await this.client.from("generation_variants").update({
+      status: "failed", error_code: input.errorCode, error_message: input.errorMessage.slice(0, 1000), completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }).eq("id", input.variantId).in("status", ["queued", "processing"]);
+    if (error) throw new Error(`Failed to mark generation variant failed: ${error.message}`);
+  }
+
+  async saveAsset(input: { variantId: string; assetRole: "source" | "preview" | "output"; format: "png" | "svg"; size: number; width: number; height: number; hasAlpha: boolean; bucket: string; objectPath: string }) {
     const { error } = await this.client.from("generation_assets").upsert({
       variant_id: input.variantId, asset_role: input.assetRole, size: input.size, width: input.width, height: input.height,
+      format: input.format, mime_type: input.format === "svg" ? "image/svg+xml" : "image/png",
       has_alpha: input.hasAlpha, storage_bucket: input.bucket, storage_path: input.objectPath,
-    }, { onConflict: "variant_id,asset_role,size" });
+    }, { onConflict: "variant_id,asset_role,size,format" });
     if (error) throw new Error(`Failed to save generation asset: ${error.message}`);
   }
 
@@ -87,14 +96,32 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   }
 
   async markFailedAndRefund(jobId: string, errorCode: string, errorMessage: string) {
+    const subjects = await this.client.from("generation_subjects").select("id").eq("job_id", jobId);
+    if (subjects.error) throw new Error(`Failed to inspect generation subjects before finalization: ${subjects.error.message}`);
+    const subjectIds = (subjects.data ?? []).map((subject) => subject.id);
+    let failedVariants: FailedVariantRow[] = [];
+    if (subjectIds.length > 0) {
+      const failed = await this.client.from("generation_variants").select("id,error_code,error_message").in("subject_id", subjectIds).eq("status", "failed");
+      if (failed.error) throw new Error(`Failed to preserve generation variant diagnostics: ${failed.error.message}`);
+      failedVariants = (failed.data ?? []) as FailedVariantRow[];
+    }
+
     const { error } = await this.client.rpc("finalize_generation_job_v2_failure", { p_job_id: jobId, p_error_code: errorCode, p_error_message: errorMessage.slice(0, 1000) });
     if (error) throw new Error(`Failed to mark generation job failed: ${error.message}`);
 
+    // Older database functions overwrite every failed variant with the task-level
+    // error. Restore the precise per-variant quality/provider diagnostic so local
+    // environments remain useful before migration 0013 is deployed.
+    for (const variant of failedVariants) {
+      const restored = await this.client.from("generation_variants").update({
+        error_code: variant.error_code,
+        error_message: variant.error_message,
+      }).eq("id", variant.id).eq("status", "failed");
+      if (restored.error) throw new Error(`Failed to restore generation variant diagnostic: ${restored.error.message}`);
+    }
+
     // Keep local and not-yet-migrated environments consistent: any delivered
     // variant makes this a partial result, never a wholly failed job.
-    const subjects = await this.client.from("generation_subjects").select("id").eq("job_id", jobId);
-    if (subjects.error) throw new Error(`Failed to inspect finalized generation subjects: ${subjects.error.message}`);
-    const subjectIds = (subjects.data ?? []).map((subject) => subject.id);
     if (subjectIds.length === 0) return;
     const completed = await this.client.from("generation_variants").select("id", { count: "exact", head: true }).in("subject_id", subjectIds).eq("status", "completed");
     if (completed.error) throw new Error(`Failed to inspect finalized generation variants: ${completed.error.message}`);

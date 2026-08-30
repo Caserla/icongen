@@ -135,7 +135,7 @@
 
 - [ ] `AUTH-OPS-01` 配置生产 Supabase Site URL 和 Redirect URLs。
 - [ ] `AUTH-OPS-02` 配置发件域名、英文验证邮件和密码恢复邮件。
-- [ ] `AUTH-OPS-03` 在 Vercel 配置 Supabase 公共变量和服务端密钥。
+- [ ] `AUTH-OPS-03` 在当前部署环境配置 Supabase 公共变量和服务端密钥；短期测试为月付 VPS，正式生产平台确定后同步迁移。
 - [ ] `AUTH-OPS-04` 设置 Auth 速率限制和异常告警。
 - [ ] `AUTH-OPS-05` 接入认证漏斗和账户操作埋点。
 - [ ] `AUTH-OPS-06` 编写账户恢复、限制和删除异常的运维手册。

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     default: "Bamboo IconGen — AI UI Icon Generator",
     template: "%s · Bamboo IconGen",
   },
-  description: "Generate production-ready UI icon sets with three variants per icon.",
+  description: "Create consistent UI icon PNGs, with three options for every icon.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

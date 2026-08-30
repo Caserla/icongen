@@ -35,7 +35,7 @@ export function GenerationForm() {
 
   useEffect(() => {
     fetch("/api/generation/settings", { cache: "no-store" }).then((response) => response.ok ? response.json() : Promise.reject()).then(setSettings)
-      .catch(() => setMessage(locale === "zh" ? "设计设置加载失败，请刷新页面。" : "Design settings failed to load. Refresh the page."));
+      .catch(() => setMessage(locale === "zh" ? "图标设置加载失败，请刷新页面重试。" : "Icon settings could not load. Refresh the page to try again."));
   }, [locale]);
   useEffect(() => {
     if (!toast) return;
@@ -61,7 +61,7 @@ export function GenerationForm() {
       return;
     }
     if (sizes.length >= 3) {
-      setToast({ message: locale === "zh" ? "参考尺寸最多选择 3 种。" : "Choose up to 3 reference sizes.", variant: "warning" });
+      setToast({ message: locale === "zh" ? "最多选择 3 种输出尺寸。" : "Choose up to 3 output sizes.", variant: "warning" });
       return;
     }
     setSizes((current) => [...current, size].sort((a, b) => a - b));
@@ -88,8 +88,8 @@ export function GenerationForm() {
     if (!parsed.success) {
       const hasSubjects = subjects.length > 0;
       setMessage(hasSubjects
-        ? (locale === "zh" ? "部分图标主体格式不完整，请检查填写内容。" : "Some icon subjects are incomplete. Check the entered content.")
-        : (locale === "zh" ? "请至少填写一个图标主体的描述。" : "Describe at least one icon subject."));
+        ? (locale === "zh" ? "部分图标描述不完整，请检查每个输入项后重试。" : "Some icon descriptions are incomplete. Review each field and try again.")
+        : (locale === "zh" ? "请至少描述一个图标后再生成。" : "Describe at least one icon before generating."));
       return;
     }
     setBusy(true);
@@ -108,7 +108,7 @@ export function GenerationForm() {
     {toast ? <Toast message={toast.message} variant={toast.variant} /> : null}
     <section>
       <h2 className="text-xl font-black">1. {locale === "zh" ? "图标用途" : "Icon purpose"}</h2>
-      <p className="mt-1 text-sm text-muted">{locale === "zh" ? "选择图标在产品中的用途，仅显示对应的设计设置。" : "Choose how the icon will be used to show only the relevant design settings."}</p>
+      <p className="mt-1 text-sm text-muted">{locale === "zh" ? "选择图标的使用场景，页面将显示对应设置。" : "Choose where the icons will be used. We will show the settings that apply."}</p>
       <IconPurposeSelector value={iconPurpose} onChange={setIconPurpose} locale={locale}/>
       {iconPurpose === "interaction" ? <InteractionIconEditor
         locale={locale} iconStructure={iconStructure} onIconStructureChange={setIconStructure}
@@ -121,7 +121,7 @@ export function GenerationForm() {
     </section>
     <IconSubjectEditor values={subjectInputs} onChange={updateSubject} onAdd={addSubject} onRemove={removeSubject} maxSubjects={MAX_SUBJECTS} locale={locale}/>
     <ReferenceSizeSelector options={OUTPUT_SIZES} selected={sizes} onToggle={toggleSize} locale={locale}/>
-    <div className="sticky bottom-4 z-10 flex justify-end"><button type="submit" disabled={busy || !settings} className="min-h-12 rounded-xl bg-brand px-7 font-black text-white shadow-[0_4px_0_#4930c9] disabled:opacity-50">{busy ? (locale === "zh" ? "正在创建任务…" : "Creating task…") : (locale === "zh" ? "生成图标" : "Generate icons")}</button></div>
+    <div className="sticky bottom-4 z-10 flex justify-end"><button type="submit" disabled={busy || !settings} className="min-h-12 rounded-xl bg-brand px-7 font-black text-white shadow-[0_4px_0_#4930c9] disabled:opacity-50">{busy ? (locale === "zh" ? "正在开始生成…" : "Starting generation…") : (locale === "zh" ? "为每个图标生成 3 个方案" : "Generate 3 options per icon")}</button></div>
     {message ? <p role="alert" className="rounded-xl bg-[#fff1ed] px-4 py-3 text-sm text-danger">{message}</p> : null}
   </form>;
 }

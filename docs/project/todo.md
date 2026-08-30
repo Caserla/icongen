@@ -39,7 +39,7 @@
 - [ ] 把生成模型从固定 4 results 迁移为 jobs → subjects → 3 variants → assets。
 - [x] 更新共享 Schema，并新增 jobs → subjects → variants → assets 数据库迁移。
 - [ ] 更新生成 API、Worker 和 Skill 输入以使用 v2 Schema。
-- [x] Worker 增加 `IMAGE_QUALITY=medium` 配置并传给 OpenAI Image Provider。
+- [x] Worker 默认传入 `IMAGE_QUALITY=high` 和 `IMAGE_SIZE=2048x2048`，交付尺寸由高清母版缩放。
 - [x] 在未配置真实 API Key 时提供 Mock Image Provider，支持本地流程开发。
 - [ ] 实现后端真实工作单元进度与部分成功状态。
 - [ ] 实现所选 variant/尺寸的私有 ZIP 打包和短时下载链接。

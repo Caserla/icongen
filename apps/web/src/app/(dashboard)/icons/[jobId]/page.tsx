@@ -5,7 +5,7 @@ import { readGenerationJob } from "@/features/generation/server/generation-job-r
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
-export const metadata: Metadata = { title: "Generation results" };
+export const metadata: Metadata = { title: "Icon set results" };
 
 export default async function IconJobPage({ params }: { params: Promise<{ jobId: string }> }) {
   const [{ jobId }, user] = await Promise.all([params, requireActiveUser()]);

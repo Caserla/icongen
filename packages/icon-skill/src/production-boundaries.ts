@@ -8,8 +8,9 @@ export const SHARED_PRODUCTION_BOUNDARIES = [
 
 export const APP_ICON_CANVAS_SPEC = [
   "The final square canvas is the production app-icon asset itself, not a preview of an icon on another surface.",
-  "The icon's own opaque background fills the complete canvas edge to edge; there is no second presentation backdrop, exterior stage, frame, pedestal, or outer tile.",
-  "If the internal app-icon composition uses rounded corners, all remaining canvas pixels use solid white #FFFFFF.",
+  "By default, one background treatment fills the complete square master canvas edge to edge; there is no model-drawn rounded container, second presentation backdrop, exterior stage, frame, pedestal, or outer tile.",
+  "The delivery pipeline alone applies the shared approximately 22% rounded-square alpha mask after generation.",
+  "Only an explicit no-background request in the subject description removes the full-canvas background.",
 ].join(" ");
 
 export const INTERACTION_ASSET_SPEC = [

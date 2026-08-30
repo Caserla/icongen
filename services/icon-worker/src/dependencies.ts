@@ -5,6 +5,7 @@ import { SupabaseAssetStore } from "./adapters/supabase-asset-store";
 import { SupabaseGenerationRepository } from "./adapters/supabase-generation-repository";
 import { SharpImageProcessor } from "./adapters/sharp-image-processor";
 import { SharpImageQualityGate } from "./adapters/sharp-image-quality-gate";
+import { VTracerVectorImageProcessor } from "./adapters/vtracer-vector-image-processor";
 import type { WorkerConfig } from "./config";
 import { createImageProvider, createPromptCompiler } from "./registries";
 
@@ -18,6 +19,7 @@ export function createDependencies(config: WorkerConfig): ProcessGenerationJobDe
     assetStore: new SupabaseAssetStore(supabase, config.SUPABASE_ICON_BUCKET),
     imageProvider: createImageProvider(config),
     imageProcessor: new SharpImageProcessor(),
+    vectorImageProcessor: new VTracerVectorImageProcessor(),
     imageQualityGate: new SharpImageQualityGate(),
     promptCompiler: createPromptCompiler(config.ICON_SKILL),
     logger,

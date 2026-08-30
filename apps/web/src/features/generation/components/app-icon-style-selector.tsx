@@ -24,8 +24,8 @@ export function AppIconStyleSelector({
       </p>
       <p className="mt-1 text-sm text-muted">
         {locale === "zh"
-          ? "通过预览选择能够代表整个 App 的统一视觉风格。"
-          : "Choose a visual style that represents the app as a whole."}
+          ? "为 App 图标选择一种视觉风格。"
+          : "Choose one style for the app icon."}
       </p>
       <fieldset className="mt-4">
         <legend className="text-sm font-bold">

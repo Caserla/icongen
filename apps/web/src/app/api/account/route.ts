@@ -11,7 +11,7 @@ export async function GET() {
       supabase.from("profiles").select("display_name,status,created_at").eq("id", user.id).single(),
       supabase.from("credit_accounts").select("balance").eq("user_id", user.id).single(),
     ]);
-    if (profile.error || credits.error) return apiError("ACCOUNT_LOAD_FAILED", "We could not load your account.", 500);
+    if (profile.error || credits.error) return apiError("ACCOUNT_LOAD_FAILED", "Your account details could not load. Refresh the page to try again.", 500);
 
     const account: AccountSummary = {
       id: user.id,
@@ -24,7 +24,6 @@ export async function GET() {
     };
     return Response.json(account);
   } catch (error) {
-    return authErrorResponse(error) ?? apiError("ACCOUNT_LOAD_FAILED", "We could not load your account.", 500);
+    return authErrorResponse(error) ?? apiError("ACCOUNT_LOAD_FAILED", "Your account details could not load. Refresh the page to try again.", 500);
   }
 }
-

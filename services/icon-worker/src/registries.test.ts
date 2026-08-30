@@ -5,7 +5,7 @@ import { createImageProvider, createPromptCompiler } from "./registries";
 test("selects the configured icon skill", () => {
   const compiler = createPromptCompiler("default-ui-icon");
   assert.equal(compiler.name, "default-ui-icon");
-  assert.equal(compiler.version, "0.5.1");
+  assert.equal(compiler.version, "0.8.8");
 });
 
 test("rejects an unregistered icon skill", () => {
@@ -17,6 +17,7 @@ test("uses the mock provider without an API key", async () => {
     IMAGE_PROVIDER: "mock",
     IMAGE_MODEL: "gpt-image-2",
     IMAGE_QUALITY: "medium",
+    IMAGE_SIZE: "2048x2048",
     ICON_SKILL: "default-ui-icon",
     SUPABASE_URL: "https://example.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "test-service-role",
@@ -34,6 +35,7 @@ test("creates an OpenAI-compatible provider with a custom base URL", () => {
     IMAGE_PROVIDER: "openai",
     IMAGE_MODEL: "gpt-image-2",
     IMAGE_QUALITY: "medium",
+    IMAGE_SIZE: "2048x2048",
     IMAGE_PROVIDER_BASE_URL: "https://gateway.example.com/v1",
     IMAGE_PROVIDER_API_KEY: "test-gateway-key",
     ICON_SKILL: "default-ui-icon",

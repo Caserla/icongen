@@ -7,7 +7,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const parsed = signUpSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError("VALIDATION_ERROR", "Please check your registration details.", 400, parsed.error.flatten());
-  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) return apiError("AUTH_SERVICE_UNAVAILABLE", "Authentication is not configured.", 503);
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) return apiError("AUTH_SERVICE_UNAVAILABLE", "Sign-up is temporarily unavailable. Please try again later.", 503);
 
   const next = safeNextPath(parsed.data.next);
   const emailRedirectTo = new URL(`/auth/callback?next=${encodeURIComponent(next)}`, publicEnv.appUrl).toString();

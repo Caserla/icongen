@@ -2,13 +2,13 @@
 
 ## 1. 目标与范围
 
-后端支持 Bamboo IconGen MVP 的完整业务闭环：登录用户提交多个 UI 图标主体与结构化设计设置，系统扣除点数、为每个主体异步生成 3 个 PNG 方案、派生所选尺寸、私有保存结果和打包 ZIP，并支持 Stripe 点数包入账及失败退款。
+后端支持 Bamboo IconGen MVP 的完整业务闭环：登录用户提交多个 UI 图标主体与结构化设计设置，系统扣除点数、为每个主体异步生成 3 个 PNG 方案、派生所选尺寸，并为交互图标和极简标志派生 SVG，私有保存结果和打包 ZIP，同时支持 Stripe 点数包入账及失败退款。
 
 ## 2. 总体架构
 
 ```mermaid
 flowchart LR
-  Browser[Web browser] --> BFF[Next.js BFF on Vercel]
+  Browser[Web browser] --> BFF[Next.js Web / BFF]
   BFF --> Auth[Supabase Auth]
   BFF --> DB[(Supabase PostgreSQL)]
   BFF --> Stripe[Stripe Checkout]
@@ -17,7 +17,8 @@ flowchart LR
   BFF --> Worker[本地 Worker 启动器]
   DB --> Worker[读取/更新任务]
   Worker --> Skill[icon-skill]
-  Worker --> OpenAI[OpenAI Image API]
+  Worker --> Sub2API[Sub2API OpenAI-compatible gateway]
+  Sub2API --> Model[Upstream image model]
   Worker --> Storage[Supabase private Storage]
   Worker --> DB
 ```
@@ -31,7 +32,7 @@ flowchart LR
 - `services/icon-worker`：与运行平台无关的生成核心及 OpenAI、Supabase 适配器。
 - `infra/supabase`：数据库表、RLS、私有文件桶与事务函数。
 
-模型和 Skill 都通过 Worker 注册表选择。`IMAGE_PROVIDER`、`IMAGE_MODEL`、`IMAGE_QUALITY` 和 `ICON_SKILL` 是服务端配置；首发质量固定为 `medium`。新增供应商只实现 `ImageProvider`，新增 Skill 只实现 `PromptCompiler`，不会影响任务、扣点和存储代码。任务及每个结果都会记录实际使用的 Provider、模型、质量、Skill 名称与版本。
+模型和 Skill 都通过 Worker 注册表选择。`IMAGE_PROVIDER`、`IMAGE_MODEL`、`IMAGE_QUALITY`、`IMAGE_SIZE` 和 `ICON_SKILL` 是服务端配置；母版默认使用 `high` 质量和 `2048x2048` 尺寸。新增供应商只实现 `ImageProvider`，新增 Skill 只实现 `PromptCompiler`，不会影响任务、扣点和存储代码。任务及每个结果都会记录实际使用的 Provider、模型、质量、Skill 名称与版本。
 
 ## 4. 核心流程
 
@@ -40,16 +41,16 @@ flowchart LR
 1. BFF 校验用户会话和描述字段。
 2. BFF 使用客户端幂等键调用 `create_generation_job_and_debit`。
 3. PostgreSQL 在同一事务中锁定点数账户、扣点、建立任务并写账本。
-4. 本地开发环境由 BFF 在创建任务后直接启动 Worker；生产执行器由部署环境配置，不得在未确认的情况下引入新的云服务或队列。
+4. 本地开发环境由 BFF 在创建任务后直接启动 Worker；月付 VPS 测试环境由独立常驻 Worker 消费任务，正式生产执行器在公开上线前重新评估。
 
 ### 批量生成每主体 3 个方案
 
 1. 服务端执行器领取一个待处理任务并验证任务状态。
 2. Worker 读取任务规格快照，按主体建立 3 个 variant 工作单元；Icon Skill 根据用途与风格加载独立 style spec，再组合共享生产边界和 A/B/C 构图差异。
-3. OpenAI-compatible Image2 Provider 生成高分辨率 PNG；非付费质量门禁检查母版尺寸、方形画布和 App 图标明显深色外底并记录结构化告警，然后派生 512px 预览与用户选择的正式尺寸，保存至私有 Storage。
+3. OpenAI-compatible Image2 Provider 通过同机独立服务 Sub2API 调用上游模型并生成高分辨率 PNG；非付费质量门禁检查母版尺寸、方形画布和 App 图标明显深色外底并记录结构化告警，然后派生 512px 预览、用户选择的 PNG 正式尺寸，并为受支持任务本地派生 SVG，保存至私有 Storage。
 4. 任务进度由完成或最终失败的工作单元计算；全部处理结束后进入 `completed`、`partial` 或 `failed`。
 5. 临时错误只重试未成功工作单元；最终失败按版本化规则原子返还点数。
-6. 用户提交选中的 variant 和尺寸后，服务端校验所有权并建立短时 ZIP 下载归档。
+6. 用户提交选中的 variant 后，服务端校验所有权并打包每个方案的原图与全部交付尺寸；支持 SVG 的风格可通过复选框选择是否追加 SVG。
 
 ### Stripe 入账
 
@@ -85,15 +86,19 @@ flowchart LR
 
 ## 7. 环境与部署
 
-- Web：Vercel，生产域名和 Edge/CDN 面向海外用户。
-- 数据：Supabase 项目优先选择美国东部区域。
-- Worker：本地开发由 Web BFF 启动；生产执行器独立配置，不预设额外云服务。
-- 监控：Vercel Logs、Supabase Logs、Sentry；关键指标包括成功率、P95 耗时、每任务模型成本和退款率。
+- 本地开发：Web BFF 可以直接启动 Worker，使用 mock 或受控真实模型完成联调。
+- 短期测试：东京区域月付 4 GB VPS 合并运行 Caddy、生产构建的 Next.js Web/BFF、独立常驻 Worker、Sub2API及其专用PostgreSQL/Redis；配置2–4 GB swap，Worker和图片网关并发均为1，默认只开放每批1–3个主体。
+- 模型网关：Bamboo Worker通过私有容器网络、专用限额API Key和内部 `IMAGE_PROVIDER_BASE_URL` 调用同机Sub2API；Sub2API API、PostgreSQL和Redis不暴露公网。
+- 数据：业务数据继续使用Supabase Auth、PostgreSQL和私有Storage；VPS上的PostgreSQL只供Sub2API使用。Supabase项目区域尽量靠近VPS与主要测试用户，避免不必要的跨洲链路。
+- 正式生产候选：Vercel 承载 Web，生产 Worker 独立部署；公开上线前根据测试数据重新评估执行平台、队列、高可用和数据区域。
+- 监控：短期测试至少采集主机 CPU/内存/磁盘、Web/Worker 日志、成功率、P95 耗时和模型费用；正式生产再接入 Vercel Logs、Supabase Logs、Sentry 或等效服务。
+
+短期测试的完整拓扑、资源限制、安全要求和验收清单见 [月付 VPS 测试部署指南](../guides/monthly-vps-test-deployment.md)，冻结决策见 [ADR-0004](../decisions/0004-monthly-vps-test-deployment.md)。
 
 ## 8. 后端环境变量
 
-Worker 变量见 `services/icon-worker/.env.example`。本地默认使用 `IMAGE_PROVIDER=mock`，不需要模型 API Key；真实生成切换为 `IMAGE_PROVIDER=openai` 后必须由平台方配置 API Key。`IMAGE_QUALITY` 默认并固定为 `medium`，OpenAI Provider 会显式传入该值。Web BFF 需要 Supabase URL/Anon Key/Service Role 和 Stripe Secret/Webhook Secret；所有生产密钥只保存在服务端安全环境变量中。
+Worker 变量见 `services/icon-worker/.env.example`。本地默认使用 `IMAGE_PROVIDER=mock`，不需要模型 API Key；真实生成切换为 `IMAGE_PROVIDER=openai`，并配置指向 Sub2API `/v1` 的 `IMAGE_PROVIDER_BASE_URL` 及 Bamboo 专用网关 API Key。`IMAGE_QUALITY` 默认设为 `high`，`IMAGE_SIZE` 默认设为 `2048x2048`，OpenAI-compatible Provider 会将二者作为接口参数显式传入。Web BFF 需要 Supabase URL/Anon Key/Service Role 和 Stripe Secret/Webhook Secret；所有生产密钥只保存在服务端安全环境变量中。
 
 ## 9. 当前实现边界
 
-共享 v2 Schema、版本化图标设计风格配置及批量数据库迁移已经建立。MVP 不支持完整 266 项或高级模式。Worker 已切换到 subjects × 3 variants，能够真实缩放 PNG、汇总主体与任务状态；本地真实模型、进度查询和下载接口链路已贯通。生产部署仍需配置服务端密钥与执行器；具体状态以开发计划和需求一致性审计为准。
+共享 v2 Schema、版本化图标设计风格配置及批量数据库迁移已经建立。MVP 不支持完整 266 项或高级模式。Worker 已切换到 subjects × 3 variants，能够从高清母版生成 PNG 交付尺寸：普通风格使用 Lanczos3 并对 64/128/256 做克制锐化，像素艺术使用最近邻缩放；PNG 保持无损和透明通道。任务汇总、本地真实模型、进度查询和下载接口链路已贯通。生产部署仍需配置服务端密钥与执行器；具体状态以开发计划和需求一致性审计为准。

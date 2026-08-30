@@ -5,7 +5,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 
 export default function AdminPage() {
   const { locale, t } = useLocale();
-  const labels = locale === "zh" ? ["用户", "生成任务", "支付与点数"] : ["Users", "Generation jobs", "Payments & credits"];
+  const labels = locale === "zh" ? ["用户", "图标生成", "支付与点数"] : ["Users", "Icon generation", "Payments & credits"];
   return (
     <div className="space-y-8">
       <PageHeader eyebrow={t("operations")} title={t("adminWorkspace")} description={t("adminCopy")} />

@@ -12,14 +12,19 @@
 - [Icon taxonomy v1：一级与二级分类清单](product/icon-taxonomy-v1.md)
 - [作品、支付与运营模块需求](product/works-billing-admin-requirements.md)
 - [六大业务模块前端页面规划](product/frontend-page-plan.md)
+- [前端文案优化方案](product/frontend-copy-optimization-plan.md)
 - [MVP 范围决策](decisions/0001-mvp-scope.md)
 - [批量 UI 图标生成范围决策](decisions/0002-batch-ui-icon-generation.md)
 - [UI 图标生成设置精简决策](decisions/0003-simplified-ui-icon-controls.md)
+- [月付 VPS 测试部署基线决策](decisions/0004-monthly-vps-test-deployment.md)
 
 ## 技术
 
 - [技术架构概览](architecture/overview.md)
 - [后端技术架构](architecture/backend.md)
+- [SVG 输出链路调整方案](architecture/svg-output-adjustment-plan.md)
+- [月付 VPS 测试部署指南](guides/monthly-vps-test-deployment.md)
+- [单台 4 GB VPS 合并部署操作手册](guides/single-vps-deployment-runbook.md)
 - [AI 模型与 Skill 配置说明书](guides/ai-model-and-skill-configuration.md)
 - [登录与账户 API 前端调用手册](api/auth-account-frontend-guide.md)
 - [登录与账户 OpenAPI 3.1 规范](api/auth-account.openapi.yaml)

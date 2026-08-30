@@ -10,7 +10,7 @@ function variants(subjectNumber: number, completed: boolean): GenerationJobV2["s
     status: completed ? "completed" : "queued",
     isPrimary: completed && slot === 1,
     assets: completed ? [{
-      id: `${subjectNumber}${slot}100000-0000-4000-8000-000000000000`, assetRole: "output", size: 256,
+      id: `${subjectNumber}${slot}100000-0000-4000-8000-000000000000`, assetRole: "output", format: "png", size: 256,
       width: 256, height: 256, hasAlpha: true, previewUrl: `/placeholder-${slot}.png`,
     }] : [],
   }));

@@ -9,17 +9,20 @@ export class OpenAIImageProvider implements ImageProvider {
     apiKey: string,
     readonly model: string,
     private readonly quality: "low" | "medium" | "high" | "auto",
+    private readonly size: "1024x1024" | "2048x2048",
     baseURL?: string,
   ) {
     this.client = new OpenAI({ apiKey, baseURL });
   }
 
-  async generate({ prompt }: { prompt: string }) {
+  async generate({ prompt, background = "auto" }: { prompt: string; background?: "transparent" | "opaque" | "auto" }) {
     const response = await this.client.images.generate({
       model: this.model,
       prompt,
       quality: this.quality,
-      size: "1024x1024",
+      size: this.size,
+      background,
+      output_format: "png",
     });
     const encoded = response.data?.[0]?.b64_json;
     if (!encoded) throw new Error("OpenAI image response did not include b64_json data");
