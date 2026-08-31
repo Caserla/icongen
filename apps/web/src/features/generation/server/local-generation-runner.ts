@@ -2,11 +2,18 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 
 const activeJobs = new Set<string>();
+const scheduledJobs = new Map<string, ReturnType<typeof setTimeout>>();
 
-export function startLocalGenerationJob(jobId: string) {
-  if (process.env.NODE_ENV === "production" || activeJobs.has(jobId)) return;
+function spawnLocalGenerationJob(jobId: string, workspaceRoot: string) {
+  scheduledJobs.delete(jobId);
+  if (activeJobs.has(jobId)) {
+    scheduledJobs.set(
+      jobId,
+      setTimeout(() => spawnLocalGenerationJob(jobId, workspaceRoot), 750),
+    );
+    return;
+  }
 
-  const workspaceRoot = process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
   activeJobs.add(jobId);
 
   const child = spawn(
@@ -30,4 +37,21 @@ export function startLocalGenerationJob(jobId: string) {
     activeJobs.delete(jobId);
     if (code !== 0) console.error("Local generation worker exited unsuccessfully", { jobId, code });
   });
+}
+
+export function startLocalGenerationJob(jobId: string) {
+  if (process.env.NODE_ENV === "production") return;
+
+  const workspaceRoot =
+    process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
+  const scheduled = scheduledJobs.get(jobId);
+  if (scheduled) clearTimeout(scheduled);
+
+  // A user may retry several failed variants in quick succession. Coalesce
+  // those writes before the worker reads its job snapshot, otherwise a later
+  // variant can miss the active run and be marked as an incomplete subject.
+  scheduledJobs.set(
+    jobId,
+    setTimeout(() => spawnLocalGenerationJob(jobId, workspaceRoot), 750),
+  );
 }

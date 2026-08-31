@@ -30,6 +30,8 @@ Local provider testing can use `IMAGE_PROVIDER=mock` without an OpenAI API Key.
 
 The Bamboo test and production topology uses an independently deployed Sub2API service as `IMAGE_PROVIDER_BASE_URL`. The endpoint must implement `POST /v1/images/generations` and return `data[0].b64_json`. Use a Bamboo-specific, revocable and quota-limited gateway key; do not reuse a Sub2API administrator credential.
 
+For Sub2API, a listed model alone is insufficient: an enabled upstream account must whitelist `gpt-image-2` and belong to the Bamboo image group (currently `image-2`). If the provider returns `503 No available compatible accounts`, verify that account-to-group mapping before changing the Worker configuration.
+
 Supported interaction-icon jobs and the `minimal-logo` App-icon preset also derive a sanitized `output.svg` locally with VTracer. Apply Supabase migration `0012_svg_output_assets.sql` before deploying this Worker version. Complex illustrative and 3D presets remain PNG-only.
 
 To add another vendor, implement `ImageProvider` in `src/adapters/` and add one case to `createImageProvider` in `src/registries.ts`. The generation core, credit, storage, and frontend flow do not change.

@@ -1,7 +1,25 @@
-import type { ColorSetting, CreateGenerationJobInput, GenerationJobStatusV2, IconStyle } from "@icongen/shared";
+import type {
+  ColorSetting,
+  CreateGenerationJobInput,
+  GenerationJobStatusV2,
+  IconStyle,
+} from "@icongen/shared";
 
-export type GenerationVariantRecord = { id: string; subjectId: string; slot: 1 | 2 | 3; status: "queued" | "processing" | "completed" | "failed" };
-export type GenerationSubjectRecord = { id: string; name: string; description: string; position: number; colorOverride?: ColorSetting; variants: GenerationVariantRecord[] };
+export type GenerationVariantRecord = {
+  id: string;
+  subjectId: string;
+  slot: 1 | 2 | 3;
+  status: "queued" | "processing" | "completed" | "failed";
+};
+export type GenerationSubjectRecord = {
+  id: string;
+  name: string;
+  description: string;
+  position: number;
+  colorOverride?: ColorSetting;
+  backgroundOverride?: CreateGenerationJobInput["background"];
+  variants: GenerationVariantRecord[];
+};
 
 export type GenerationJobRecord = {
   id: string;
@@ -29,7 +47,11 @@ export interface GenerationRepository {
   getJob(jobId: string): Promise<GenerationJobRecord | null>;
   markProcessing(jobId: string, execution: GenerationExecution): Promise<void>;
   markVariantProcessing(variantId: string): Promise<void>;
-  markVariantFailed(input: { variantId: string; errorCode: string; errorMessage: string }): Promise<void>;
+  markVariantFailed(input: {
+    variantId: string;
+    errorCode: string;
+    errorMessage: string;
+  }): Promise<void>;
   saveAsset(input: {
     jobId: string;
     subjectId: string;
@@ -52,15 +74,26 @@ export interface GenerationRepository {
     imageModel: string;
     providerRequestId?: string;
   }): Promise<void>;
-  updateProgress(jobId: string, completedUnits: number, totalUnits: number): Promise<void>;
+  updateProgress(
+    jobId: string,
+    completedUnits: number,
+    totalUnits: number,
+  ): Promise<void>;
   markCompleted(jobId: string): Promise<void>;
-  markFailedAndRefund(jobId: string, errorCode: string, errorMessage: string): Promise<void>;
+  markFailedAndRefund(
+    jobId: string,
+    errorCode: string,
+    errorMessage: string,
+  ): Promise<void>;
 }
 
 export interface ImageProvider {
   readonly name: string;
   readonly model: string;
-  generate(input: { prompt: string; background?: "transparent" | "opaque" | "auto" }): Promise<GeneratedImage>;
+  generate(input: {
+    prompt: string;
+    background?: "transparent" | "opaque" | "auto";
+  }): Promise<GeneratedImage>;
 }
 
 export type ProcessedImage = {
@@ -72,32 +105,90 @@ export type ProcessedImage = {
 };
 
 export interface ImageProcessor {
-  inspect(input: { bytes: Uint8Array }): Promise<{ width: number; height: number; hasAlpha: boolean }>;
-  applyRoundedMask?(input: { bytes: Uint8Array; cornerRadiusPercent: number }): Promise<ProcessedImage>;
-  process(input: { bytes: Uint8Array; size: number; profile?: "icon" | "pixel-art" }): Promise<ProcessedImage>;
+  inspect(input: {
+    bytes: Uint8Array;
+  }): Promise<{ width: number; height: number; hasAlpha: boolean }>;
+  applyRoundedMask?(input: {
+    bytes: Uint8Array;
+    cornerRadiusPercent: number;
+  }): Promise<ProcessedImage>;
+  process(input: {
+    bytes: Uint8Array;
+    size: number;
+    profile?: "icon" | "pixel-art";
+  }): Promise<ProcessedImage>;
 }
 
 export interface VectorImageProcessor {
-  process(input: { bytes: Uint8Array; mode: "binary" | "color" }): Promise<{ bytes: Uint8Array; mimeType: "image/svg+xml"; width: number; height: number }>;
+  process(input: {
+    bytes: Uint8Array;
+    mode: "binary" | "color";
+  }): Promise<{
+    bytes: Uint8Array;
+    mimeType: "image/svg+xml";
+    width: number;
+    height: number;
+  }>;
 }
 
-export type ImageQualityWarning = { code: "SOURCE_TOO_SMALL" | "SOURCE_NOT_SQUARE" | "APP_ICON_DARK_OUTER_CORNERS" | "FAKE_TRANSPARENCY_CHECKERBOARD" | "NON_UNIFORM_SOLID_BACKGROUND"; message: string };
+export type ImageQualityWarning = {
+  code:
+    | "SOURCE_TOO_SMALL"
+    | "SOURCE_NOT_SQUARE"
+    | "APP_ICON_DARK_OUTER_CORNERS"
+    | "FAKE_TRANSPARENCY_CHECKERBOARD"
+    | "NON_UNIFORM_SOLID_BACKGROUND"
+    | "MISSING_ALPHA_CHANNEL";
+  message: string;
+};
 export type BackgroundQualityContract =
-  | { mode: "solid"; color: string; profile: "flat" | "material" | "pixel" | "illustration"; colorTolerance: number; targetTolerance: number; minBorderCoverage: number; minCanvasCoverage: number }
+  | {
+      mode: "solid";
+      color: string;
+      profile: "flat" | "material" | "pixel" | "illustration";
+      colorTolerance: number;
+      targetTolerance: number;
+      minBorderCoverage: number;
+      minCanvasCoverage: number;
+    }
   | { mode: "gradient"; colors: [string, string]; profile: "neon" };
 
 export interface ImageQualityGate {
-  inspect(input: { bytes: Uint8Array; purpose?: CreateGenerationJobInput["purpose"]; stylePreset?: IconStyle["preset"]; backgroundContract?: BackgroundQualityContract }): Promise<ImageQualityWarning[]>;
+  inspect(input: {
+    bytes: Uint8Array;
+    purpose?: CreateGenerationJobInput["purpose"];
+    stylePreset?: IconStyle["preset"];
+    backgroundContract?: BackgroundQualityContract;
+  }): Promise<ImageQualityWarning[]>;
 }
 
 export interface AssetStore {
-  put(input: { jobId: string; subjectId: string; variantId: string; slot: 1 | 2 | 3; assetRole: GenerationAssetRole; format: GenerationAssetFormat; size: number; bytes: Uint8Array; mimeType: string }): Promise<StoredAsset>;
+  put(input: {
+    jobId: string;
+    subjectId: string;
+    variantId: string;
+    slot: 1 | 2 | 3;
+    assetRole: GenerationAssetRole;
+    format: GenerationAssetFormat;
+    size: number;
+    bytes: Uint8Array;
+    mimeType: string;
+  }): Promise<StoredAsset>;
 }
 
 export interface PromptCompiler {
   readonly name: string;
   readonly version: string;
-  compile(input: { purpose?: CreateGenerationJobInput["purpose"]; name: string; description: string; color: ColorSetting; background: CreateGenerationJobInput["background"]; style: IconStyle; sizes: number[]; slot: 1 | 2 | 3 }): {
+  compile(input: {
+    purpose?: CreateGenerationJobInput["purpose"];
+    name: string;
+    description: string;
+    color: ColorSetting;
+    background: CreateGenerationJobInput["background"];
+    style: IconStyle;
+    sizes: number[];
+    slot: 1 | 2 | 3;
+  }): {
     prompt: string;
     skillVersion: string;
     qualityContract?: BackgroundQualityContract;

@@ -17,16 +17,6 @@ export function AppIconStyleSelector({
   const appIconPresets = presets.filter((preset) => preset.id !== "line-icon");
   return (
     <div className="mt-6">
-      <p className="text-sm font-black text-brand">
-        {locale === "zh"
-          ? "App 图标 · 图标设计风格"
-          : "App icon · Design style"}
-      </p>
-      <p className="mt-1 text-sm text-muted">
-        {locale === "zh"
-          ? "为 App 图标选择一种视觉风格。"
-          : "Choose one style for the app icon."}
-      </p>
       <fieldset className="mt-4">
         <legend className="text-sm font-bold">
           {locale === "zh" ? "风格预设" : "Style preset"}

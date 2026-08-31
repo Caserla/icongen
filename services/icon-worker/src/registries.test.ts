@@ -5,11 +5,14 @@ import { createImageProvider, createPromptCompiler } from "./registries";
 test("selects the configured icon skill", () => {
   const compiler = createPromptCompiler("default-ui-icon");
   assert.equal(compiler.name, "default-ui-icon");
-  assert.equal(compiler.version, "0.8.8");
+  assert.equal(compiler.version, "0.8.10");
 });
 
 test("rejects an unregistered icon skill", () => {
-  assert.throws(() => createPromptCompiler("missing-skill"), /Unsupported ICON_SKILL/);
+  assert.throws(
+    () => createPromptCompiler("missing-skill"),
+    /Unsupported ICON_SKILL/,
+  );
 });
 
 test("uses the mock provider without an API key", async () => {

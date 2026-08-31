@@ -9,8 +9,8 @@ export const SHARED_PRODUCTION_BOUNDARIES = [
 export const APP_ICON_CANVAS_SPEC = [
   "The final square canvas is the production app-icon asset itself, not a preview of an icon on another surface.",
   "By default, one background treatment fills the complete square master canvas edge to edge; there is no model-drawn rounded container, second presentation backdrop, exterior stage, frame, pedestal, or outer tile.",
-  "The delivery pipeline alone applies the shared approximately 22% rounded-square alpha mask after generation.",
-  "Only an explicit no-background request in the subject description removes the full-canvas background.",
+  "The delivery pipeline applies the selected rounded, circular, or square container shape after generation; do not paint a second container boundary into the image.",
+  "A transparent-background setting or an explicit no-background request removes the full-canvas background.",
 ].join(" ");
 
 export const INTERACTION_ASSET_SPEC = [

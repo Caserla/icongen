@@ -81,3 +81,14 @@ test("does not apply the uniform solid background gate to neon gradients", async
   assert.ok(!warnings.some((warning) => warning.code === "NON_UNIFORM_SOLID_BACKGROUND"));
   assert.ok(!warnings.some((warning) => warning.code === "APP_ICON_DARK_OUTER_CORNERS"));
 });
+
+test("does not duplicate dark-corner warnings when a solid background contract is present", async () => {
+  const source = await sharp({ create: { width: 1024, height: 1024, channels: 3, background: "#243B6B" } }).png().toBuffer();
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: source,
+    purpose: "app-icon",
+    stylePreset: "pixel-art",
+    backgroundContract: { mode: "solid", color: "#243B6B", profile: "pixel", colorTolerance: 24, targetTolerance: 88, minBorderCoverage: 0.72, minCanvasCoverage: 0.24 },
+  });
+  assert.ok(!warnings.some((warning) => warning.code === "APP_ICON_DARK_OUTER_CORNERS"));
+});

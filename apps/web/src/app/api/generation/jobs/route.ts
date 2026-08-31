@@ -8,34 +8,65 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = createGenerationJobSchema.safeParse(body);
   if (!parsed.success) {
-    return apiError("INVALID_GENERATION_REQUEST", "Please check the generation request.", 400, parsed.error.flatten());
+    return apiError(
+      "INVALID_GENERATION_REQUEST",
+      "Please check the generation request.",
+      400,
+      parsed.error.flatten(),
+    );
   }
 
   try {
-    const requestsNoBackground = parsed.data.subjects.some((subject) => /(?:不需要|不要|去掉|移除|无|透明)(?:任何)?背景|背景(?:不需要|不要|透明)|no\s+background|without\s+(?:a\s+)?background|transparent\s+background/i.test(`${subject.name}\n${subject.description}`));
-    const generationSpec = parsed.data.purpose === "app-icon"
-      ? { ...parsed.data, background: requestsNoBackground ? { enabled: false as const } : { enabled: true as const, container: "rounded-square" as const, color: { mode: "solid" as const, color: "#FFFFFF" }, cornerRadius: 22 } }
-      : parsed.data;
+    const generationSpec = parsed.data;
     const user = await requireActiveUser();
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.rpc("create_generation_job_v2", {
       p_user_id: user.id,
       p_spec: generationSpec,
-      p_skill_version: "default-ui-icon@0.8.8",
+      p_skill_version: "default-ui-icon@0.8.10",
       p_idempotency_key: generationSpec.idempotencyKey,
     });
     if (error) {
-      console.error("create_generation_job_v2 failed", { code: error.code, message: error.message, details: error.details, hint: error.hint });
-      if (error.code === "PGRST202" || error.message.includes("create_generation_job_v2")) {
-        return apiError("GENERATION_DATABASE_MIGRATION_REQUIRED", "Generation is temporarily unavailable. Please try again later.", 503);
+      console.error("create_generation_job_v2 failed", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      if (
+        error.code === "PGRST202" ||
+        error.message.includes("create_generation_job_v2")
+      ) {
+        return apiError(
+          "GENERATION_DATABASE_MIGRATION_REQUIRED",
+          "Generation is temporarily unavailable. Please try again later.",
+          503,
+        );
       }
-      if (error.message.includes("settings version expired")) return apiError("SETTINGS_VERSION_EXPIRED", "Icon settings were updated. Refresh the page, review your choices, and generate again.", 409);
-      if (error.message.includes("active generation exists")) return apiError("ACTIVE_JOB_LIMIT_REACHED", "Another icon set is still generating. Wait for it to finish before starting a new one.", 409);
-      return apiError("GENERATION_CREATE_FAILED", "Generation could not start. Your settings are still on this page; try again.", 500);
+      if (error.message.includes("settings version expired"))
+        return apiError(
+          "SETTINGS_VERSION_EXPIRED",
+          "Icon settings were updated. Refresh the page, review your choices, and generate again.",
+          409,
+        );
+      if (error.message.includes("active generation exists"))
+        return apiError(
+          "ACTIVE_JOB_LIMIT_REACHED",
+          "Another icon set is still generating. Wait for it to finish before starting a new one.",
+          409,
+        );
+      return apiError(
+        "GENERATION_CREATE_FAILED",
+        "Generation could not start. Your settings are still on this page; try again.",
+        500,
+      );
     }
     startLocalGenerationJob(data);
     return Response.json({ id: data, status: "queued" }, { status: 201 });
   } catch (error) {
-    return authErrorResponse(error) ?? apiError("AUTHORIZATION_FAILED", "We could not verify this account.", 500);
+    return (
+      authErrorResponse(error) ??
+      apiError("AUTHORIZATION_FAILED", "We could not verify this account.", 500)
+    );
   }
 }

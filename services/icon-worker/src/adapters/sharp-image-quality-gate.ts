@@ -124,9 +124,10 @@ export class SharpImageQualityGate implements ImageQualityGate {
       if (result.invalid) warnings.push({ code: "NON_UNIFORM_SOLID_BACKGROUND", message: `The ${input.stylePreset} background failed its ${input.backgroundContract.profile} profile: borderCoverage=${result.borderCoverage.toFixed(3)}, canvasCoverage=${result.canvasCoverage.toFixed(3)}, targetDistance=${result.targetDistance.toFixed(1)}, required=${input.backgroundContract.minBorderCoverage.toFixed(3)}/${input.backgroundContract.minCanvasCoverage.toFixed(3)}, tolerances=${input.backgroundContract.colorTolerance}/${input.backgroundContract.targetTolerance}, observed=${result.observedColor}, target=${input.backgroundContract.color}.` });
     }
 
-    // A dark outer field is intentional for the approved neon gradient. Keep
-    // this presentation-backdrop warning for every other app-icon style.
-    if (input.purpose === "app-icon" && input.stylePreset !== "neon") {
+    // Structured background contracts already validate target color and
+    // edge-connected coverage. Keep this legacy backdrop warning only for old
+    // app-icon jobs that do not carry a background contract.
+    if (input.purpose === "app-icon" && !input.backgroundContract) {
       const size = Math.max(1, Math.round(Math.min(metadata.width, metadata.height) * CORNER_SAMPLE_RATIO));
       const { data, info } = await image.removeAlpha().raw().toBuffer({ resolveWithObject: true });
       const corners = [
