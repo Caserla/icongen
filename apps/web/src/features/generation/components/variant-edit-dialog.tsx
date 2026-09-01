@@ -19,9 +19,13 @@ export function VariantEditDialog({
 }) {
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState<"edit" | "restore" | null>(null);
+  const [editStage, setEditStage] = useState<
+    "submitting" | "generating" | "saving" | null
+  >(null);
   const [error, setError] = useState("");
   async function submit() {
     setBusy("edit");
+    setEditStage("submitting");
     setError("");
     try {
       const response = await fetch(
@@ -53,7 +57,11 @@ export function VariantEditDialog({
                 ? "细节调整失败，请重试。"
                 : "Detail adjustment failed."),
           );
-        if (status.status === "completed") break;
+        if (status.status === "processing") setEditStage("generating");
+        if (status.status === "completed") {
+          setEditStage("saving");
+          break;
+        }
       }
       await onChanged();
       onClose();
@@ -67,6 +75,7 @@ export function VariantEditDialog({
       );
     } finally {
       setBusy(null);
+      setEditStage(null);
     }
   }
   async function restore() {
@@ -127,13 +136,33 @@ export function VariantEditDialog({
           </button>
         </div>
         <div className="mt-5 grid gap-5 sm:grid-cols-[220px_1fr]">
-          <div className="aspect-square overflow-hidden rounded-2xl bg-surface-muted">
+          <div className="relative aspect-square overflow-hidden rounded-2xl bg-surface-muted">
             {variant.previewUrl ? (
               <img
                 src={variant.previewUrl}
                 alt=""
                 className="h-full w-full object-contain"
               />
+            ) : null}
+            {busy === "edit" ? (
+              <div className="absolute inset-0 grid place-items-center bg-black/45 text-white backdrop-blur-[2px]">
+                <div className="grid place-items-center gap-3 text-center">
+                  <span className="h-9 w-9 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                  <b className="text-sm">
+                    {editStage === "submitting"
+                      ? locale === "zh"
+                        ? "正在提交修改"
+                        : "Submitting changes"
+                      : editStage === "saving"
+                        ? locale === "zh"
+                          ? "正在刷新结果"
+                          : "Refreshing result"
+                        : locale === "zh"
+                          ? "正在调整图标"
+                          : "Adjusting icon"}
+                  </b>
+                </div>
+              </div>
             ) : null}
           </div>
           <div>
@@ -162,6 +191,53 @@ export function VariantEditDialog({
             </div>
           </div>
         </div>
+        {busy === "edit" && editStage ? (
+          <div
+            aria-live="polite"
+            className="mt-4 rounded-2xl border border-brand/20 bg-brand/5 p-4"
+          >
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <b>
+                {editStage === "submitting"
+                  ? locale === "zh"
+                    ? "正在提交修改要求"
+                    : "Submitting your instructions"
+                  : editStage === "generating"
+                    ? locale === "zh"
+                      ? "正在生成并处理新版本"
+                      : "Generating and processing a new version"
+                    : locale === "zh"
+                      ? "新版本已生成，正在刷新页面"
+                      : "New version ready, refreshing the page"}
+              </b>
+              <span className="text-xs font-bold text-brand">
+                {editStage === "submitting"
+                  ? "1/3"
+                  : editStage === "generating"
+                    ? "2/3"
+                    : "3/3"}
+              </span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand/15">
+              <div
+                className="h-full rounded-full bg-brand transition-[width] duration-500"
+                style={{
+                  width:
+                    editStage === "submitting"
+                      ? "20%"
+                      : editStage === "generating"
+                        ? "70%"
+                        : "100%",
+                }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              {locale === "zh"
+                ? "处理期间请保持页面开启，原始版本不会被覆盖。"
+                : "Keep this page open. Your original version will not be overwritten."}
+            </p>
+          </div>
+        ) : null}
         {error ? (
           <p
             role="alert"
