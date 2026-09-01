@@ -18,7 +18,7 @@ function variants(subjectNumber: number, completed: boolean): GenerationJobV2["s
 
 export const mockJobs: GenerationJobV2[] = [
   {
-    id: completedJobId, status: "completed", settingsVersion: "icon-style-2026-08-22.2",
+    id: completedJobId, supportsVariantEditing: false, status: "completed", settingsVersion: "icon-style-2026-08-22.2",
     skillVersion: "0.2.0", model: "mock-image-provider",
     progress: { percent: 100, phase: "completed", completedSubjects: 2, totalSubjects: 2 },
     createdAt: "2026-08-19T08:00:00.000Z", completedAt: "2026-08-19T08:02:00.000Z",
@@ -28,7 +28,7 @@ export const mockJobs: GenerationJobV2[] = [
     ],
   },
   {
-    id: processingJobId, status: "processing", settingsVersion: "icon-style-2026-08-22.2",
+    id: processingJobId, supportsVariantEditing: false, status: "processing", settingsVersion: "icon-style-2026-08-22.2",
     progress: { percent: 36, phase: "generating", completedSubjects: 0, totalSubjects: 1, currentSubjectName: "Delete" },
     createdAt: "2026-08-19T09:30:00.000Z",
     subjects: [{ id: "51000000-0000-4000-8000-000000000000", clientId: "delete", name: "Delete", description: "Remove an item safely", position: 0, status: "processing", variants: variants(5, false) }],

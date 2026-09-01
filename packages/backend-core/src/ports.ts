@@ -93,6 +93,11 @@ export interface ImageProvider {
   generate(input: {
     prompt: string;
     background?: "transparent" | "opaque" | "auto";
+    sourceImage?: {
+      bytes: Uint8Array;
+      mimeType: "image/png" | "image/jpeg" | "image/webp";
+      filename: string;
+    };
     referenceImage?: {
       bytes: Uint8Array;
       mimeType: "image/png" | "image/jpeg" | "image/webp";

@@ -15,7 +15,7 @@ export class OpenAIImageProvider implements ImageProvider {
     this.client = new OpenAI({ apiKey, baseURL });
   }
 
-  async generate({ prompt, background = "auto", referenceImage }: Parameters<ImageProvider["generate"]>[0]) {
+  async generate({ prompt, background = "auto", sourceImage, referenceImage }: Parameters<ImageProvider["generate"]>[0]) {
     // Some OpenAI-compatible gateways reject the native
     // `background: "transparent"` request field even though the image model can
     // still return an RGBA PNG when transparency is specified in the prompt.
@@ -24,7 +24,7 @@ export class OpenAIImageProvider implements ImageProvider {
     // background instead.
     const wantsTransparency = background === "transparent";
     const effectivePrompt = wantsTransparency
-      ? referenceImage
+      ? sourceImage || referenceImage
         ? `${prompt}\n\nCHROMA KEY OUTPUT REQUIREMENT\nBecause this image-edit endpoint cannot return native transparency, render every background pixel as one perfectly uniform pure chroma green #00FF00. Use no green spill, shadow, glow, fog, texture, gradient, checkerboard, border, or secondary backdrop outside the subject. Never use #00FF00 inside the subject. The production worker will convert only this chroma background to real alpha.`
         : `${prompt}\n\nTRANSPARENT OUTPUT REQUIREMENT\nReturn a native RGBA PNG with a real alpha channel. Every pixel outside the icon artwork must be fully transparent. Do not paint white, black, gray, colored, gradient, photographic, or checkerboard canvas pixels. Do not simulate transparency. Do not add an outer tile, card, frame, border, halo, glow, fog, or backdrop.`
       : prompt;
@@ -38,12 +38,15 @@ export class OpenAIImageProvider implements ImageProvider {
       background: wantsTransparency ? "auto" as const : background,
       output_format: "png" as const,
     };
-    const response = referenceImage
+    const editImages = await Promise.all(
+      [sourceImage, referenceImage].filter((image): image is NonNullable<typeof image> => Boolean(image)).map((image) =>
+        toFile(Buffer.from(image.bytes), image.filename, { type: image.mimeType }),
+      ),
+    );
+    const response = editImages.length > 0
       ? await this.client.images.edit({
           ...request,
-          image: await toFile(Buffer.from(referenceImage.bytes), referenceImage.filename, {
-            type: referenceImage.mimeType,
-          }),
+          image: editImages.length === 1 ? editImages[0] : editImages,
           input_fidelity: "high",
         })
       : await this.client.images.generate(request);

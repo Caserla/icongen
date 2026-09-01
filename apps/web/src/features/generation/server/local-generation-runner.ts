@@ -55,3 +55,23 @@ export function startLocalGenerationJob(jobId: string) {
     setTimeout(() => spawnLocalGenerationJob(jobId, workspaceRoot), 750),
   );
 }
+
+export function startLocalVariantEdit(editId: string) {
+  if (process.env.NODE_ENV === "production") return;
+  const workspaceRoot = process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
+  const child = spawn(
+    "npm",
+    ["run", "process-edit", "--workspace=@icongen/icon-worker", "--", editId],
+    {
+      cwd: workspaceRoot,
+      env: { ...process.env, SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL },
+      stdio: "inherit",
+    },
+  );
+  child.once("error", (error) =>
+    console.error("Failed to start local variant edit worker", { editId, message: error.message }),
+  );
+  child.once("exit", (code) => {
+    if (code !== 0) console.error("Local variant edit worker exited unsuccessfully", { editId, code });
+  });
+}

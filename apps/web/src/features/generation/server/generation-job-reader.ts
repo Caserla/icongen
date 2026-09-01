@@ -1,47 +1,169 @@
-import { generationJobResponseSchema, type GenerationJobV2 } from "@icongen/shared";
+import {
+  generationJobResponseSchema,
+  type GenerationJobV2,
+} from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function readGenerationJob(client: SupabaseClient, userId: string, jobId: string): Promise<GenerationJobV2 | null> {
-  const { data: job, error: jobError } = await client.from("generation_jobs")
-    .select("id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,completed_at")
-    .eq("id", jobId).eq("user_id", userId).maybeSingle();
+export async function readGenerationJob(
+  client: SupabaseClient,
+  userId: string,
+  jobId: string,
+): Promise<GenerationJobV2 | null> {
+  const { data: job, error: jobError } = await client
+    .from("generation_jobs")
+    .select(
+      "id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,completed_at",
+    )
+    .eq("id", jobId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (jobError) throw jobError;
   if (!job) return null;
 
-  const { data: subjects, error: subjectError } = await client.from("generation_subjects")
+  const { data: subjects, error: subjectError } = await client
+    .from("generation_subjects")
     .select("id,client_id,name,description,position,status")
-    .eq("job_id", jobId).order("position");
+    .eq("job_id", jobId)
+    .order("position");
   if (subjectError) throw subjectError;
   const subjectIds = (subjects ?? []).map((subject) => subject.id);
-  const { data: variants, error: variantError } = subjectIds.length
-    ? await client.from("generation_variants").select("id,subject_id,slot,status,is_primary,error_code,skill_version,image_model").in("subject_id", subjectIds).order("slot")
-    : { data: [], error: null };
-  if (variantError) throw variantError;
+  let variants: Array<
+    Record<string, unknown> & { active_revision_id: string | null }
+  > = [];
+  let supportsVariantEditing = true;
+  if (subjectIds.length) {
+    const variantResult = await client
+      .from("generation_variants")
+      .select(
+        "id,subject_id,slot,status,is_primary,error_code,skill_version,image_model,active_revision_id",
+      )
+      .in("subject_id", subjectIds)
+      .order("slot");
+    if (variantResult.error?.code === "42703") {
+      supportsVariantEditing = false;
+      const legacy = await client
+        .from("generation_variants")
+        .select(
+          "id,subject_id,slot,status,is_primary,error_code,skill_version,image_model",
+        )
+        .in("subject_id", subjectIds)
+        .order("slot");
+      if (legacy.error) throw legacy.error;
+      variants = (legacy.data ?? []).map((variant) => ({
+        ...variant,
+        active_revision_id: null,
+      }));
+    } else {
+      if (variantResult.error) throw variantResult.error;
+      variants = variantResult.data ?? [];
+    }
+  }
   const variantIds = (variants ?? []).map((variant) => variant.id);
-  let assets: Array<{ id: string; variant_id: string; asset_role: string; format: "png" | "svg"; size: number; width: number; height: number; has_alpha: boolean; storage_bucket: string; storage_path: string }> = [];
+  let assets: Array<{
+    id: string;
+    variant_id: string;
+    asset_role: string;
+    format: "png" | "svg";
+    size: number;
+    width: number;
+    height: number;
+    has_alpha: boolean;
+    storage_bucket: string;
+    storage_path: string;
+  }> = [];
   if (variantIds.length) {
-    const roleResult = await client.from("generation_assets").select("id,variant_id,asset_role,format,size,width,height,has_alpha,storage_bucket,storage_path").in("variant_id", variantIds).order("size");
+    const roleResult = await client
+      .from("generation_assets")
+      .select(
+        "id,variant_id,asset_role,format,size,width,height,has_alpha,storage_bucket,storage_path",
+      )
+      .in("variant_id", variantIds)
+      .order("size");
     if (roleResult.error?.code === "42703") {
-      const legacyResult = await client.from("generation_assets").select("id,variant_id,asset_role,size,width,height,has_alpha,storage_bucket,storage_path").in("variant_id", variantIds).order("size");
+      const legacyResult = await client
+        .from("generation_assets")
+        .select(
+          "id,variant_id,asset_role,size,width,height,has_alpha,storage_bucket,storage_path",
+        )
+        .in("variant_id", variantIds)
+        .order("size");
       if (legacyResult.error) throw legacyResult.error;
-      assets = (legacyResult.data ?? []).map((asset) => ({ ...asset, asset_role: asset.asset_role ?? "output", format: "png" as const }));
+      assets = (legacyResult.data ?? []).map((asset) => ({
+        ...asset,
+        asset_role: asset.asset_role ?? "output",
+        format: "png" as const,
+      }));
     } else {
       if (roleResult.error) throw roleResult.error;
       assets = roleResult.data ?? [];
     }
   }
 
-  const assetRows = await Promise.all((assets ?? []).map(async (asset) => {
-    const signed = await client.storage.from(asset.storage_bucket).createSignedUrl(asset.storage_path, 3600);
-    if (signed.error) throw new Error(`Failed to create generated icon preview URL: ${signed.error.message}`);
-    return { ...asset, previewUrl: signed.data.signedUrl };
-  }));
-  const completedSubjects = (subjects ?? []).filter((subject) => subject.status === "completed").length;
-  const currentSubject = (subjects ?? []).find((subject) => subject.status === "processing");
+  const activeRevisionIds = (variants ?? []).flatMap((variant) =>
+    variant.active_revision_id ? [variant.active_revision_id] : [],
+  );
+  const revisionResult = activeRevisionIds.length
+    ? await client
+        .from("generation_variant_revisions")
+        .select("id,assets")
+        .in("id", activeRevisionIds)
+        .eq("status", "completed")
+    : { data: [], error: null };
+  if (revisionResult.error) throw revisionResult.error;
+  const revisionAssets = new Map<
+    string,
+    Array<(typeof assets)[number] & { previewUrl: string }>
+  >();
+  for (const revision of revisionResult.data ?? []) {
+    const parsed = Array.isArray(revision.assets)
+      ? revision.assets.map((asset) => ({
+          id: String(asset.id),
+          variant_id: "",
+          asset_role: String(asset.assetRole),
+          format: asset.format as "png" | "svg",
+          size: Number(asset.size),
+          width: Number(asset.width),
+          height: Number(asset.height),
+          has_alpha: Boolean(asset.hasAlpha),
+          storage_bucket: String(asset.storageBucket),
+          storage_path: String(asset.storagePath),
+        }))
+      : [];
+    const signedAssets = await Promise.all(
+      parsed.map(async (asset) => {
+        const signed = await client.storage
+          .from(asset.storage_bucket)
+          .createSignedUrl(asset.storage_path, 3600);
+        if (signed.error) throw signed.error;
+        return { ...asset, previewUrl: signed.data.signedUrl };
+      }),
+    );
+    revisionAssets.set(revision.id, signedAssets);
+  }
+
+  const assetRows = await Promise.all(
+    (assets ?? []).map(async (asset) => {
+      const signed = await client.storage
+        .from(asset.storage_bucket)
+        .createSignedUrl(asset.storage_path, 3600);
+      if (signed.error)
+        throw new Error(
+          `Failed to create generated icon preview URL: ${signed.error.message}`,
+        );
+      return { ...asset, previewUrl: signed.data.signedUrl };
+    }),
+  );
+  const completedSubjects = (subjects ?? []).filter(
+    (subject) => subject.status === "completed",
+  ).length;
+  const currentSubject = (subjects ?? []).find(
+    (subject) => subject.status === "processing",
+  );
   const firstVariant = (variants ?? [])[0];
 
   return generationJobResponseSchema.parse({
     id: job.id,
+    supportsVariantEditing,
     status: job.status,
     settingsVersion: job.settings_version,
     skillVersion: firstVariant?.skill_version ?? job.skill_version ?? undefined,
@@ -60,28 +182,62 @@ export async function readGenerationJob(client: SupabaseClient, userId: string, 
       description: subject.description,
       position: subject.position,
       status: subject.status,
-      variants: (variants ?? []).filter((variant) => variant.subject_id === subject.id).map((variant) => {
-        const variantAssets = assetRows.filter((asset) => asset.variant_id === variant.id);
-        const previewAsset = variantAssets.find((asset) => asset.asset_role === "preview" && asset.format === "png")
-          ?? variantAssets.find((asset) => asset.asset_role === "source" && asset.format === "png")
-          ?? variantAssets.filter((asset) => asset.asset_role === "output" && asset.format === "png").sort((a, b) => b.size - a.size)[0];
-        const vectorAsset = variantAssets.find((asset) => asset.asset_role === "output" && asset.format === "svg");
-        return {
-          id: variant.id,
-          slot: variant.slot,
-          status: variant.status,
-          isPrimary: variant.is_primary,
-          previewUrl: previewAsset?.previewUrl,
-          vectorUrl: vectorAsset?.previewUrl,
-          errorCode: variant.error_code ?? undefined,
-          assets: variantAssets.filter((asset) => asset.asset_role === "output").map((asset) => ({
-            id: asset.id, assetRole: "output" as const, format: asset.format, size: asset.size, width: asset.width, height: asset.height,
-            hasAlpha: asset.has_alpha, previewUrl: asset.previewUrl,
-          })),
-        };
-      }),
+      variants: (variants ?? [])
+        .filter((variant) => variant.subject_id === subject.id)
+        .map((variant) => {
+          const activeAssets = variant.active_revision_id
+            ? revisionAssets.get(variant.active_revision_id)
+            : undefined;
+          const variantAssets =
+            activeAssets ??
+            assetRows.filter((asset) => asset.variant_id === variant.id);
+          const previewAsset =
+            variantAssets.find(
+              (asset) =>
+                asset.asset_role === "preview" && asset.format === "png",
+            ) ??
+            variantAssets.find(
+              (asset) =>
+                asset.asset_role === "source" && asset.format === "png",
+            ) ??
+            variantAssets
+              .filter(
+                (asset) =>
+                  asset.asset_role === "output" && asset.format === "png",
+              )
+              .sort((a, b) => b.size - a.size)[0];
+          const vectorAsset = variantAssets.find(
+            (asset) => asset.asset_role === "output" && asset.format === "svg",
+          );
+          return {
+            id: variant.id,
+            slot: variant.slot,
+            status: variant.status,
+            isPrimary: variant.is_primary,
+            previewUrl: previewAsset?.previewUrl,
+            vectorUrl: vectorAsset?.previewUrl,
+            activeRevisionId: activeAssets
+              ? variant.active_revision_id
+              : undefined,
+            errorCode: variant.error_code ?? undefined,
+            assets: variantAssets
+              .filter((asset) => asset.asset_role === "output")
+              .map((asset) => ({
+                id: asset.id,
+                assetRole: "output" as const,
+                format: asset.format,
+                size: asset.size,
+                width: asset.width,
+                height: asset.height,
+                hasAlpha: asset.has_alpha,
+                previewUrl: asset.previewUrl,
+              })),
+          };
+        }),
     })),
     createdAt: new Date(job.created_at).toISOString(),
-    completedAt: job.completed_at ? new Date(job.completed_at).toISOString() : undefined,
+    completedAt: job.completed_at
+      ? new Date(job.completed_at).toISOString()
+      : undefined,
   });
 }

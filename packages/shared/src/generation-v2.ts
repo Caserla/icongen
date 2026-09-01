@@ -236,6 +236,7 @@ export const generationVariantSchema = z.object({
   isPrimary: z.boolean(),
   previewUrl: z.string().url().optional(),
   vectorUrl: z.string().url().optional(),
+  activeRevisionId: z.string().uuid().optional(),
   assets: z.array(generationAssetSchema),
   errorCode: z.string().optional(),
 });
@@ -250,6 +251,7 @@ export const generationSubjectSchema = z.object({
 });
 export const generationJobResponseSchema = z.object({
   id: z.string().uuid(),
+  supportsVariantEditing: z.boolean().default(false),
   status: generationJobStatusV2Schema,
   settingsVersion: z.string(),
   skillVersion: z.string().optional(),

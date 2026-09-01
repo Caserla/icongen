@@ -25,6 +25,7 @@
 - [技术架构概览](architecture/overview.md)
 - [后端技术架构](architecture/backend.md)
 - [SVG 输出链路调整方案](architecture/svg-output-adjustment-plan.md)
+- [方案细节调整与版本还原](architecture/variant-detail-editing.md)
 - [生成域数据字典](architecture/data-dictionary.md)
 - [环境配置与测试索引](guides/environment-and-testing.md)
 - [月付 VPS 测试部署指南](guides/monthly-vps-test-deployment.md)
