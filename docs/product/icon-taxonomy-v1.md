@@ -1,5 +1,7 @@
 # Icon taxonomy v1：一级与二级分类清单
 
+> 历史研究资料：本清单不参与当前运行时设置。当前用户可见参数以[当前实现基线](../project/current-implementation-baseline.md)和共享 Schema 为准。
+
 版本：`taxonomy-2026-08-20.1`
 
 来源：《UI图标生成器分类体系》逐表校对结果。

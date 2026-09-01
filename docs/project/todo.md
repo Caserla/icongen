@@ -36,15 +36,15 @@
 - [x] 校对附件分类：确认 10 个一级分类、266 个二级分类；仅作为未来研究参考，MVP 不接入。
 - [x] 冻结点数有效期、任务取消、账户级并发和内容安全边界。
 - [x] 将 6 组、25 个核心设置整理为前后端共享、可校验的版本化配置。
-- [ ] 把生成模型从固定 4 results 迁移为 jobs → subjects → 3 variants → assets。
+- [x] 把生成模型从固定 4 results 迁移为 jobs → subjects → 3 variants → assets。
 - [x] 更新共享 Schema，并新增 jobs → subjects → variants → assets 数据库迁移。
-- [ ] 更新生成 API、Worker 和 Skill 输入以使用 v2 Schema。
+- [x] 更新生成 API、Worker 和 Skill 输入以使用 v2 Schema。
 - [x] Worker 默认传入 `IMAGE_QUALITY=high` 和 `IMAGE_SIZE=2048x2048`，交付尺寸由高清母版缩放。
 - [x] 在未配置真实 API Key 时提供 Mock Image Provider，支持本地流程开发。
-- [ ] 实现后端真实工作单元进度与部分成功状态。
-- [ ] 实现所选 variant/尺寸的私有 ZIP 打包和短时下载链接。
+- [x] 实现后端真实工作单元进度与部分成功状态。
+- [x] 实现所选 variant 的原图、尺寸 PNG 与可选 SVG ZIP 下载。
 - [ ] 更新点数公式和部分成功返还事务。
-- [ ] 按两阶段规划重构 `/create` 与 `/icons/[jobId]`。
+- [x] 按两阶段规划重构 `/create` 与 `/icons/[jobId]`。
 - [x] App 交互图标增加主体大小和线条粗细参数，并将其作为确定提示参数传入 Image2。
 - [x] 保留 RGBA PNG 母版和尺寸派生图，改进受支持风格的 SVG 颜色、透明边缘和失败回退。
 - [x] 为创建页、我的图标页和生成结果页提供独立加载骨架。
@@ -52,7 +52,7 @@
 
 ## 推荐下一步
 
-详细执行状态统一维护在开发计划 Excel。当前先使用 Supabase 团队邮箱跑通“注册 → 收取验证邮件 → 点击验证 → 登录 → 检查新用户 6 点 → 退出/再次登录”闭环；正式域名和自定义 SMTP 不作为当前联调阻塞项。数据库迁移脚本已在远程 Supabase 执行成功，下一步补做 RLS、唯一索引、事务回滚和赠点幂等验证。
+当前实现事实以[当前实现基线](./current-implementation-baseline.md)为准，任务状态维护在本页和开发总计划。下一阶段优先实现结果方案细节调整与版本还原；Stripe、正式域名和自定义 SMTP 不作为该功能开发的阻塞项。
 
 ## 5. 邮箱注册上线准备（后续待办，当前略过）
 
