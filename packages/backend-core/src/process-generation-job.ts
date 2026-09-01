@@ -245,38 +245,46 @@ export async function processGenerationJob(
           });
         }
         if (supportsSvg(job) && dependencies.vectorImageProcessor) {
-          const vector = await dependencies.vectorImageProcessor.process({
-            bytes: sourceBytes,
-            mode:
-              job.spec.style.graphicStructure === "linear" ||
-              job.spec.style.preset === "minimal-logo"
-                ? "binary"
-                : "color",
-          });
-          const asset = await dependencies.assetStore.put({
-            jobId,
-            subjectId: subject.id,
-            variantId: variant.id,
-            slot: variant.slot,
-            assetRole: "output",
-            format: "svg",
-            size: Math.max(vector.width, vector.height),
-            bytes: vector.bytes,
-            mimeType: vector.mimeType,
-          });
-          await dependencies.repository.saveAsset({
-            jobId,
-            subjectId: subject.id,
-            variantId: variant.id,
-            assetRole: "output",
-            format: "svg",
-            size: Math.max(vector.width, vector.height),
-            width: vector.width,
-            height: vector.height,
-            hasAlpha: true,
-            bucket: asset.bucket,
-            objectPath: asset.objectPath,
-          });
+          try {
+            const vector = await dependencies.vectorImageProcessor.process({
+              bytes: sourceBytes,
+              mode:
+                job.spec.style.graphicStructure === "linear" ||
+                job.spec.style.preset === "minimal-logo"
+                  ? "binary"
+                  : "color",
+            });
+            const asset = await dependencies.assetStore.put({
+              jobId,
+              subjectId: subject.id,
+              variantId: variant.id,
+              slot: variant.slot,
+              assetRole: "output",
+              format: "svg",
+              size: Math.max(vector.width, vector.height),
+              bytes: vector.bytes,
+              mimeType: vector.mimeType,
+            });
+            await dependencies.repository.saveAsset({
+              jobId,
+              subjectId: subject.id,
+              variantId: variant.id,
+              assetRole: "output",
+              format: "svg",
+              size: Math.max(vector.width, vector.height),
+              width: vector.width,
+              height: vector.height,
+              hasAlpha: true,
+              bucket: asset.bucket,
+              objectPath: asset.objectPath,
+            });
+          } catch (error) {
+            dependencies.logger.info("SVG derivation skipped; PNG assets remain available", {
+              jobId,
+              variantId: variant.id,
+              error: error instanceof Error ? error.message : "Unknown SVG derivation error",
+            });
+          }
         }
         await dependencies.repository.markVariantCompleted({
           variantId: variant.id,
