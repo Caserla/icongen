@@ -242,6 +242,10 @@ export function InteractionIconEditor(props: {
   locale: "en" | "zh";
   iconStructure: IconStructure;
   onIconStructureChange: (value: IconStructure) => void;
+  subjectSizePercent: number;
+  onSubjectSizePercentChange: (value: number) => void;
+  linearStrokeWidthPercent: number;
+  onLinearStrokeWidthPercentChange: (value: number) => void;
   subjectColor: ColorSetting;
   onSubjectColorChange: (value: ColorSetting) => void;
   backgroundMode: BackgroundMode;
@@ -257,6 +261,10 @@ export function InteractionIconEditor(props: {
     locale,
     iconStructure,
     onIconStructureChange,
+    subjectSizePercent,
+    onSubjectSizePercentChange,
+    linearStrokeWidthPercent,
+    onLinearStrokeWidthPercentChange,
     subjectColor,
     onSubjectColorChange,
     backgroundMode,
@@ -276,6 +284,8 @@ export function InteractionIconEditor(props: {
         color={backgroundColor}
         subjectColor={subjectColor}
         iconStructure={iconStructure}
+        subjectSizePercent={subjectSizePercent}
+        linearStrokeWidthPercent={linearStrokeWidthPercent}
         enabled={backgroundEnabled}
         cornerRadius={cornerRadius}
         locale={locale}
@@ -305,6 +315,24 @@ export function InteractionIconEditor(props: {
               ))}
             </div>
           </fieldset>
+          <div className="mb-4 grid gap-3">
+            {iconStructure === "linear" ? (
+              <label className="rounded-xl border border-border bg-surface-muted px-3 py-2">
+                <span className="flex items-center justify-between text-xs font-semibold">
+                  <span>{locale === "zh" ? "线条粗细" : "Stroke width"}</span>
+                  <output className="font-mono text-muted">{linearStrokeWidthPercent.toFixed(1)}%</output>
+                </span>
+                <input aria-label={locale === "zh" ? "线条粗细" : "Stroke width"} type="range" min="2" max="6" step="0.5" value={linearStrokeWidthPercent} onInput={(event) => onLinearStrokeWidthPercentChange(Number(event.currentTarget.value))} className="mt-2 w-full accent-brand" />
+              </label>
+            ) : null}
+            <label className="rounded-xl border border-border bg-surface-muted px-3 py-2">
+              <span className="flex items-center justify-between text-xs font-semibold">
+                <span>{locale === "zh" ? "主体大小" : "Subject size"}</span>
+                <output className="font-mono text-muted">{subjectSizePercent}%</output>
+              </span>
+              <input aria-label={locale === "zh" ? "主体大小" : "Subject size"} type="range" min="50" max="85" step="1" value={subjectSizePercent} onInput={(event) => onSubjectSizePercentChange(Number(event.currentTarget.value))} className="mt-2 w-full accent-brand" />
+            </label>
+          </div>
           <h3 className="text-sm font-black">
             {locale === "zh" ? "主体颜色" : "Icon color"}
           </h3>

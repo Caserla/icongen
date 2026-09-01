@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   BACKGROUND_TYPE_OPTION_IDS,
   createGenerationJobSchema,
+  DEFAULT_LINEAR_STROKE_WIDTH_PERCENT,
+  DEFAULT_SUBJECT_SIZE_PERCENT,
   DESIGN_SETTINGS_VERSION,
   ICON_STYLE_PRESETS,
   MAX_SUBJECTS,
@@ -16,6 +18,7 @@ import {
 } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { Toast, type ToastVariant } from "@/components/ui/toast";
+import { CreatePageSkeleton } from "@/components/ui/page-skeletons";
 import { AppIconStyleSelector } from "./app-icon-style-selector";
 import { IconPurposeSelector, type IconPurpose } from "./icon-purpose-selector";
 import { IconSubjectEditor } from "./icon-subject-editor";
@@ -37,6 +40,8 @@ const defaultAppIconPreset = ICON_STYLE_PRESETS.find(
 )?.id ?? "isometric-3d";
 const defaultStyle: IconStyle = {
   preset: defaultAppIconPreset,
+  subjectSizePercent: DEFAULT_SUBJECT_SIZE_PERCENT,
+  linearStrokeWidthPercent: DEFAULT_LINEAR_STROKE_WIDTH_PERCENT,
   strokeWeight: "regular",
   cornerStyle: "balanced",
   detailLevel: "standard",
@@ -94,6 +99,7 @@ export function GenerationForm() {
   const [settings, setSettings] = useState<GenerationSettingsResponse | null>(
     null,
   );
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [toast, setToast] = useState<{
     message: string;
@@ -111,7 +117,8 @@ export function GenerationForm() {
             ? "图标设置加载失败，请刷新页面重试。"
             : "Icon settings could not load. Refresh the page to try again.",
         ),
-      );
+      )
+      .finally(() => setSettingsLoading(false));
   }, [locale]);
   useEffect(() => {
     if (!toast) return;
@@ -271,6 +278,8 @@ export function GenerationForm() {
     }
   }
 
+  if (settingsLoading) return <CreatePageSkeleton includeHeader={false} />;
+
   return (
     <form onSubmit={submit} className="space-y-8">
       {toast ? <Toast message={toast.message} variant={toast.variant} /> : null}
@@ -293,6 +302,10 @@ export function GenerationForm() {
             locale={locale}
             iconStructure={iconStructure}
             onIconStructureChange={setIconStructure}
+            subjectSizePercent={style.subjectSizePercent}
+            onSubjectSizePercentChange={(subjectSizePercent) => setStyle((current) => ({ ...current, subjectSizePercent }))}
+            linearStrokeWidthPercent={style.linearStrokeWidthPercent}
+            onLinearStrokeWidthPercentChange={(linearStrokeWidthPercent) => setStyle((current) => ({ ...current, linearStrokeWidthPercent }))}
             subjectColor={subjectColor}
             onSubjectColorChange={setSubjectColor}
             backgroundMode={backgroundMode}

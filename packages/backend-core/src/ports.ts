@@ -93,6 +93,11 @@ export interface ImageProvider {
   generate(input: {
     prompt: string;
     background?: "transparent" | "opaque" | "auto";
+    referenceImage?: {
+      bytes: Uint8Array;
+      mimeType: "image/png" | "image/jpeg" | "image/webp";
+      filename: string;
+    };
   }): Promise<GeneratedImage>;
 }
 
@@ -107,10 +112,21 @@ export type ProcessedImage = {
 export interface ImageProcessor {
   inspect(input: {
     bytes: Uint8Array;
-  }): Promise<{ width: number; height: number; hasAlpha: boolean }>;
+  }): Promise<{
+    width: number;
+    height: number;
+    hasAlpha: boolean;
+    /** True only when at least one pixel is actually transparent. */
+    hasTransparency?: boolean;
+  }>;
   applyRoundedMask?(input: {
     bytes: Uint8Array;
     cornerRadiusPercent: number;
+  }): Promise<ProcessedImage>;
+  removeChromaBackground?(input: {
+    bytes: Uint8Array;
+    color: { red: number; green: number; blue: number };
+    tolerance: number;
   }): Promise<ProcessedImage>;
   process(input: {
     bytes: Uint8Array;
@@ -138,7 +154,12 @@ export type ImageQualityWarning = {
     | "APP_ICON_DARK_OUTER_CORNERS"
     | "FAKE_TRANSPARENCY_CHECKERBOARD"
     | "NON_UNIFORM_SOLID_BACKGROUND"
-    | "MISSING_ALPHA_CHANNEL";
+    | "MISSING_ALPHA_CHANNEL"
+    | "REFERENCE_BOARD_REPRODUCTION"
+    | "SUBJECT_SCALE_INCONSISTENT"
+    | "SUBJECT_ALIGNMENT_INCONSISTENT"
+    | "LINE_WEIGHT_INCONSISTENT"
+    | "GEOMETRY_SYMMETRY_BROKEN";
   message: string;
 };
 export type BackgroundQualityContract =
@@ -156,6 +177,26 @@ export type BackgroundQualityContract =
 export interface ImageQualityGate {
   inspect(input: {
     bytes: Uint8Array;
+    referenceImageBytes?: Uint8Array;
+    consistencyReferenceBytes?: Uint8Array;
+    consistencyContract?: {
+      enabled: boolean;
+      linear: boolean;
+      targetScale: number;
+      minScale: number;
+      maxScale: number;
+      maxAbsoluteCenterOffset: number;
+      minLineWeight: number;
+      maxLineWeight: number;
+      maxScaleDelta: number;
+      maxCenterDelta: number;
+      maxLineWeightDelta: number;
+    };
+    geometryContract?: {
+      category: string;
+      symmetry: "vertical" | "none";
+      maxSymmetryError: number;
+    };
     purpose?: CreateGenerationJobInput["purpose"];
     stylePreset?: IconStyle["preset"];
     backgroundContract?: BackgroundQualityContract;
@@ -188,11 +229,28 @@ export interface PromptCompiler {
     style: IconStyle;
     sizes: number[];
     slot: 1 | 2 | 3;
+    iconSetConsistency?: {
+      enabled: boolean;
+      subjectCount: number;
+      targetOccupancyPercent: number;
+      targetStrokeWidthPercent: number;
+    };
   }): {
     prompt: string;
     skillVersion: string;
     qualityContract?: BackgroundQualityContract;
+    geometryContract?: {
+      category: string;
+      symmetry: "vertical" | "none";
+      maxSymmetryError: number;
+      prompt: string;
+    };
     outputBackground?: "transparent" | "opaque";
+    referenceImage?: {
+      bytes: Uint8Array;
+      mimeType: "image/png" | "image/jpeg" | "image/webp";
+      filename: string;
+    };
   };
 }
 

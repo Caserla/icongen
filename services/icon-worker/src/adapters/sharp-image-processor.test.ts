@@ -47,3 +47,72 @@ test("applies a real alpha mask to rounded app-icon corners", async () => {
   const centerAlpha = data[((50 * info.width) + 50) * info.channels + 3];
   assert.equal(centerAlpha, 255);
 });
+
+test("converts a generated chroma-key background into real transparency", async () => {
+  const source = await sharp({
+    create: {
+      width: 8,
+      height: 8,
+      channels: 3,
+      background: { r: 0, g: 255, b: 0 },
+    },
+  })
+    .composite([
+      {
+        input: Buffer.from([255, 80, 40, 255]),
+        raw: { width: 1, height: 1, channels: 4 },
+        left: 4,
+        top: 4,
+      },
+    ])
+    .png()
+    .toBuffer();
+  const result = await new SharpImageProcessor().removeChromaBackground({
+    bytes: source,
+    color: { red: 0, green: 255, blue: 0 },
+    tolerance: 72,
+  });
+  const { data, info } = await sharp(result.bytes)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  assert.equal(info.channels, 4);
+  assert.equal(data[3], 0);
+  assert.equal(data[(4 * info.width + 4) * 4 + 3], 255);
+});
+
+test("distinguishes an opaque RGBA canvas from real transparency", async () => {
+  const opaqueRgba = await sharp({
+    create: {
+      width: 8,
+      height: 8,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    },
+  })
+    .png()
+    .toBuffer();
+  const transparentRgba = await sharp({
+    create: {
+      width: 8,
+      height: 8,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    },
+  })
+    .png()
+    .toBuffer();
+  const processor = new SharpImageProcessor();
+
+  assert.deepEqual(await processor.inspect({ bytes: opaqueRgba }), {
+    width: 8,
+    height: 8,
+    hasAlpha: true,
+    hasTransparency: false,
+  });
+  assert.deepEqual(await processor.inspect({ bytes: transparentRgba }), {
+    width: 8,
+    height: 8,
+    hasAlpha: true,
+    hasTransparency: true,
+  });
+});

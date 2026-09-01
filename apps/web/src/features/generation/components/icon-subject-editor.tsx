@@ -67,18 +67,20 @@ export function IconSubjectEditor({
                   className="min-h-12 w-full rounded-xl border border-border bg-background px-4"
                 />
               </label>
-              <button
-                type="button"
-                onClick={() => onRemove(index)}
-                className="min-h-12 rounded-xl border border-border px-4 text-sm font-bold text-muted"
-                aria-label={
-                  locale === "zh"
-                    ? `删除第 ${index + 1} 个图标`
-                    : `Remove icon ${index + 1}`
-                }
-              >
-                {locale === "zh" ? "删除" : "Remove"}
-              </button>
+              {index > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onRemove(index)}
+                  className="min-h-12 rounded-xl border border-border px-4 text-sm font-bold text-muted"
+                  aria-label={
+                    locale === "zh"
+                      ? `删除第 ${index + 1} 个图标`
+                      : `Remove icon ${index + 1}`
+                  }
+                >
+                  {locale === "zh" ? "删除" : "Remove"}
+                </button>
+              ) : null}
             </div>
             {backgroundModes &&
             onBackgroundModeChange &&

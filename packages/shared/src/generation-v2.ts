@@ -7,6 +7,8 @@ import {
 export const VARIANTS_PER_SUBJECT = 3 as const;
 export const MAX_SUBJECTS = 20 as const;
 export const OUTPUT_SIZES = [16, 32, 48, 64, 128, 256] as const;
+export const DEFAULT_SUBJECT_SIZE_PERCENT = 70 as const;
+export const DEFAULT_LINEAR_STROKE_WIDTH_PERCENT = 3.5 as const;
 const LEGACY_OUTPUT_SIZES = [
   16, 20, 24, 32, 48, 64, 128, 256, 512, 1024,
 ] as const;
@@ -34,6 +36,8 @@ export const colorSettingSchema = z.discriminatedUnion("mode", [
 export const iconStyleSchema = z.object({
   preset: z.enum(ICON_STYLE_PRESET_IDS),
   graphicStructure: z.enum(["linear", "filled"]).optional(),
+  subjectSizePercent: z.number().int().min(50).max(85).default(DEFAULT_SUBJECT_SIZE_PERCENT),
+  linearStrokeWidthPercent: z.number().min(2).max(6).default(DEFAULT_LINEAR_STROKE_WIDTH_PERCENT),
   strokeWeight: z.enum(["light", "regular", "bold"]),
   cornerStyle: z.enum(["soft", "balanced", "sharp"]),
   detailLevel: z.enum(["minimal", "standard", "detailed"]),
@@ -170,6 +174,8 @@ export function parseStoredGenerationJobSpec(
         legacy.coreSettings.detailLevel === "auto"
           ? "standard"
           : legacy.coreSettings.detailLevel,
+      subjectSizePercent: DEFAULT_SUBJECT_SIZE_PERCENT,
+      linearStrokeWidthPercent: DEFAULT_LINEAR_STROKE_WIDTH_PERCENT,
     },
     // Legacy jobs retain their stored sizes even when those sizes are no longer offered by the current UI.
     sizes: legacy.sizes as CreateGenerationJobInput["sizes"],

@@ -23,6 +23,8 @@ const spec: GenerationJobRecord["spec"] = {
   background: { enabled: false },
   style: {
     preset: "clay-3d",
+    subjectSizePercent: 70,
+    linearStrokeWidthPercent: 3.5,
     strokeWeight: "regular",
     cornerStyle: "balanced",
     detailLevel: "standard",
@@ -537,7 +539,7 @@ test("does not deliver a generated image with a painted transparency checkerboar
   assert.equal(completedVariants, 0);
 });
 
-test("retries blocking quality warnings and delivers the next valid image", async () => {
+test("records visual quality warnings without rejecting a deliverable image", async () => {
   const oneSubjectSpec: GenerationJobRecord["spec"] = {
     ...spec,
     subjects: [spec.subjects[0]],
@@ -618,13 +620,12 @@ test("retries blocking quality warnings and delivers the next valid image", asyn
   };
 
   await processGenerationJob("job-1", dependencies);
-  assert.equal(providerCalls, 6);
+  assert.equal(providerCalls, 3);
   assert.equal(completedVariants, 3);
   assert.ok(providerInputs.every((input) => input.background === "opaque"));
   assert.ok(
-    providerInputs.some((input) =>
-      input.prompt.includes("MANDATORY RETRY REPAIR"),
+    providerInputs.every(
+      (input) => input.prompt === "uniform flat background",
     ),
   );
-  assert.ok(providerInputs.some((input) => input.prompt.includes("uneven")));
 });

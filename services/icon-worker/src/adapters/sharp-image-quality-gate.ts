@@ -8,10 +8,175 @@ const DARK_CORNER_FRACTION = 0.55;
 const CHECKER_SAMPLE_SIZE = 64;
 const FLAT_BACKGROUND_SAMPLE_SIZE = 64;
 const FLAT_BACKGROUND_BORDER_WIDTH = 8;
+const REFERENCE_COMPARE_SIZE = 48;
+const REFERENCE_REPRODUCTION_MEAN_DELTA = 12;
+const CONSISTENCY_SAMPLE_SIZE = 128;
+
+type SubjectGeometry = {
+  scale: number;
+  centerX: number;
+  centerY: number;
+  lineWeight: number;
+};
+
+async function measureTransparentSubject(bytes: Uint8Array): Promise<SubjectGeometry | null> {
+  const { data, info } = await sharp(bytes)
+    .resize(CONSISTENCY_SAMPLE_SIZE, CONSISTENCY_SAMPLE_SIZE, { fit: "fill" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const mask = new Uint8Array(info.width * info.height);
+  let minX = info.width;
+  let minY = info.height;
+  let maxX = -1;
+  let maxY = -1;
+  let area = 0;
+  for (let y = 0; y < info.height; y += 1) for (let x = 0; x < info.width; x += 1) {
+    const alpha = data[(y * info.width + x) * info.channels + 3];
+    if (alpha < 96) continue;
+    mask[y * info.width + x] = 1;
+    area += 1;
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  }
+  const canvasArea = info.width * info.height;
+  if (area < canvasArea * 0.01 || area > canvasArea * 0.95 || maxX < minX || maxY < minY) return null;
+  let perimeter = 0;
+  for (let y = 0; y < info.height; y += 1) for (let x = 0; x < info.width; x += 1) {
+    if (!mask[y * info.width + x]) continue;
+    if (x === 0 || !mask[y * info.width + x - 1]) perimeter += 1;
+    if (x + 1 === info.width || !mask[y * info.width + x + 1]) perimeter += 1;
+    if (y === 0 || !mask[(y - 1) * info.width + x]) perimeter += 1;
+    if (y + 1 === info.height || !mask[(y + 1) * info.width + x]) perimeter += 1;
+  }
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
+  return {
+    scale: Math.max(width / info.width, height / info.height),
+    centerX: ((minX + maxX + 1) / 2) / info.width,
+    centerY: ((minY + maxY + 1) / 2) / info.height,
+    lineWeight: perimeter > 0 ? (2 * area / perimeter) / Math.max(info.width, info.height) : 0,
+  };
+}
+
+async function inspectSetConsistency(
+  candidateBytes: Uint8Array,
+  referenceBytes: Uint8Array,
+  contract: NonNullable<Parameters<ImageQualityGate["inspect"]>[0]["consistencyContract"]>,
+) {
+  const [candidate, reference] = await Promise.all([
+    measureTransparentSubject(candidateBytes),
+    measureTransparentSubject(referenceBytes),
+  ]);
+  if (!candidate || !reference) return [];
+  const warnings: ImageQualityWarning[] = [];
+  const scaleDelta = Math.abs(candidate.scale - reference.scale) / Math.max(reference.scale, 0.01);
+  const centerDelta = Math.hypot(candidate.centerX - reference.centerX, candidate.centerY - reference.centerY);
+  if (scaleDelta > contract.maxScaleDelta) warnings.push({ code: "SUBJECT_SCALE_INCONSISTENT", message: `Subject optical scale differs from the batch reference by ${(scaleDelta * 100).toFixed(1)}%; allowed ${(contract.maxScaleDelta * 100).toFixed(1)}%.` });
+  if (centerDelta > contract.maxCenterDelta) warnings.push({ code: "SUBJECT_ALIGNMENT_INCONSISTENT", message: `Subject optical center differs from the batch reference by ${(centerDelta * 100).toFixed(1)}% of the canvas; allowed ${(contract.maxCenterDelta * 100).toFixed(1)}%.` });
+  if (contract.linear && reference.lineWeight > 0) {
+    const lineWeightDelta = Math.abs(candidate.lineWeight - reference.lineWeight) / reference.lineWeight;
+    if (lineWeightDelta > contract.maxLineWeightDelta) warnings.push({ code: "LINE_WEIGHT_INCONSISTENT", message: `Linear apparent weight differs from the batch reference by ${(lineWeightDelta * 100).toFixed(1)}%; allowed ${(contract.maxLineWeightDelta * 100).toFixed(1)}%.` });
+  }
+  return warnings;
+}
+
+async function inspectAbsoluteSetConsistency(
+  candidateBytes: Uint8Array,
+  contract: NonNullable<Parameters<ImageQualityGate["inspect"]>[0]["consistencyContract"]>,
+) {
+  const candidate = await measureTransparentSubject(candidateBytes);
+  if (!candidate) return [];
+  const warnings: ImageQualityWarning[] = [];
+  if (candidate.scale < contract.minScale || candidate.scale > contract.maxScale)
+    warnings.push({
+      code: "SUBJECT_SCALE_INCONSISTENT",
+      message: `Subject occupies ${(candidate.scale * 100).toFixed(1)}% of the canvas; immutable batch target is ${(contract.targetScale * 100).toFixed(1)}% with allowed range ${(contract.minScale * 100).toFixed(1)}%–${(contract.maxScale * 100).toFixed(1)}%.`,
+    });
+  const centerOffset = Math.hypot(candidate.centerX - 0.5, candidate.centerY - 0.5);
+  if (centerOffset > contract.maxAbsoluteCenterOffset)
+    warnings.push({
+      code: "SUBJECT_ALIGNMENT_INCONSISTENT",
+      message: `Subject optical center is ${(centerOffset * 100).toFixed(1)}% away from canvas center; allowed ${(contract.maxAbsoluteCenterOffset * 100).toFixed(1)}%.`,
+    });
+  if (contract.linear && (candidate.lineWeight < contract.minLineWeight || candidate.lineWeight > contract.maxLineWeight))
+    warnings.push({
+      code: "LINE_WEIGHT_INCONSISTENT",
+      message: `Linear apparent weight is ${(candidate.lineWeight * 100).toFixed(2)}% of the canvas; immutable batch range is ${(contract.minLineWeight * 100).toFixed(2)}%–${(contract.maxLineWeight * 100).toFixed(2)}%.`,
+    });
+  return warnings;
+}
+
+async function measureVerticalSymmetryError(bytes: Uint8Array) {
+  const { data, info } = await sharp(bytes)
+    .resize(CONSISTENCY_SAMPLE_SIZE, CONSISTENCY_SAMPLE_SIZE, { fit: "fill" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let minX = info.width;
+  let minY = info.height;
+  let maxX = -1;
+  let maxY = -1;
+  let foreground = 0;
+  const mask = new Uint8Array(info.width * info.height);
+  for (let y = 0; y < info.height; y += 1) for (let x = 0; x < info.width; x += 1) {
+    if (data[(y * info.width + x) * info.channels + 3] < 96) continue;
+    mask[y * info.width + x] = 1;
+    foreground += 1;
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  }
+  const canvasArea = info.width * info.height;
+  if (foreground < canvasArea * 0.01 || foreground > canvasArea * 0.95 || maxX < minX) return null;
+  let difference = 0;
+  let union = 0;
+  const width = maxX - minX + 1;
+  for (let y = minY; y <= maxY; y += 1) for (let localX = 0; localX < Math.ceil(width / 2); localX += 1) {
+    const left = mask[y * info.width + minX + localX];
+    const right = mask[y * info.width + maxX - localX];
+    if (left || right) union += 1;
+    if (left !== right) difference += 1;
+  }
+  return union > 0 ? difference / union : null;
+}
 
 function standardDeviation(values: number[], mean: number) {
   if (values.length === 0) return Number.POSITIVE_INFINITY;
   return Math.sqrt(values.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / values.length);
+}
+
+async function resemblesCompleteReferenceBoard(
+  bytes: Uint8Array,
+  referenceBytes?: Uint8Array,
+) {
+  if (!referenceBytes) return false;
+  const [candidateMetadata, referenceMetadata] = await Promise.all([
+    sharp(bytes).metadata(),
+    sharp(referenceBytes).metadata(),
+  ]);
+  if (
+    !candidateMetadata.width ||
+    !candidateMetadata.height ||
+    !referenceMetadata.width ||
+    !referenceMetadata.height
+  ) return false;
+  const candidateRatio = candidateMetadata.width / candidateMetadata.height;
+  const referenceRatio = referenceMetadata.width / referenceMetadata.height;
+  if (Math.abs(candidateRatio - referenceRatio) > 0.04) return false;
+  const normalize = (input: Uint8Array) => sharp(input)
+    .resize(REFERENCE_COMPARE_SIZE, REFERENCE_COMPARE_SIZE, { fit: "fill" })
+    .flatten({ background: "#ffffff" })
+    .removeAlpha()
+    .raw()
+    .toBuffer();
+  const [candidate, reference] = await Promise.all([
+    normalize(bytes),
+    normalize(referenceBytes),
+  ]);
+  let difference = 0;
+  for (let index = 0; index < candidate.length; index += 1)
+    difference += Math.abs(candidate[index] - reference[index]);
+  return difference / candidate.length <= REFERENCE_REPRODUCTION_MEAN_DELTA;
 }
 
 async function hasPaintedTransparencyCheckerboard(bytes: Uint8Array) {
@@ -118,6 +283,17 @@ export class SharpImageQualityGate implements ImageQualityGate {
 
     if (Math.min(metadata.width, metadata.height) < MIN_SOURCE_EDGE) warnings.push({ code: "SOURCE_TOO_SMALL", message: `Source image is ${metadata.width}×${metadata.height}; expected a minimum edge of ${MIN_SOURCE_EDGE}px.` });
     if (metadata.width !== metadata.height) warnings.push({ code: "SOURCE_NOT_SQUARE", message: `Source image is ${metadata.width}×${metadata.height}; expected a square production asset.` });
+    if (await resemblesCompleteReferenceBoard(input.bytes, input.referenceImageBytes)) warnings.push({ code: "REFERENCE_BOARD_REPRODUCTION", message: "The generated asset is substantially identical to the complete attached style-reference board instead of one newly composed icon." });
+    if (input.consistencyContract?.enabled) {
+      warnings.push(...await inspectAbsoluteSetConsistency(input.bytes, input.consistencyContract));
+      if (input.consistencyReferenceBytes)
+        warnings.push(...await inspectSetConsistency(input.bytes, input.consistencyReferenceBytes, input.consistencyContract));
+    }
+    if (input.geometryContract?.symmetry === "vertical") {
+      const symmetryError = await measureVerticalSymmetryError(input.bytes);
+      if (symmetryError !== null && symmetryError > input.geometryContract.maxSymmetryError)
+        warnings.push({ code: "GEOMETRY_SYMMETRY_BROKEN", message: `The ${input.geometryContract.category} silhouette has ${(symmetryError * 100).toFixed(1)}% vertical mirror disagreement; allowed ${(input.geometryContract.maxSymmetryError * 100).toFixed(1)}%. Restore its canonical balanced geometry.` });
+    }
     if (await hasPaintedTransparencyCheckerboard(input.bytes)) warnings.push({ code: "FAKE_TRANSPARENCY_CHECKERBOARD", message: "The image appears to contain an opaque painted checkerboard instead of native transparency." });
     if (input.purpose === "app-icon" && input.stylePreset && input.backgroundContract?.mode === "solid") {
       const result = await inspectConnectedSolidBackground(input.bytes, input.backgroundContract);

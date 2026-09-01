@@ -7,14 +7,14 @@ export const VARIANT_DIRECTIONS = [
   ].join(" "),
   [
     "Concept B — structural alternative:",
-    "Keep the requested meaning, but use a clearly different geometric construction from the canonical solution.",
-    "Change the silhouette proportions, internal negative space, or arrangement of essential parts while remaining immediately recognizable.",
+    "Keep the requested meaning and the canonical semantic skeleton, but use a controlled geometric construction alternative.",
+    "Change secondary proportions, internal negative space, or the arrangement of non-critical parts while preserving topology, symmetry requirements, and structural integrity.",
     "The result must read as a distinct design concept, not a minor redraw, rotation, color change, or stroke adjustment.",
   ].join(" "),
   [
     "Concept C — expressive simplification:",
-    "Keep the requested meaning, but create a visibly distinct compact composition with a stronger signature silhouette.",
-    "Use purposeful asymmetry, a different visual rhythm, or an inventive negative-space treatment where semantically appropriate.",
-    "The result must not repeat the canonical front-facing construction and must differ in geometry, not merely rendering details.",
+    "Keep the requested meaning and canonical semantic skeleton, but create a visibly distinct compact composition through controlled simplification.",
+    "Use a different visual rhythm or inventive negative-space treatment only when it does not break required symmetry, topology, point count, circularity, alignment, or structural balance.",
+    "Never manufacture variation by skewing, stretching, twisting, collapsing, or deforming the subject.",
   ].join(" "),
 ] as const;

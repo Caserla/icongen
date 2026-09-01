@@ -57,3 +57,10 @@ export const APPROVED_APP_ICON_STYLE_REFERENCES: Partial<Record<IconStylePresetI
 export function getApprovedStyleReference(preset: IconStylePresetId) {
   return APPROVED_APP_ICON_STYLE_REFERENCES[preset];
 }
+
+export function getApprovedStyleReferenceAssetUrl(preset: IconStylePresetId) {
+  const reference = getApprovedStyleReference(preset);
+  return reference
+    ? new URL(`../../assets/style-references/${reference.assetFile}`, import.meta.url).href
+    : undefined;
+}

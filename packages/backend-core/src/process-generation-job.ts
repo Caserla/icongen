@@ -90,12 +90,13 @@ export async function processGenerationJob(
   ).length;
   let progressUpdate = Promise.resolve();
   const failures: Array<{ variantId: string; message: string }> = [];
-
+  const enforcesInteractionGeometry = job.spec.purpose === "interaction";
+  const pendingVariants = variants.filter(
+    ({ variant }) =>
+      variant.status === "queued" || variant.status === "processing",
+  );
   await runWithConcurrency(
-    variants.filter(
-      ({ variant }) =>
-        variant.status === "queued" || variant.status === "processing",
-    ),
+    pendingVariants,
     GENERATION_CONCURRENCY,
     async ({ subject, variant }) => {
       try {
@@ -111,6 +112,12 @@ export async function processGenerationJob(
           style: job.spec.style,
           sizes: job.spec.sizes,
           slot: variant.slot,
+          iconSetConsistency: {
+            enabled: enforcesInteractionGeometry,
+            subjectCount: job.subjects.length,
+            targetOccupancyPercent: job.spec.style.subjectSizePercent,
+            targetStrokeWidthPercent: job.spec.style.linearStrokeWidthPercent,
+          },
         });
         const { image, qualityWarnings } = await generateValidatedImage(
           {
@@ -121,6 +128,8 @@ export async function processGenerationJob(
             purpose: job.spec.purpose,
             stylePreset: job.spec.style.preset,
             qualityContract: compiled.qualityContract,
+            referenceImage: compiled.referenceImage,
+            geometryContract: compiled.geometryContract,
           },
           dependencies,
         );

@@ -1,31 +1,22 @@
-import { ICON_STYLE_PRESETS } from "@icongen/shared";
 import { compileAppIconPrompt } from "./purpose-specs/app-icon";
-import { compileFlatPlayfulAppIconPrompt } from "./purpose-specs/flat-playful-app-icon";
 import { compileInteractionPrompt } from "./purpose-specs/interaction";
 import type { CompileIconPromptInput } from "./types";
 import { VARIANT_DIRECTIONS } from "./variant-directions";
 import { getConfiguredBackgroundQualityContract } from "./background-contracts";
 import { appIconRequestsNoBackground } from "./purpose-specs/production-app-icon-template";
+import { getApprovedStyleReferenceAssetUrl } from "./style-specs/approved-style-references";
+import { getIconGeometryContract } from "./geometry-contracts";
 
 export const ICON_SKILL_NAME = "default-ui-icon";
-export const ICON_SKILL_VERSION = "0.8.10";
+export const ICON_SKILL_VERSION = "0.10.0";
 
 export type { CompileIconPromptInput } from "./types";
 
 export function compileIconPrompt(input: CompileIconPromptInput) {
   const direction = VARIANT_DIRECTIONS[input.slot - 1];
-  const preset = ICON_STYLE_PRESETS.find(
-    (item) => item.id === input.style.preset,
-  );
   const prompt =
-    input.purpose === "app-icon" && input.style.preset === "flat-playful"
-      ? compileFlatPlayfulAppIconPrompt(input, direction)
-      : input.purpose === "app-icon"
-        ? compileAppIconPrompt(
-            input,
-            direction,
-            preset?.promptToken ?? input.style.preset,
-          )
+    input.purpose === "app-icon"
+        ? compileAppIconPrompt(input, direction)
         : compileInteractionPrompt(input, direction);
   const requestsNoBackground =
     input.purpose === "app-icon" && appIconRequestsNoBackground(input);
@@ -35,6 +26,11 @@ export function compileIconPrompt(input: CompileIconPromptInput) {
     skillVersion: ICON_SKILL_VERSION,
     direction,
     prompt,
+    geometryContract: getIconGeometryContract(input),
+    referenceImageAssetUrl:
+      input.purpose === "app-icon"
+        ? getApprovedStyleReferenceAssetUrl(input.style.preset)
+        : undefined,
     qualityContract:
       input.purpose === "app-icon" && hasBackground
         ? getConfiguredBackgroundQualityContract(

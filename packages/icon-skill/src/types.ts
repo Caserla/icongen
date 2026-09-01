@@ -9,4 +9,10 @@ export type CompileIconPromptInput = {
   style: IconStyle;
   sizes: number[];
   slot: 1 | 2 | 3;
+  iconSetConsistency?: {
+    enabled: boolean;
+    subjectCount: number;
+    targetOccupancyPercent: number;
+    targetStrokeWidthPercent: number;
+  };
 };

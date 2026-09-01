@@ -1,11 +1,49 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ICON_STYLE_PRESET_IDS } from "@icongen/shared";
 import { createImageProvider, createPromptCompiler } from "./registries";
 
 test("selects the configured icon skill", () => {
   const compiler = createPromptCompiler("default-ui-icon");
   assert.equal(compiler.name, "default-ui-icon");
-  assert.equal(compiler.version, "0.8.10");
+  assert.equal(compiler.version, "0.10.0");
+});
+
+test("loads a real PNG reference image for every app illustration style", () => {
+  const compiler = createPromptCompiler("default-ui-icon");
+  for (const preset of ICON_STYLE_PRESET_IDS.filter(
+    (candidate) => candidate !== "line-icon",
+  )) {
+    const compiled = compiler.compile({
+      purpose: "app-icon",
+      name: "测试主体",
+      description: "一个清晰完整的测试主体",
+      color: { mode: "solid", color: "#61666E" },
+      background: {
+        enabled: true,
+        container: "rounded-square",
+        color: { mode: "solid", color: "#FFFFFF" },
+        cornerRadius: 18,
+      },
+      style: {
+        preset,
+        graphicStructure: "filled",
+        subjectSizePercent: 70,
+        linearStrokeWidthPercent: 3.5,
+        strokeWeight: "regular",
+        cornerStyle: "balanced",
+        detailLevel: "standard",
+      },
+      sizes: [64, 128, 256],
+      slot: 1,
+    });
+    assert.ok(compiled.referenceImage, `missing reference image for ${preset}`);
+    assert.equal(compiled.referenceImage.mimeType, "image/png");
+    assert.equal(
+      Buffer.from(compiled.referenceImage.bytes).subarray(1, 4).toString("ascii"),
+      "PNG",
+    );
+  }
 });
 
 test("rejects an unregistered icon skill", () => {

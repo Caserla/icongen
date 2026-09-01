@@ -22,6 +22,8 @@ const base: Omit<CompileIconPromptInput, "purpose"> = {
   style: {
     preset: "clay-3d",
     graphicStructure: "linear",
+    subjectSizePercent: 70,
+    linearStrokeWidthPercent: 3.5,
     strokeWeight: "regular",
     cornerStyle: "balanced",
     detailLevel: "standard",
@@ -38,6 +40,56 @@ test("interaction template includes visible interaction settings and excludes hi
   assert.match(result.prompt, /22% corner radius/);
   assert.doesNotMatch(result.prompt, /32, 64, 128px/);
   assert.doesNotMatch(result.prompt, /cute clay 3D/);
+});
+
+test("multi-subject interaction prompts lock optical scale and linear weight", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "interaction",
+    iconSetConsistency: {
+      enabled: true,
+      subjectCount: 6,
+      targetOccupancyPercent: 70,
+      targetStrokeWidthPercent: 4.5,
+    },
+  });
+  assert.match(result.prompt, /ICON SET CONSISTENCY \(MANDATORY\)/);
+  assert.match(result.prompt, /coordinated set of 6 icons/);
+  assert.match(result.prompt, /FIXED SUBJECT SIZE PARAMETER/);
+  assert.match(result.prompt, /must occupy 70% of the square canvas/);
+  assert.match(result.prompt, /FIXED STROKE WIDTH PARAMETER/);
+  assert.match(result.prompt, /stroke width 4.5% of the canvas/);
+  assert.match(result.prompt, /identical rounded caps/);
+});
+
+test("multi-subject app icon prompts lock a shared optical bounding box", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "app-icon",
+    iconSetConsistency: {
+      enabled: true,
+      subjectCount: 4,
+      targetOccupancyPercent: 70,
+      targetStrokeWidthPercent: 4.5,
+    },
+  });
+  assert.match(result.prompt, /coordinated set of 4 icons/);
+  assert.match(result.prompt, /same optical scale, visual center, safe margins/);
+  assert.match(result.prompt, /approximately 70% of the square canvas/);
+});
+
+test("symmetric subjects preserve canonical geometry in every variant", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "interaction",
+    name: "收藏",
+    description: "五角星",
+    slot: 3,
+  });
+  assert.match(result.prompt, /GEOMETRY INTEGRITY \(MANDATORY\)/);
+  assert.match(result.prompt, /symmetric-symbol/);
+  assert.match(result.prompt, /Do not skew, stretch, twist, collapse/);
+  assert.match(result.prompt, /must never damage the canonical semantic skeleton/);
 });
 
 test("app icon template includes app style and excludes hidden interaction settings", () => {
@@ -167,15 +219,9 @@ test("every app icon preset has a detailed isolated style specification", () => 
       }).prompt,
   );
   for (const prompt of prompts) {
-    assert.match(
-      prompt,
-      /Geometry and composition:|高饱和、可爱卡通、圆润扁平化/,
-    );
-    assert.match(
-      prompt,
-      /Color and material:|Color and background:|2–4 种醒目的大块均匀纯色/,
-    );
-    assert.match(prompt, /Small-size rule:|缩小到 48 px 时仍清楚可辨/);
+    assert.match(prompt, /Icon category: (?:illustrative|functional)/);
+    assert.match(prompt, /Color system:/);
+    assert.match(prompt, /48 px|24–32 px|16–32 px/);
     assert.match(prompt, /STYLE FINGERPRINT/);
     assert.match(prompt, /APPROVED STYLE REFERENCE PROFILE/);
     assert.match(prompt, /COMPOSITION AND SAFE AREA/);
@@ -269,6 +315,18 @@ test("every app icon style has an approved 1536x1024 PNG reference asset", async
     assert.equal(bytes.subarray(1, 4).toString("ascii"), "PNG");
     assert.equal(bytes.readUInt32BE(16), 1536);
     assert.equal(bytes.readUInt32BE(20), 1024);
+    const compiled = compileIconPrompt({
+      ...base,
+      purpose: "app-icon",
+      style: { ...base.style, preset },
+    });
+    assert.equal(
+      compiled.referenceImageAssetUrl,
+      new URL(
+        `../assets/style-references/${reference.assetFile}`,
+        import.meta.url,
+      ).href,
+    );
   }
 });
 
@@ -284,16 +342,51 @@ test("flat playful app icons use the production template derived from the flat p
     },
     style: { ...base.style, preset: "flat-playful" },
   });
-  assert.match(result.prompt, /铺满整张方形母版并一直延伸到四边/);
-  assert.match(result.prompt, /约 22% 的圆角透明遮罩由交付流程生成/);
-  assert.match(result.prompt, /保持 80%–90% 平面感/);
-  assert.match(result.prompt, /固定为 #FFD85A 的均匀哑光纯色背景/);
+  assert.match(result.prompt, /fills the entire square master canvas edge to edge/);
+  assert.match(result.prompt, /approximately 22% rounded-square alpha mask/);
+  assert.match(result.prompt, /keeping 80%–90% flatness/);
+  assert.match(result.prompt, /uniform matte solid background color #FFD85A/);
+  assert.match(result.prompt, /teal #20BFAE/);
+  assert.match(result.prompt, /coral #FF4F4F/);
   assert.match(result.prompt, /full-bleed square RGBA PNG master/);
   assert.doesNotMatch(
     result.prompt,
     /transparency outside the colored container/,
   );
-  assert.doesNotMatch(result.prompt, /bevels|ambient occlusion/);
+  assert.match(result.prompt, /glossy plastic/);
+  assert.match(result.prompt, /realistic 3D lighting/);
+});
+
+test("duplicate character input is normalized into a concrete single-subject description", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "app-icon",
+    name: "可爱白人小女孩头像，双马尾",
+    description: "可爱白人小女孩头像，双马尾",
+    style: { ...base.style, preset: "flat-playful" },
+  });
+  assert.match(result.prompt, /one complete centered character/);
+  assert.match(result.prompt, /hairstyle silhouette/);
+  assert.match(result.prompt, /do not add a second character/);
+});
+
+test("app icon style protocols preserve transparent, solid, gradient, rounded, circle, and square controls", () => {
+  const backgrounds = [
+    { enabled: false as const },
+    { enabled: true as const, container: "rounded-square" as const, color: { mode: "solid" as const, color: "#A1B2C3" }, cornerRadius: 14 },
+    { enabled: true as const, container: "circle" as const, color: { mode: "gradient" as const, colors: ["#112233", "#DDEEFF"] as [string, string], direction: "left-to-right" as const } },
+    { enabled: true as const, container: "square" as const, color: { mode: "solid" as const, color: "#A1B2C3" } },
+  ];
+  for (const preset of ICON_STYLE_PRESET_IDS.filter((item) => item !== "line-icon")) {
+    const prompts = backgrounds.map((background) =>
+      compileIconPrompt({ ...base, purpose: "app-icon", background, style: { ...base.style, preset } }).prompt,
+    );
+    assert.match(prompts[0], /transparent background/);
+    assert.match(prompts[1], /14% rounded-square alpha mask/);
+    assert.match(prompts[2], /centered circular alpha mask/);
+    assert.match(prompts[2], /left-to-right gradient/);
+    assert.match(prompts[3], /full square canvas/);
+  }
 });
 
 test("the three slots request materially different design concepts", () => {
@@ -311,7 +404,7 @@ test("the three slots request materially different design concepts", () => {
   assert.match(prompts[2], /Concept C — expressive simplification/);
   assert.match(
     prompts[2],
-    /must differ in geometry, not merely rendering details/,
+    /Never manufacture variation by skewing, stretching, twisting, collapsing, or deforming/,
   );
   assert.equal(new Set(prompts).size, 3);
 });

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.rpc("create_generation_job_v2", {
       p_user_id: user.id,
       p_spec: generationSpec,
-      p_skill_version: "default-ui-icon@0.8.10",
+      p_skill_version: "default-ui-icon@0.9.1",
       p_idempotency_key: generationSpec.idempotencyKey,
     });
     if (error) {

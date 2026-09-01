@@ -57,5 +57,19 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { border-color
 .account-copy-scale form button { font-size: 1rem; }
 .account-copy-scale form + article > h2 { font-size: 1.25rem; line-height: 1.75rem; }
 .account-copy-scale form + article > p { font-size: .875rem; line-height: 1.5rem; }
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-muted) 82%, white);
+}
+.skeleton-block::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
+  animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer { to { transform: translateX(100%); } }
 @keyframes menu-pop { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition-duration:.01ms!important; animation-duration:.01ms!important; } }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition-duration:.01ms!important; animation-duration:.01ms!important; } .skeleton-block::after { display: none; } }

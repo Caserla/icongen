@@ -5,7 +5,26 @@ export class SharpImageProcessor implements ImageProcessor {
   async inspect(input: { bytes: Uint8Array }) {
     const metadata = await sharp(input.bytes).metadata();
     if (!metadata.width || !metadata.height) throw new Error("Generated image dimensions could not be read");
-    return { width: metadata.width, height: metadata.height, hasAlpha: metadata.hasAlpha ?? false };
+    const hasAlpha = metadata.hasAlpha ?? false;
+    let hasTransparency = false;
+    if (hasAlpha) {
+      const { data, info } = await sharp(input.bytes)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      for (let index = 3; index < data.length; index += info.channels) {
+        if (data[index] < 255) {
+          hasTransparency = true;
+          break;
+        }
+      }
+    }
+    return {
+      width: metadata.width,
+      height: metadata.height,
+      hasAlpha,
+      hasTransparency,
+    };
   }
 
   async applyRoundedMask(input: { bytes: Uint8Array; cornerRadiusPercent: number }) {
@@ -19,6 +38,45 @@ export class SharpImageProcessor implements ImageProcessor {
       .png({ compressionLevel: 9, adaptiveFiltering: true })
       .toBuffer({ resolveWithObject: true });
     return { bytes: data, mimeType: "image/png" as const, width: info.width, height: info.height, hasAlpha: true };
+  }
+
+  async removeChromaBackground(input: {
+    bytes: Uint8Array;
+    color: { red: number; green: number; blue: number };
+    tolerance: number;
+  }) {
+    const { data, info } = await sharp(input.bytes)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const output = Buffer.from(data);
+    for (let index = 0; index < output.length; index += info.channels) {
+      const distance = Math.sqrt(
+        (output[index] - input.color.red) ** 2 +
+          (output[index + 1] - input.color.green) ** 2 +
+          (output[index + 2] - input.color.blue) ** 2,
+      );
+      if (distance <= input.tolerance) output[index + 3] = 0;
+      else if (distance <= input.tolerance * 1.6)
+        output[index + 3] = Math.min(
+          output[index + 3],
+          Math.round(
+            ((distance - input.tolerance) / (input.tolerance * 0.6)) * 255,
+          ),
+        );
+    }
+    const encoded = await sharp(output, {
+      raw: { width: info.width, height: info.height, channels: 4 },
+    })
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toBuffer();
+    return {
+      bytes: encoded,
+      mimeType: "image/png" as const,
+      width: info.width,
+      height: info.height,
+      hasAlpha: true,
+    };
   }
 
   async process(input: { bytes: Uint8Array; size: number; profile?: "icon" | "pixel-art" }) {
