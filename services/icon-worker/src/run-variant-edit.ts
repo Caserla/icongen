@@ -299,15 +299,8 @@ async function run() {
     .maybeSingle();
   if (completed.error) throw completed.error;
   if (!completed.data) return;
-  let activation = client
-    .from("generation_variants")
-    .update({ active_revision_id: editId, updated_at: completedAt })
-    .eq("id", variant.id);
-  activation = revision.parent_revision_id
-    ? activation.eq("active_revision_id", revision.parent_revision_id)
-    : activation.is("active_revision_id", null);
-  const activated = await activation;
-  if (activated.error) throw activated.error;
+  // Keep this completed revision as an unpublished draft. The current icon is
+  // changed only after the user explicitly saves the result in the UI.
 }
 
 try {

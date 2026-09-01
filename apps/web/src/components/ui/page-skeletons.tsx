@@ -1,4 +1,4 @@
-function SkeletonBlock({ className = "" }: { className?: string }) {
+export function SkeletonBlock({ className = "" }: { className?: string }) {
   return <span aria-hidden="true" className={`skeleton-block block ${className}`} />;
 }
 
