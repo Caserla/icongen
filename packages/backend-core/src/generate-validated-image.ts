@@ -155,20 +155,25 @@ export async function generateValidatedImage(
             ? "\n\nGEOMETRY INTEGRITY CORRECTION\nThe previous result distorted the canonical semantic skeleton. Rebuild the requested subject with stable standard geometry, correct topology, smooth closed contours, and the required symmetry. Preserve the expected number and even distribution of points, lobes, or essential parts. Do not skew, stretch, twist, collapse, or use deformation to make this variant different."
           : "";
     image = await dependencies.imageProvider.generate({
+      mode: "generation",
       prompt: `${input.prompt}${retryInstruction}`,
       background: input.outputBackground,
       referenceImage: input.referenceImage,
     });
-    if (
-      input.outputBackground === "transparent" &&
-      input.referenceImage &&
-      dependencies.imageProcessor.removeChromaBackground
-    ) {
-      image = await dependencies.imageProcessor.removeChromaBackground({
-        bytes: image.bytes,
-        color: { red: 0, green: 255, blue: 0 },
-        tolerance: 72,
-      });
+    if (input.outputBackground === "transparent" && input.referenceImage) {
+      if (dependencies.imageProcessor.normalizeTransparentBackground) {
+        image = await dependencies.imageProcessor.normalizeTransparentBackground({
+          bytes: image.bytes,
+          chromaColor: { red: 0, green: 255, blue: 0 },
+          tolerance: 72,
+        });
+      } else if (dependencies.imageProcessor.removeChromaBackground) {
+        image = await dependencies.imageProcessor.removeChromaBackground({
+          bytes: image.bytes,
+          color: { red: 0, green: 255, blue: 0 },
+          tolerance: 72,
+        });
+      }
     }
     qualityWarnings =
       (await dependencies.imageQualityGate?.inspect({

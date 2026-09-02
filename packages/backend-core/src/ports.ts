@@ -91,6 +91,7 @@ export interface ImageProvider {
   readonly name: string;
   readonly model: string;
   generate(input: {
+    mode: "generation" | "detail-edit";
     prompt: string;
     background?: "transparent" | "opaque" | "auto";
     sourceImage?: {
@@ -131,6 +132,11 @@ export interface ImageProcessor {
   removeChromaBackground?(input: {
     bytes: Uint8Array;
     color: { red: number; green: number; blue: number };
+    tolerance: number;
+  }): Promise<ProcessedImage>;
+  normalizeTransparentBackground?(input: {
+    bytes: Uint8Array;
+    chromaColor: { red: number; green: number; blue: number };
     tolerance: number;
   }): Promise<ProcessedImage>;
   process(input: {

@@ -548,6 +548,7 @@ test("records visual quality warnings without rejecting a deliverable image", as
   let providerCalls = 0;
   let completedVariants = 0;
   const providerInputs: Array<{
+    mode: "generation" | "detail-edit";
     prompt: string;
     background?: "transparent" | "opaque" | "auto";
   }> = [];
@@ -622,6 +623,7 @@ test("records visual quality warnings without rejecting a deliverable image", as
   await processGenerationJob("job-1", dependencies);
   assert.equal(providerCalls, 3);
   assert.equal(completedVariants, 3);
+  assert.ok(providerInputs.every((input) => input.mode === "generation"));
   assert.ok(providerInputs.every((input) => input.background === "opaque"));
   assert.ok(
     providerInputs.every(

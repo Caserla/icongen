@@ -65,7 +65,7 @@ test("uses the mock provider without an API key", async () => {
     SUPABASE_ICON_BUCKET: "generated-icons",
     GENERATION_MAX_ATTEMPTS: 3,
   });
-  const image = await provider.generate({ prompt: "test" });
+  const image = await provider.generate({ mode: "generation", prompt: "test" });
   assert.equal(provider.name, "mock");
   assert.equal(image.mimeType, "image/png");
   assert.ok(image.bytes.length > 0);

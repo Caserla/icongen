@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildIconJobListHref, groupGenerationJobsByStyle } from "./components/icon-job-list";
-import { generationJobFacetKey, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, readPreloadedGenerationJobPage, type GenerationJobListItem, type GenerationJobListPreload } from "./server/generation-job-list-reader";
+import { matchesGenerationJobStatus, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, type GenerationJobListItem } from "./server/generation-job-list-reader";
 
 test("parses stored style presets and safely classifies legacy jobs", () => {
   assert.equal(parseStylePreset({ style: { preset: "flat-playful" } }), "flat-playful");
@@ -14,7 +14,7 @@ test("parses stored style presets and safely classifies legacy jobs", () => {
 });
 
 test("groups jobs in the shared style catalog order", () => {
-  const base: Pick<GenerationJobListItem, "status" | "createdAt" | "subjects" | "usage" | "graphicStructure" | "previewAssetIds"> = { status: "completed", createdAt: "2026-08-31T00:00:00.000Z", subjects: [], usage: "illustration", graphicStructure: "linear", previewAssetIds: [] };
+  const base: Pick<GenerationJobListItem, "status" | "createdAt" | "subjects" | "usage" | "graphicStructure" | "previewUrls"> = { status: "completed", createdAt: "2026-08-31T00:00:00.000Z", subjects: [], usage: "illustration", graphicStructure: "linear", previewUrls: [] };
   const jobs: GenerationJobListItem[] = [
     { ...base, id: "pixel", stylePreset: "pixel-art" },
     { ...base, id: "clay", stylePreset: "clay-3d" },
@@ -35,23 +35,9 @@ test("pagination links preserve the selected style", () => {
   assert.equal(buildIconJobListHref(undefined, 2, "completed", "interaction", "filled"), "/icons?status=completed&usage=interaction&structure=filled&page=2");
 });
 
-test("serves preloaded first pages for instant style and status switching", () => {
-  const base: Pick<GenerationJobListItem, "createdAt" | "subjects" | "usage" | "graphicStructure" | "previewAssetIds"> = { createdAt: "2026-08-31T00:00:00.000Z", subjects: [], usage: "illustration", graphicStructure: "linear", previewAssetIds: [] };
-  const preload: GenerationJobListPreload = {
-    pageSize: 2,
-    jobs: [
-      { ...base, id: "neon-done", stylePreset: "neon", status: "completed" },
-      { ...base, id: "neon-failed", stylePreset: "neon", status: "failed" },
-      { ...base, id: "clay-done", stylePreset: "clay-3d", status: "completed" },
-    ],
-    totals: {
-      [generationJobFacetKey("neon")]: 3,
-      [generationJobFacetKey("neon", "completed")]: 1,
-      [generationJobFacetKey(undefined, "completed")]: 2,
-    },
-  };
-  const neon = readPreloadedGenerationJobPage(preload, "neon");
-  assert.deepEqual(neon.jobs.map((job) => job.id), ["neon-done", "neon-failed"]);
-  assert.equal(neon.totalPages, 2);
-  assert.deepEqual(readPreloadedGenerationJobPage(preload, "neon", "completed").jobs.map((job) => job.id), ["neon-done"]);
+test("matches combined in-progress statuses without broadening other filters", () => {
+  assert.equal(matchesGenerationJobStatus("queued", "in-progress"), true);
+  assert.equal(matchesGenerationJobStatus("processing", "in-progress"), true);
+  assert.equal(matchesGenerationJobStatus("completed", "in-progress"), false);
+  assert.equal(matchesGenerationJobStatus("completed", "completed"), true);
 });

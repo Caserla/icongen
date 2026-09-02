@@ -9,14 +9,13 @@ export type GenerationJobListItem = {
   usage: GenerationJobUsageFilter;
   graphicStructure: "linear" | "filled";
   subjects: { name: string; position: number }[];
-  previewAssetIds: string[];
+  previewUrls: string[];
 };
 
 export type GenerationJobListPage = { jobs: GenerationJobListItem[]; page: number; pageSize: number; total: number; totalPages: number };
 export type GenerationJobStatusFilter = "in-progress" | "completed" | "partial" | "failed";
 export type GenerationJobUsageFilter = "interaction" | "illustration";
 export type GenerationJobStructureFilter = "linear" | "filled";
-export type GenerationJobListPreload = { jobs: GenerationJobListItem[]; totals: Record<string, number>; pageSize: number };
 
 const demoJobIds = [
   "11111111-1111-4111-8111-111111111111",
@@ -27,8 +26,15 @@ const DEFAULT_PAGE_SIZE = 12;
 
 type ListSubjectRow = { id: string; job_id: string; name: string; position: number };
 
-async function readListPreviewAssetIds(client: SupabaseClient, subjects: ListSubjectRow[]) {
-  const subjectIds = subjects.map((subject) => subject.id);
+async function readListPreviewUrls(client: SupabaseClient, subjects: ListSubjectRow[]) {
+  const previewSubjects: ListSubjectRow[] = [];
+  const countsByJobId = new Map<string, number>();
+  for (const subject of subjects) {
+    const count = countsByJobId.get(subject.job_id) ?? 0;
+    if (count < 3) previewSubjects.push(subject);
+    countsByJobId.set(subject.job_id, count + 1);
+  }
+  const subjectIds = previewSubjects.map((subject) => subject.id);
   if (!subjectIds.length) return new Map<string, string[]>();
   const variants: { id: string; subject_id: string; slot: number }[] = [];
   for (let index = 0; index < subjectIds.length; index += 100) {
@@ -36,10 +42,10 @@ async function readListPreviewAssetIds(client: SupabaseClient, subjects: ListSub
     if (error) throw error;
     variants.push(...((data ?? []) as typeof variants));
   }
-  const assets: { id: string; variant_id: string; asset_role: string; format: string; size: number }[] = [];
+  const assets: { id: string; variant_id: string; asset_role: string; format: string; size: number; storage_bucket: string; storage_path: string }[] = [];
   for (let index = 0; index < variants.length; index += 100) {
     const ids = variants.slice(index, index + 100).map((variant) => variant.id);
-    const { data, error } = await client.from("generation_assets").select("id,variant_id,asset_role,format,size").in("variant_id", ids).eq("format", "png").order("size");
+    const { data, error } = await client.from("generation_assets").select("id,variant_id,asset_role,format,size,storage_bucket,storage_path").in("variant_id", ids).eq("format", "png").order("size");
     if (error) throw error;
     assets.push(...((data ?? []) as typeof assets));
   }
@@ -49,23 +55,61 @@ async function readListPreviewAssetIds(client: SupabaseClient, subjects: ListSub
       ...(assetsByVariantId.get(asset.variant_id) ?? []),
       asset,
     ]);
-  const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
+  const subjectById = new Map(previewSubjects.map((subject) => [subject.id, subject]));
   const selected = variants.map((variant) => {
     const candidates = assetsByVariantId.get(variant.id) ?? [];
     const asset = candidates.find((item) => item.asset_role === "preview") ?? candidates.find((item) => item.asset_role === "source") ?? candidates.filter((item) => item.asset_role === "output").sort((a, b) => b.size - a.size)[0];
     const subject = subjectById.get(variant.subject_id);
     return asset && subject ? { ...asset, jobId: subject.job_id, subjectPosition: subject.position, slot: variant.slot } : null;
   }).filter((item): item is NonNullable<typeof item> => Boolean(item)).sort((a, b) => a.subjectPosition - b.subjectPosition || a.slot - b.slot);
-  const previewAssetIds = new Map<string, string[]>();
+  const selectedByJobId = new Map<string, typeof selected>();
   for (const asset of selected) {
-    const current = previewAssetIds.get(asset.jobId) ?? [];
-    if (current.length < 3) previewAssetIds.set(asset.jobId, [...current, asset.id]);
+    const current = selectedByJobId.get(asset.jobId) ?? [];
+    if (current.length < 3) selectedByJobId.set(asset.jobId, [...current, asset]);
   }
-  return previewAssetIds;
+  const signedUrlByAssetId = new Map<string, string>();
+  const assetsByBucket = new Map<string, typeof selected>();
+  for (const asset of [...selectedByJobId.values()].flat())
+    assetsByBucket.set(asset.storage_bucket, [...(assetsByBucket.get(asset.storage_bucket) ?? []), asset]);
+  await Promise.all([...assetsByBucket.entries()].map(async ([bucket, bucketAssets]) => {
+    const { data, error } = await client.storage.from(bucket).createSignedUrls(bucketAssets.map((asset) => asset.storage_path), 3600);
+    if (error) return;
+    data.forEach((signed, index) => {
+      if (signed.signedUrl) signedUrlByAssetId.set(bucketAssets[index].id, signed.signedUrl);
+    });
+  }));
+  return new Map([...selectedByJobId.entries()].map(([jobId, jobAssets]) => [jobId, jobAssets.map((asset) => signedUrlByAssetId.get(asset.id)).filter((url): url is string => Boolean(url))]));
 }
 
-export function generationJobFacetKey(style?: IconStylePresetId, status?: GenerationJobStatusFilter) {
-  return `${style ?? "all"}:${status ?? "all"}`;
+export async function readGenerationJobListItem(
+  client: SupabaseClient,
+  userId: string,
+  jobId: string,
+): Promise<GenerationJobListItem | null> {
+  const { data: job, error } = await client.from("generation_jobs")
+    .select("id,status,created_at,generation_spec")
+    .eq("id", jobId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!job) return null;
+  const { data, error: subjectsError } = await client.from("generation_subjects")
+    .select("id,job_id,name,position")
+    .eq("job_id", jobId)
+    .order("position", { ascending: true });
+  if (subjectsError) throw subjectsError;
+  const subjects = (data ?? []) as ListSubjectRow[];
+  const previews = await readListPreviewUrls(client, subjects);
+  return {
+    id: job.id,
+    status: job.status as GenerationJobStatusV2,
+    createdAt: new Date(job.created_at).toISOString(),
+    stylePreset: parseStylePreset(job.generation_spec),
+    usage: parseGenerationJobUsage(job.generation_spec),
+    graphicStructure: parseGraphicStructure(job.generation_spec),
+    subjects: subjects.map((subject) => ({ name: subject.name, position: subject.position })),
+    previewUrls: previews.get(job.id) ?? [],
+  };
 }
 
 export function matchesGenerationJobStatus(status: GenerationJobStatusV2, filter?: GenerationJobStatusFilter) {
@@ -89,62 +133,6 @@ export function parseGenerationJobUsage(spec: unknown): GenerationJobUsageFilter
   if (purpose === "interaction") return "interaction";
   if (purpose === "app-icon") return "illustration";
   return parseStylePreset(spec) === "line-icon" ? "interaction" : "illustration";
-}
-
-export function readPreloadedGenerationJobPage(preload: GenerationJobListPreload, style?: IconStylePresetId, status?: GenerationJobStatusFilter): GenerationJobListPage {
-  const jobs = preload.jobs.filter((job) => (!style || job.stylePreset === style) && matchesGenerationJobStatus(job.status, status)).slice(0, preload.pageSize);
-  const total = preload.totals[generationJobFacetKey(style, status)] ?? 0;
-  return { jobs, page: 1, pageSize: preload.pageSize, total, totalPages: Math.max(1, Math.ceil(total / preload.pageSize)) };
-}
-
-export async function preloadGenerationJobFirstPages(client: SupabaseClient, userId: string, pageSize = DEFAULT_PAGE_SIZE): Promise<GenerationJobListPreload> {
-  const rows: { id: string; status: GenerationJobStatusV2; created_at: string; generation_spec: unknown }[] = [];
-  const batchSize = 1000;
-  for (let from = 0; ; from += batchSize) {
-    const { data, error } = await client.from("generation_jobs").select("id,status,created_at,generation_spec")
-      .eq("user_id", userId).not("id", "in", `(${demoJobIds.join(",")})`).order("created_at", { ascending: false }).range(from, from + batchSize - 1);
-    if (error) throw error;
-    const batch = (data ?? []) as typeof rows;
-    rows.push(...batch);
-    if (batch.length < batchSize) break;
-  }
-
-  const totals: Record<string, number> = {};
-  const keptCounts: Record<string, number> = {};
-  const selectedIds = new Set<string>();
-  for (const row of rows) {
-    const style = parseStylePreset(row.generation_spec);
-    const usage = parseGenerationJobUsage(row.generation_spec);
-    const structure = parseGraphicStructure(row.generation_spec);
-    const statusFilters: (GenerationJobStatusFilter | undefined)[] = [undefined, row.status === "queued" || row.status === "processing" ? "in-progress" : row.status as GenerationJobStatusFilter];
-    const keys = statusFilters.flatMap((status) => [generationJobFacetKey(undefined, status), generationJobFacetKey(style, status), `usage:${usage}:${status ?? "all"}`, `structure:${structure}:${status ?? "all"}`, `usage:${usage}:structure:${structure}:${status ?? "all"}`]);
-    for (const key of keys) {
-      totals[key] = (totals[key] ?? 0) + 1;
-      if ((keptCounts[key] ?? 0) < pageSize) selectedIds.add(row.id);
-      keptCounts[key] = (keptCounts[key] ?? 0) + 1;
-    }
-  }
-
-  const selectedRows = rows.filter((row) => selectedIds.has(row.id));
-  const subjects: ListSubjectRow[] = [];
-  for (let index = 0; index < selectedRows.length; index += 100) {
-    const ids = selectedRows.slice(index, index + 100).map((row) => row.id);
-    const { data, error } = await client.from("generation_subjects").select("id,job_id,name,position").in("job_id", ids).order("position", { ascending: true });
-    if (error) throw error;
-    subjects.push(...((data ?? []) as typeof subjects));
-  }
-  const previewAssetIds = await readListPreviewAssetIds(client, subjects);
-  const subjectsByJobId = new Map<string, ListSubjectRow[]>();
-  for (const subject of subjects)
-    subjectsByJobId.set(subject.job_id, [
-      ...(subjectsByJobId.get(subject.job_id) ?? []),
-      subject,
-    ]);
-  return {
-    jobs: selectedRows.map((row) => ({ id: row.id, status: row.status, createdAt: new Date(row.created_at).toISOString(), stylePreset: parseStylePreset(row.generation_spec), usage: parseGenerationJobUsage(row.generation_spec), graphicStructure: parseGraphicStructure(row.generation_spec), subjects: (subjectsByJobId.get(row.id) ?? []).map((subject) => ({ name: subject.name, position: subject.position })), previewAssetIds: previewAssetIds.get(row.id) ?? [] })),
-    totals,
-    pageSize,
-  };
 }
 
 export async function readGenerationJobs(client: SupabaseClient, userId: string, options: { page?: number; pageSize?: number; stylePreset?: IconStylePresetId; statusFilter?: GenerationJobStatusFilter; usageFilter?: GenerationJobUsageFilter; structureFilter?: GenerationJobStructureFilter } = {}): Promise<GenerationJobListPage> {
@@ -172,7 +160,7 @@ export async function readGenerationJobs(client: SupabaseClient, userId: string,
     .select("id,job_id,name,position").in("job_id", jobs.map((job) => job.id)).order("position", { ascending: true });
   if (subjectsError) throw subjectsError;
   const subjectRows = (subjects ?? []) as ListSubjectRow[];
-  const previewAssetIds = await readListPreviewAssetIds(client, subjectRows);
+  const previewUrls = await readListPreviewUrls(client, subjectRows);
   const subjectsByJobId = new Map<string, ListSubjectRow[]>();
   for (const subject of subjectRows)
     subjectsByJobId.set(subject.job_id, [
@@ -185,7 +173,7 @@ export async function readGenerationJobs(client: SupabaseClient, userId: string,
       id: job.id, status: job.status as GenerationJobStatusV2, createdAt: new Date(job.created_at).toISOString(),
       stylePreset: parseStylePreset(job.generation_spec), usage: parseGenerationJobUsage(job.generation_spec), graphicStructure: parseGraphicStructure(job.generation_spec),
       subjects: (subjectsByJobId.get(job.id) ?? []).map((subject) => ({ name: subject.name, position: subject.position })),
-      previewAssetIds: previewAssetIds.get(job.id) ?? [],
+      previewUrls: previewUrls.get(job.id) ?? [],
     })),
     page: requestedPage, pageSize, total, totalPages,
   };

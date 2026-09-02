@@ -3,9 +3,79 @@ import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { startLocalVariantEdit } from "@/features/generation/server/local-generation-runner";
+import { isVariantEditLeaseStale, type ActiveVariantEdit } from "@/features/generation/server/variant-edit-lease";
 
 const paramsSchema = z.object({ variantId: z.string().uuid() });
 const bodySchema = z.object({ instruction: z.string().trim().min(5).max(500) });
+
+export async function GET(_request: Request, context: { params: Promise<{ variantId: string }> }) {
+  const params = paramsSchema.safeParse(await context.params);
+  if (!params.success) return apiError("INVALID_VARIANT_EDIT", "The icon option ID is invalid.", 400);
+  try {
+    const user = await requireActiveUser();
+    const client = createAdminSupabaseClient();
+    const variant = await client.from("generation_variants")
+      .select("id,subject_id,active_revision_id")
+      .eq("id", params.data.variantId).maybeSingle();
+    if (variant.error) throw variant.error;
+    if (!variant.data) return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon option was not found.", 404);
+    const variantData = variant.data;
+    const subject = await client.from("generation_subjects").select("job_id").eq("id", variantData.subject_id).single();
+    if (subject.error) throw subject.error;
+    const job = await client.from("generation_jobs").select("id").eq("id", subject.data.job_id).eq("user_id", user.id).maybeSingle();
+    if (job.error) throw job.error;
+    if (!job.data) return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon option was not found.", 404);
+    const activeRevision = await client.from("generation_variant_revisions")
+      .select("id,status,created_at,updated_at")
+      .eq("variant_id", variantData.id)
+      .in("status", ["queued", "processing"])
+      .order("revision_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (activeRevision.error) throw activeRevision.error;
+    if (activeRevision.data && isVariantEditLeaseStale(activeRevision.data as ActiveVariantEdit)) {
+      const now = new Date().toISOString();
+      const stale = activeRevision.data as ActiveVariantEdit;
+      const released = await client.from("generation_variant_revisions").update({
+        status: "failed",
+        error_code: "VARIANT_EDIT_LEASE_EXPIRED",
+        error_message: stale.status === "queued"
+          ? "The edit worker did not claim this request before the dispatch timeout."
+          : "The edit worker stopped reporting progress before its lease expired.",
+        completed_at: now,
+        updated_at: now,
+      }).eq("id", stale.id).eq("status", stale.status).eq("updated_at", stale.updated_at);
+      if (released.error) throw released.error;
+    } else if (activeRevision.data) {
+      return Response.json({
+        inProgress: {
+          id: activeRevision.data.id,
+          status: activeRevision.data.status,
+        },
+        draft: null,
+      });
+    }
+    const revisions = await client.from("generation_variant_revisions")
+      .select("id,parent_revision_id,status,preview_bucket,preview_path,completed_at")
+      .eq("variant_id", variantData.id)
+      .eq("status", "completed")
+      .order("revision_number", { ascending: false })
+      .limit(10);
+    if (revisions.error) throw revisions.error;
+    const pending = revisions.data?.find((revision) =>
+      revision.id !== variantData.active_revision_id &&
+      revision.parent_revision_id === variantData.active_revision_id &&
+      Boolean(revision.preview_bucket && revision.preview_path),
+    );
+    if (!pending?.preview_bucket || !pending.preview_path)
+      return Response.json({ draft: null });
+    const signed = await client.storage.from(pending.preview_bucket).createSignedUrl(pending.preview_path, 3600);
+    if (signed.error) throw signed.error;
+    return Response.json({ draft: { id: pending.id, previewUrl: signed.data.signedUrl } });
+  } catch (error) {
+    return authErrorResponse(error) ?? apiError("VARIANT_EDIT_READ_FAILED", "The detail adjustment could not be loaded.", 500);
+  }
+}
 
 export async function POST(request: Request, context: { params: Promise<{ variantId: string }> }) {
   const params = paramsSchema.safeParse(await context.params);
@@ -26,9 +96,22 @@ export async function POST(request: Request, context: { params: Promise<{ varian
     const job = await client.from("generation_jobs").select("id").eq("id", subject.data.job_id).eq("user_id", user.id).maybeSingle();
     if (job.error) throw job.error;
     if (!job.data) return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon option was not found.", 404);
-    const active = await client.from("generation_variant_revisions").select("id").eq("variant_id", variant.data.id).in("status", ["queued", "processing"]).maybeSingle();
+    const active = await client.from("generation_variant_revisions").select("id,status,created_at,updated_at").eq("variant_id", variant.data.id).in("status", ["queued", "processing"]).maybeSingle();
     if (active.error) throw active.error;
-    if (active.data) return apiError("VARIANT_EDIT_IN_PROGRESS", "This option is already being adjusted.", 409);
+    if (active.data) {
+      const activeEdit = active.data as ActiveVariantEdit;
+      if (!isVariantEditLeaseStale(activeEdit))
+        return apiError("VARIANT_EDIT_IN_PROGRESS", "This option is already being adjusted.", 409);
+      const now = new Date().toISOString();
+      const released = await client.from("generation_variant_revisions").update({
+        status: "failed",
+        error_code: "VARIANT_EDIT_LEASE_EXPIRED",
+        error_message: activeEdit.status === "queued" ? "The edit worker did not claim this request before the dispatch timeout." : "The edit worker stopped reporting progress before its lease expired.",
+        completed_at: now,
+        updated_at: now,
+      }).eq("id", activeEdit.id).eq("status", activeEdit.status).eq("updated_at", activeEdit.updated_at);
+      if (released.error) throw released.error;
+    }
     const revisions = await client.from("generation_variant_revisions").select("revision_number").eq("variant_id", variant.data.id).order("revision_number", { ascending: false }).limit(1);
     if (revisions.error) throw revisions.error;
     const revision = await client.from("generation_variant_revisions").insert({
@@ -38,7 +121,11 @@ export async function POST(request: Request, context: { params: Promise<{ varian
       instruction: body.data.instruction,
       status: "queued",
     }).select("id,revision_number,status").single();
-    if (revision.error) throw revision.error;
+    if (revision.error) {
+      if (revision.error.code === "23505")
+        return apiError("VARIANT_EDIT_IN_PROGRESS", "This option is already being adjusted.", 409);
+      throw revision.error;
+    }
     startLocalVariantEdit(revision.data.id);
     return Response.json(revision.data, { status: 202 });
   } catch (error) {

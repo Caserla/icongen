@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { localVariantWorkerEnabled } from "./variant-edit-lease";
 
 const activeJobs = new Set<string>();
 const scheduledJobs = new Map<string, ReturnType<typeof setTimeout>>();
@@ -40,7 +42,7 @@ function spawnLocalGenerationJob(jobId: string, workspaceRoot: string) {
 }
 
 export function startLocalGenerationJob(jobId: string) {
-  if (process.env.NODE_ENV === "production") return;
+  if (!localVariantWorkerEnabled(process.env)) return;
 
   const workspaceRoot =
     process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
@@ -57,7 +59,7 @@ export function startLocalGenerationJob(jobId: string) {
 }
 
 export function startLocalVariantEdit(editId: string) {
-  if (process.env.NODE_ENV === "production") return;
+  if (!localVariantWorkerEnabled(process.env)) return;
   const workspaceRoot = process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
   const child = spawn(
     "npm",
@@ -68,10 +70,19 @@ export function startLocalVariantEdit(editId: string) {
       stdio: "inherit",
     },
   );
-  child.once("error", (error) =>
-    console.error("Failed to start local variant edit worker", { editId, message: error.message }),
-  );
+  const markDispatchFailed = async (message: string) => {
+    console.error("Failed to start local variant edit worker", { editId, message });
+    const now = new Date().toISOString();
+    await createAdminSupabaseClient().from("generation_variant_revisions").update({
+      status: "failed",
+      error_code: "VARIANT_EDIT_DISPATCH_FAILED",
+      error_message: message.slice(0, 1000),
+      completed_at: now,
+      updated_at: now,
+    }).eq("id", editId).in("status", ["queued", "processing"]);
+  };
+  child.once("error", (error) => void markDispatchFailed(error.message));
   child.once("exit", (code) => {
-    if (code !== 0) console.error("Local variant edit worker exited unsuccessfully", { editId, code });
+    if (code !== 0) void markDispatchFailed(`Local variant edit worker exited with code ${code ?? "unknown"}`);
   });
 }

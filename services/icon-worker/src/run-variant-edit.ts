@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
 import { createDependencies } from "./dependencies";
+import { createDetailEditRequest } from "./detail-edit-request";
 
 const editId = process.argv[2];
 if (!editId) throw new Error("Usage: npm run process-edit -- <edit-id>");
@@ -14,6 +15,7 @@ const client = createClient(
     auth: { persistSession: false, autoRefreshToken: false },
   },
 );
+let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
 type RevisionAsset = {
   id: string;
@@ -85,6 +87,14 @@ async function run() {
     .maybeSingle();
   if (claimed.error) throw claimed.error;
   if (!claimed.data) return;
+  heartbeatTimer = setInterval(() => {
+    const now = new Date().toISOString();
+    void client.from("generation_variant_revisions")
+      .update({ updated_at: now })
+      .eq("id", editId)
+      .eq("status", "processing");
+  }, 30_000);
+  heartbeatTimer.unref();
 
   let sourceBucket: string;
   let sourcePath: string;
@@ -133,26 +143,28 @@ async function run() {
       targetStrokeWidthPercent: job.spec.style.linearStrokeWidthPercent,
     },
   });
-  const editPrompt = `${compiled.prompt}\n\nDETAIL EDIT\nEdit the supplied source icon, not the style-reference board. Apply only this requested change: ${revision.instruction}\nPreserve the subject identity, composition, canvas, optical size, stroke width, palette, background mode, background shape, corner radius, transparency and all unspecified details. Return exactly one square production icon. Do not redesign the icon and do not reproduce any reference grid.`;
-  let image = await dependencies.imageProvider.generate({
-    prompt: editPrompt,
-    background: compiled.outputBackground,
-    sourceImage: {
-      bytes: sourceBytes,
-      mimeType: "image/png",
-      filename: "source-icon.png",
-    },
-    referenceImage: compiled.referenceImage,
-  });
-  if (
-    compiled.outputBackground === "transparent" &&
-    dependencies.imageProcessor.removeChromaBackground
-  ) {
-    image = await dependencies.imageProcessor.removeChromaBackground({
-      bytes: image.bytes,
-      color: { red: 0, green: 255, blue: 0 },
-      tolerance: 72,
-    });
+  let image = await dependencies.imageProvider.generate(
+    createDetailEditRequest({
+      compiledPrompt: compiled.prompt,
+      instruction: revision.instruction,
+      outputBackground: compiled.outputBackground,
+      sourceBytes,
+    }),
+  );
+  if (compiled.outputBackground === "transparent") {
+    if (dependencies.imageProcessor.normalizeTransparentBackground) {
+      image = await dependencies.imageProcessor.normalizeTransparentBackground({
+        bytes: image.bytes,
+        chromaColor: { red: 0, green: 255, blue: 0 },
+        tolerance: 72,
+      });
+    } else if (dependencies.imageProcessor.removeChromaBackground) {
+      image = await dependencies.imageProcessor.removeChromaBackground({
+        bytes: image.bytes,
+        color: { red: 0, green: 255, blue: 0 },
+        tolerance: 72,
+      });
+    }
   }
   const masked =
     job.spec.purpose === "app-icon" &&
@@ -324,4 +336,6 @@ try {
     .eq("id", editId)
     .in("status", ["queued", "processing"]);
   process.exitCode = 1;
+} finally {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
 }

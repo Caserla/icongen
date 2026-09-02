@@ -2,15 +2,18 @@
 /* eslint-disable @next/next/no-img-element -- previews use short-lived private signed URLs */
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { GenerationJobV2 } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { VariantEditDialog } from "./variant-edit-dialog";
 
 const finished = new Set(["completed", "partial", "failed"]);
 
 export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   const { locale } = useLocale();
+  const router = useRouter();
   const [job, setJob] = useState(initialJob);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
@@ -232,12 +235,45 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   const phase =
     phaseLabels[job.progress.phase]?.[locale === "zh" ? 0 : 1] ??
     job.progress.phase;
+  function goBack() {
+    // `document.referrer` is not updated by Next.js client navigation, so it
+    // incorrectly treated a real list → details transition as a direct visit
+    // and issued a fresh `/icons` request. Prefer the existing history entry;
+    // Next can then restore its cached list tree and filters immediately.
+    sessionStorage.setItem("icongen:refresh-job", job.id);
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/icons");
+  }
+  if (editing) {
+    return (
+      <VariantEditDialog
+        variant={editing.variant}
+        subjectName={editing.subjectName}
+        locale={locale}
+        onClose={() => setEditing(null)}
+        onChanged={refreshJob}
+      />
+    );
+  }
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-3xl font-black tracking-[-.03em] text-foreground">
-          {locale === "zh" ? "生成结果" : "Generation results"}
-        </h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <button
+            type="button"
+            onClick={goBack}
+            className="mb-3 inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold transition-colors hover:border-brand hover:text-brand"
+          >
+            <span aria-hidden="true">←</span>
+            {locale === "zh" ? "返回上一页" : "Back"}
+          </button>
+          <h1 className="text-3xl font-black tracking-[-.03em] text-foreground">
+            {locale === "zh" ? "生成结果" : "Generation results"}
+          </h1>
+        </div>
         {effectiveJobStatus !== "completed" ? (
           <StatusBadge status={effectiveJobStatus} />
         ) : null}
@@ -339,10 +375,11 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                     >
                       <div className="grid aspect-square place-items-center overflow-hidden rounded-xl bg-surface-muted">
                         {previewUrl ? (
-                          <img
+                          <ImageWithSkeleton
                             src={previewUrl}
                             alt={`${subject.name} option ${variant.slot}`}
-                            className="h-full w-full object-contain"
+                            className="h-full w-full"
+                            failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
                           />
                         ) : (
                           <div className="grid place-items-center gap-3 text-sm text-muted">
@@ -463,15 +500,6 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
         >
           {message}
         </p>
-      ) : null}
-      {editing ? (
-        <VariantEditDialog
-          variant={editing.variant}
-          subjectName={editing.subjectName}
-          locale={locale}
-          onClose={() => setEditing(null)}
-          onChanged={refreshJob}
-        />
       ) : null}
     </div>
   );

@@ -79,6 +79,74 @@ export class SharpImageProcessor implements ImageProcessor {
     };
   }
 
+  async normalizeTransparentBackground(input: {
+    bytes: Uint8Array;
+    chromaColor: { red: number; green: number; blue: number };
+    tolerance: number;
+  }) {
+    const { data, info } = await sharp(input.bytes)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const output = Buffer.from(data);
+    const width = info.width;
+    const height = info.height;
+    const channels = info.channels;
+    const pixelCount = width * height;
+    const visited = new Uint8Array(pixelCount);
+    const queue = new Int32Array(pixelCount);
+    let head = 0;
+    let tail = 0;
+    const cornerIndexes = [0, width - 1, (height - 1) * width, pixelCount - 1];
+    const seedColors = cornerIndexes.map((pixel) => {
+      const offset = pixel * channels;
+      return [output[offset], output[offset + 1], output[offset + 2]] as const;
+    });
+    seedColors.push([
+      input.chromaColor.red,
+      input.chromaColor.green,
+      input.chromaColor.blue,
+    ]);
+    const matchesTemporaryBackground = (pixel: number) => {
+      const offset = pixel * channels;
+      if (output[offset + 3] < 16) return true;
+      return seedColors.some(([red, green, blue]) =>
+        Math.sqrt(
+          (output[offset] - red) ** 2 +
+          (output[offset + 1] - green) ** 2 +
+          (output[offset + 2] - blue) ** 2,
+        ) <= input.tolerance,
+      );
+    };
+    const enqueue = (pixel: number) => {
+      if (pixel < 0 || pixel >= pixelCount || visited[pixel] || !matchesTemporaryBackground(pixel)) return;
+      visited[pixel] = 1;
+      queue[tail++] = pixel;
+    };
+    for (let x = 0; x < width; x += 1) {
+      enqueue(x);
+      enqueue((height - 1) * width + x);
+    }
+    for (let y = 0; y < height; y += 1) {
+      enqueue(y * width);
+      enqueue(y * width + width - 1);
+    }
+    while (head < tail) {
+      const pixel = queue[head++];
+      const offset = pixel * channels;
+      output[offset + 3] = 0;
+      const x = pixel % width;
+      if (x > 0) enqueue(pixel - 1);
+      if (x + 1 < width) enqueue(pixel + 1);
+      if (pixel >= width) enqueue(pixel - width);
+      if (pixel + width < pixelCount) enqueue(pixel + width);
+    }
+    const encoded = await sharp(output, {
+      raw: { width, height, channels: 4 },
+    }).png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
+    return { bytes: encoded, mimeType: "image/png" as const, width, height, hasAlpha: true };
+  }
+
   async process(input: { bytes: Uint8Array; size: number; profile?: "icon" | "pixel-art" }) {
     const metadata = await sharp(input.bytes).metadata();
     const isDownscaling = Math.max(metadata.width ?? 0, metadata.height ?? 0) > input.size;

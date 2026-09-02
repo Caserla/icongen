@@ -1,9 +1,44 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- private generated asset URL */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GenerationJobV2 } from "@icongen/shared";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
 type Variant = GenerationJobV2["subjects"][number]["variants"][number];
+
+async function fetchWithNetworkRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  attempts = 3,
+) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fetch(input, init);
+    } catch (error) {
+      lastError = error;
+      if (attempt + 1 < attempts) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 450 * (attempt + 1)),
+        );
+      }
+    }
+  }
+  throw lastError;
+}
+
+function readableRequestError(error: unknown, locale: "zh" | "en") {
+  if (error instanceof TypeError) {
+    return locale === "zh"
+      ? "网络连接中断，请检查服务后重试。"
+      : "The connection was interrupted. Check the service and try again.";
+  }
+  return error instanceof Error
+    ? error.message
+    : locale === "zh"
+      ? "请求失败，请重试。"
+      : "The request failed. Please try again.";
+}
 
 export function VariantEditDialog({
   variant,
@@ -27,6 +62,89 @@ export function VariantEditDialog({
   const [draft, setDraft] = useState<{ id: string; previewUrl: string } | null>(
     null,
   );
+  const [checkingDraft, setCheckingDraft] = useState(true);
+  const [selectedVersion, setSelectedVersion] = useState<"previous" | "new">(
+    "new",
+  );
+  async function pollEdit(
+    editId: string,
+    isCancelled: () => boolean = () => false,
+  ) {
+    for (;;) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1800));
+      if (isCancelled()) return;
+      const statusResponse = await fetchWithNetworkRetry(
+        `/api/generation/variants/${variant.id}/edits/${editId}`,
+        { cache: "no-store" },
+      );
+      const status = await statusResponse.json().catch(() => null);
+      if (!statusResponse.ok)
+        throw new Error(status?.message ?? "Could not read adjustment status");
+      if (status.status === "failed")
+        throw new Error(
+          status.error_message ??
+            (locale === "zh"
+              ? "细节调整失败，请重试。"
+              : "Detail adjustment failed."),
+        );
+      if (status.status === "processing") setEditStage("generating");
+      if (status.status === "completed") {
+        if (!status.previewUrl)
+          throw new Error(
+            locale === "zh"
+              ? "调整结果预览尚未就绪。"
+              : "The adjusted preview is not ready.",
+          );
+        setDraft({ id: editId, previewUrl: status.previewUrl });
+        setSelectedVersion("new");
+        return;
+      }
+    }
+  }
+  useEffect(() => {
+    let cancelled = false;
+    void fetchWithNetworkRetry(`/api/generation/variants/${variant.id}/edits`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then((body) => {
+        if (!cancelled && body?.inProgress?.id) {
+          setBusy("edit");
+          setEditStage(
+            body.inProgress.status === "processing"
+              ? "generating"
+              : "submitting",
+          );
+          setCheckingDraft(false);
+          return pollEdit(body.inProgress.id, () => cancelled)
+            .catch((cause) => {
+              if (!cancelled) setError(readableRequestError(cause, locale));
+            })
+            .finally(() => {
+              if (!cancelled) {
+                setBusy(null);
+                setEditStage(null);
+              }
+            });
+        }
+        if (!cancelled && body?.draft?.id && body?.draft?.previewUrl) {
+          setDraft(body.draft);
+          setSelectedVersion("new");
+        }
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(readableRequestError(cause, locale));
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingDraft(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [variant.id]);
   async function submit() {
     setBusy("edit");
     setEditStage("submitting");
@@ -43,43 +161,10 @@ export function VariantEditDialog({
       const body = await response.json().catch(() => null);
       if (!response.ok)
         throw new Error(body?.message ?? "Detail adjustment failed");
-      for (;;) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1800));
-        const statusResponse = await fetch(
-          `/api/generation/variants/${variant.id}/edits/${body.id}`,
-          { cache: "no-store" },
-        );
-        const status = await statusResponse.json().catch(() => null);
-        if (!statusResponse.ok)
-          throw new Error(
-            status?.message ?? "Could not read adjustment status",
-          );
-        if (status.status === "failed")
-          throw new Error(
-            status.error_message ??
-              (locale === "zh"
-                ? "细节调整失败，请重试。"
-                : "Detail adjustment failed."),
-          );
-        if (status.status === "processing") setEditStage("generating");
-        if (status.status === "completed") {
-          if (!status.previewUrl)
-            throw new Error(
-              locale === "zh"
-                ? "调整结果预览尚未就绪。"
-                : "The adjusted preview is not ready.",
-            );
-          setDraft({ id: body.id, previewUrl: status.previewUrl });
-          return;
-        }
-      }
+      await pollEdit(body.id);
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : locale === "zh"
-            ? "细节调整失败，请重试。"
-            : "Detail adjustment failed.",
+        readableRequestError(cause, locale),
       );
     } finally {
       setBusy(null);
@@ -101,11 +186,27 @@ export function VariantEditDialog({
       onClose();
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : locale === "zh"
-            ? "保存修改失败，请重试。"
-            : "Could not save the adjustment.",
+        readableRequestError(cause, locale),
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function discardDraft() {
+    if (!draft) return;
+    setBusy("restore");
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/generation/variants/${variant.id}/edits/${draft.id}`,
+        { method: "DELETE" },
+      );
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.message ?? "Restore failed");
+      onClose();
+    } catch (cause) {
+      setError(
+        readableRequestError(cause, locale),
       );
     } finally {
       setBusy(null);
@@ -125,27 +226,28 @@ export function VariantEditDialog({
       onClose();
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : locale === "zh"
-            ? "还原失败，请重试。"
-            : "Restore failed.",
+        readableRequestError(cause, locale),
       );
     } finally {
       setBusy(null);
     }
   }
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <section
+      role="region"
       aria-labelledby="variant-edit-title"
-      className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !busy) onClose();
-      }}
+      className="mx-auto w-full max-w-3xl"
     >
-      <div className="w-full max-w-2xl rounded-[24px] bg-background p-5 shadow-2xl sm:p-6">
+      <button
+        type="button"
+        disabled={busy === "save" || busy === "restore"}
+        onClick={onClose}
+        className="mb-5 inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold disabled:opacity-40"
+      >
+        <span aria-hidden="true">←</span>
+        {locale === "zh" ? "返回生成结果" : "Back to results"}
+      </button>
+      <div className="rounded-[20px] border border-border bg-background p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="variant-edit-title" className="text-xl font-black">
@@ -158,46 +260,53 @@ export function VariantEditDialog({
                 : `Option ${variant.slot}`}
             </p>
           </div>
-          <button
-            type="button"
-            disabled={Boolean(busy)}
-            onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-xl text-muted hover:bg-surface-muted disabled:opacity-40"
-            aria-label={locale === "zh" ? "关闭" : "Close"}
-          >
-            ×
-          </button>
         </div>
-        <div className="mt-5 grid gap-5 sm:grid-cols-[220px_1fr]">
-          <div className="relative aspect-square overflow-hidden rounded-2xl bg-surface-muted">
-            {(draft?.previewUrl ?? variant.previewUrl) ? (
-              <img
-                src={draft?.previewUrl ?? variant.previewUrl}
+        {checkingDraft ? (
+          <div
+            role="status"
+            aria-label={
+              locale === "zh"
+                ? "正在加载细节调整页面"
+                : "Loading detail adjustment page"
+            }
+            aria-busy="true"
+            className="mt-5"
+          >
+            <div className="grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
+              <SkeletonBlock className="aspect-square w-full max-w-[240px] rounded-2xl" />
+              <div>
+                <SkeletonBlock className="h-5 w-28 rounded-md" />
+                <SkeletonBlock className="mt-2 h-36 w-full rounded-xl" />
+                <SkeletonBlock className="ml-auto mt-2 h-3 w-12 rounded-md" />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <SkeletonBlock className="h-10 w-16 rounded-xl" />
+              <SkeletonBlock className="h-10 w-28 rounded-xl" />
+            </div>
+          </div>
+        ) : null}
+        {!checkingDraft && !draft ? <div className="mt-5 grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-2xl bg-surface-muted">
+            {variant.previewUrl ? (
+              <ImageWithSkeleton
+                src={variant.previewUrl}
                 alt=""
-                className="h-full w-full object-contain"
+                className="h-full w-full"
+                showSkeleton={false}
+                failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
               />
             ) : null}
-            {busy === "edit" ? (
+            {busy === "edit" && editStage === "generating" ? (
               <div
                 role="status"
                 aria-live="polite"
                 aria-busy="true"
-                className="absolute inset-0 flex flex-col justify-end bg-background/88 p-4 backdrop-blur-[2px]"
+                className="absolute inset-0 grid place-items-center bg-background/78 p-4 backdrop-blur-[2px]"
               >
-                <div className="space-y-3 rounded-xl border border-border bg-background/95 p-4">
-                  <SkeletonBlock className="h-3 w-2/3 rounded-full" />
-                  <SkeletonBlock className="h-3 w-full rounded-full" />
-                  <SkeletonBlock className="h-3 w-4/5 rounded-full" />
-                  <b className="block pt-1 text-center text-sm text-foreground">
-                    {editStage === "submitting"
-                      ? locale === "zh"
-                        ? "正在提交修改"
-                        : "Submitting changes"
-                      : locale === "zh"
-                        ? "正在调整图标"
-                        : "Adjusting icon"}
-                  </b>
-                </div>
+                <b className="rounded-full border border-border bg-background/92 px-4 py-2 text-center text-sm text-foreground shadow-sm">
+                  {locale === "zh" ? "正在调整图标" : "Adjusting icon"}
+                </b>
               </div>
             ) : null}
           </div>
@@ -226,7 +335,71 @@ export function VariantEditDialog({
               {instruction.trim().length}/500
             </div>
           </div>
-        </div>
+        </div> : null}
+        {!checkingDraft && draft ? (
+          <fieldset className="mx-auto mt-4 w-full max-w-[480px]">
+            <legend className="text-sm font-bold">
+              {locale === "zh" ? "选择要保留的版本" : "Choose a version"}
+            </legend>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  id: "previous" as const,
+                  src: variant.previewUrl,
+                  label:
+                    locale === "zh" ? "原图" : "Original",
+                },
+                {
+                  id: "new" as const,
+                  src: draft.previewUrl,
+                  label: locale === "zh" ? "新图" : "New",
+                },
+              ].map((option) => {
+                const selected = selectedVersion === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    aria-pressed={selected}
+                    disabled={Boolean(busy)}
+                    onClick={() => setSelectedVersion(option.id)}
+                    className={`overflow-hidden rounded-xl border-2 p-1.5 text-left transition-colors disabled:opacity-50 ${
+                      selected
+                        ? "border-brand bg-brand/5"
+                        : "border-border bg-background hover:border-brand/40"
+                    }`}
+                  >
+                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-surface-muted">
+                      {option.src ? (
+                        <ImageWithSkeleton
+                          src={option.src}
+                          alt=""
+                          className="h-full w-full"
+                          failureLabel={
+                            locale === "zh" ? "加载失败" : "Failed to load"
+                          }
+                        />
+                      ) : null}
+                    </span>
+                    <span className="mt-1.5 flex items-center justify-between gap-2 px-1 pb-0.5 text-sm font-bold">
+                      {option.label}
+                      <span
+                        aria-hidden="true"
+                        className={`grid size-5 place-items-center rounded-full border ${
+                          selected
+                            ? "border-brand bg-brand text-white"
+                            : "border-border"
+                        }`}
+                      >
+                        {selected ? "✓" : ""}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        ) : null}
         {busy === "edit" && editStage ? (
           <div
             aria-live="polite"
@@ -247,27 +420,34 @@ export function VariantEditDialog({
                 {editStage === "submitting" ? "1/3" : "2/3"}
               </span>
             </div>
-            <div className="mt-3 space-y-2">
-              <SkeletonBlock className="h-2 w-full rounded-full" />
-              <SkeletonBlock className="h-2 w-3/4 rounded-full" />
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={3}
+              aria-valuenow={editStage === "submitting" ? 1 : 2}
+              className="mt-3 h-2 overflow-hidden rounded-full bg-surface-muted"
+            >
+              <span
+                className={`block h-full rounded-full bg-brand transition-[width] duration-500 ${editStage === "submitting" ? "w-1/3" : "w-2/3"}`}
+              />
             </div>
             <p className="mt-2 text-xs text-muted">
               {locale === "zh"
-                ? "处理期间请保持页面开启，原始版本不会被覆盖。"
-                : "Keep this page open. Your original version will not be overwritten."}
+                ? "正在调整中...."
+                : "Adjusting...."}
             </p>
           </div>
         ) : null}
         {draft ? (
           <div
             role="status"
-            className="mt-4 rounded-2xl border border-[#b8dfc7] bg-[#effaf3] p-4 text-sm text-[#176b3a]"
+            className="mx-auto mt-4 w-full max-w-[480px] rounded-2xl border border-[#b8dfc7] bg-[#effaf3] p-4 text-sm text-[#176b3a]"
           >
             <b>{locale === "zh" ? "调整结果已生成" : "Adjustment ready"}</b>
             <p className="mt-1">
               {locale === "zh"
-                ? "请检查预览，确认后点击“保存修改”才会替换当前方案。"
-                : "Review the preview. The current option changes only after you select Save changes."}
+                ? "对比并选择要保留的版本。选择新图后更新，选择上一次的图则保留原版本。"
+                : "Compare both versions. Update to use the new image, or restore to keep the previous one."}
             </p>
           </div>
         ) : null}
@@ -279,8 +459,8 @@ export function VariantEditDialog({
             {error}
           </p>
         ) : null}
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          {variant.activeRevisionId ? (
+        {!checkingDraft ? <div className={`mt-5 flex flex-wrap justify-end gap-2 ${draft ? "mx-auto w-full max-w-[480px]" : ""}`}>
+          {variant.activeRevisionId && !draft ? (
             <button
               type="button"
               disabled={Boolean(busy)}
@@ -296,34 +476,41 @@ export function VariantEditDialog({
                   : "Restore previous version"}
             </button>
           ) : null}
-          <button
-            type="button"
-            disabled={Boolean(busy)}
-            onClick={onClose}
-            className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
-          >
-            {draft
-              ? locale === "zh"
-                ? "放弃修改"
-                : "Discard"
-              : locale === "zh"
-                ? "取消"
-                : "Cancel"}
-          </button>
+          {!draft ? (
+            <button
+              type="button"
+              disabled={Boolean(busy)}
+              onClick={onClose}
+              className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
+            >
+              {locale === "zh" ? "取消" : "Cancel"}
+            </button>
+          ) : null}
           {draft ? (
             <button
               type="button"
               disabled={Boolean(busy)}
-              onClick={() => void saveDraft()}
+              onClick={() => {
+                if (selectedVersion === "new") void saveDraft();
+                else void discardDraft();
+              }}
               className="rounded-xl bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
             >
-              {busy === "save"
+              {selectedVersion === "previous"
+                ? busy === "restore"
+                  ? locale === "zh"
+                    ? "正在还原…"
+                    : "Restoring…"
+                  : locale === "zh"
+                    ? "还原"
+                    : "Restore"
+                : busy === "save"
                 ? locale === "zh"
                   ? "正在保存…"
                   : "Saving…"
                 : locale === "zh"
-                  ? "保存修改"
-                  : "Save changes"}
+                  ? "更新"
+                  : "Update"}
             </button>
           ) : (
             <button
@@ -341,8 +528,8 @@ export function VariantEditDialog({
                   : "Generate adjustment"}
             </button>
           )}
-        </div>
+        </div> : null}
       </div>
-    </div>
+    </section>
   );
 }

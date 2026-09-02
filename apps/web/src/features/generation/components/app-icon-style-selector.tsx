@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import type { GenerationSettingsResponse, IconStyle } from "@icongen/shared";
 
 export function AppIconStyleSelector({
@@ -41,12 +41,12 @@ export function AppIconStyleSelector({
                 <span
               className="relative block aspect-square overflow-hidden rounded-xl bg-surface-muted"
                 >
-                  <Image
+                  <ImageWithSkeleton
                     src={preset.previewImage}
                     alt={`${preset.label[locale]} ${locale === "zh" ? "风格预览" : "style preview"}`}
-                    fill
-                    sizes="(max-width: 640px) 45vw, (max-width: 1280px) 30vw, 22vw"
-                    className={previewClass}
+                    className="h-full w-full"
+                    imageClassName={previewClass}
+                    failureLabel={locale === "zh" ? "预览加载失败" : "Preview failed to load"}
                   />
                 </span>
                 <span className="block px-2 pb-1 pt-3">

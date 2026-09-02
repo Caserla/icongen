@@ -80,6 +80,25 @@ test("converts a generated chroma-key background into real transparency", async 
   assert.equal(data[(4 * info.width + 4) * 4 + 3], 255);
 });
 
+test("removes a black temporary edit canvas connected to all four corners", async () => {
+  const source = await sharp({
+    create: { width: 12, height: 12, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } },
+  })
+    .composite([{ input: { create: { width: 6, height: 6, channels: 4, background: "#ff4f4f" } }, left: 3, top: 3 }])
+    .png()
+    .toBuffer();
+  const result = await new SharpImageProcessor().normalizeTransparentBackground({
+    bytes: source,
+    chromaColor: { red: 0, green: 255, blue: 0 },
+    tolerance: 72,
+  });
+  const { data, info } = await sharp(result.bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  assert.equal(data[3], 0, "top-left black corner should become transparent");
+  const centerOffset = (6 * info.width + 6) * info.channels;
+  assert.equal(data[centerOffset + 3], 255, "the disconnected icon subject must remain opaque");
+  assert.ok(data[centerOffset] > 200, "the subject color must be preserved");
+});
+
 test("distinguishes an opaque RGBA canvas from real transparency", async () => {
   const opaqueRgba = await sharp({
     create: {
