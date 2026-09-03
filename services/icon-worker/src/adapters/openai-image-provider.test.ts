@@ -35,19 +35,20 @@ test("detail-edit mode makes the source authoritative and does not request regen
   assert.doesNotMatch(prompt, /STYLE REFERENCE IMAGE/);
 });
 
-test("detail-edit transparency keeps source editing and chroma conversion compatible", () => {
+test("detail-edit transparency requests native alpha first", () => {
   const prompt = buildOpenAIImagePrompt({
     mode: "detail-edit",
     prompt: "Remove one small highlight",
     background: "transparent",
     sourceImage: png,
     wantsTransparency: true,
+    transparencyStrategy: "native-alpha",
   });
-  assert.match(prompt, /CHROMA KEY OUTPUT REQUIREMENT/);
+  assert.match(prompt, /TRANSPARENT OUTPUT REQUIREMENT/);
   assert.match(prompt, /source image is the only editable artwork/i);
 });
 
-test("transparent edit input uses the same chroma canvas instead of a black matte", async () => {
+test("native-alpha edit input preserves the source alpha channel", async () => {
   const transparent = await sharp({
     create: {
       width: 4,
@@ -59,7 +60,20 @@ test("transparent edit input uses the same chroma canvas instead of a black matt
   const prepared = await prepareTransparentEditInput(
     { bytes: transparent, mimeType: "image/png", filename: "source.png" },
     true,
+    "native-alpha",
+  );
+  const pixel = await sharp(prepared).ensureAlpha().raw().toBuffer();
+  assert.equal(pixel[3], 0);
+});
+
+test("chroma fallback uses the selected key color", async () => {
+  const transparent = await sharp({ create: { width: 4, height: 4, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png().toBuffer();
+  const prepared = await prepareTransparentEditInput(
+    { bytes: transparent, mimeType: "image/png", filename: "source.png" },
+    true,
+    "chroma-key",
+    { red: 255, green: 0, blue: 255 },
   );
   const pixel = await sharp(prepared).raw().toBuffer();
-  assert.deepEqual([...pixel.subarray(0, 3)], [0, 255, 0]);
+  assert.deepEqual([...pixel.subarray(0, 3)], [255, 0, 255]);
 });

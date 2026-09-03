@@ -94,6 +94,8 @@ export interface ImageProvider {
     mode: "generation" | "detail-edit";
     prompt: string;
     background?: "transparent" | "opaque" | "auto";
+    transparencyStrategy?: "native-alpha" | "chroma-key";
+    chromaColor?: { red: number; green: number; blue: number };
     sourceImage?: {
       bytes: Uint8Array;
       mimeType: "image/png" | "image/jpeg" | "image/webp";
@@ -128,6 +130,10 @@ export interface ImageProcessor {
   applyRoundedMask?(input: {
     bytes: Uint8Array;
     cornerRadiusPercent: number;
+  }): Promise<ProcessedImage>;
+  restoreAlphaMask?(input: {
+    bytes: Uint8Array;
+    alphaSourceBytes: Uint8Array;
   }): Promise<ProcessedImage>;
   removeChromaBackground?(input: {
     bytes: Uint8Array;

@@ -6,6 +6,10 @@ import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
 type Variant = GenerationJobV2["subjects"][number]["variants"][number];
 
+function instructionStorageKey(variantId: string) {
+  return `icongen:variant-edit-instruction:${variantId}`;
+}
+
 async function fetchWithNetworkRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -63,6 +67,10 @@ export function VariantEditDialog({
     "submitting" | "generating" | null
   >(null);
   const [error, setError] = useState("");
+  const [latestFailure, setLatestFailure] = useState<{
+    id: string;
+    message: string | null;
+  } | null>(null);
   const [draft, setDraft] = useState<{ id: string; previewUrl: string } | null>(
     null,
   );
@@ -121,6 +129,10 @@ export function VariantEditDialog({
   }
   useEffect(() => {
     let cancelled = false;
+    const storedInstruction = sessionStorage.getItem(
+      instructionStorageKey(variant.id),
+    );
+    if (storedInstruction) setInstruction(storedInstruction);
     void fetchWithNetworkRetry(`/api/generation/variants/${variant.id}/edits`, {
       cache: "no-store",
     })
@@ -129,8 +141,19 @@ export function VariantEditDialog({
         return response.json();
       })
       .then((body) => {
+        if (!cancelled && typeof body?.lastInstruction === "string")
+          setInstruction((current) => current || body.lastInstruction);
         if (!cancelled && typeof body?.currentPreviewUrl === "string")
           setCurrentPreviewUrl(body.currentPreviewUrl);
+        if (!cancelled && body?.latestFailure?.id) {
+          setLatestFailure({
+            id: body.latestFailure.id,
+            message:
+              typeof body.latestFailure.message === "string"
+                ? body.latestFailure.message
+                : null,
+          });
+        }
         if (!cancelled && body?.inProgress?.id) {
           if (typeof body.inProgress.instruction === "string")
             setInstruction(body.inProgress.instruction);
@@ -171,6 +194,7 @@ export function VariantEditDialog({
     setBusy("edit");
     setEditStage("submitting");
     setError("");
+    setLatestFailure(null);
     try {
       const response = await fetch(
         `/api/generation/variants/${variant.id}/edits`,
@@ -209,6 +233,7 @@ export function VariantEditDialog({
         activeRevisionId: body.activeRevisionId,
         previewUrl: draft.previewUrl,
       });
+      sessionStorage.removeItem(instructionStorageKey(variant.id));
       onClose();
     } catch (cause) {
       setError(
@@ -229,6 +254,7 @@ export function VariantEditDialog({
       );
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message ?? "Restore failed");
+      sessionStorage.removeItem(instructionStorageKey(variant.id));
       onClose();
     } catch (cause) {
       setError(
@@ -346,7 +372,14 @@ export function VariantEditDialog({
             <textarea
               id="variant-edit-instruction"
               value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setInstruction(value);
+                if (value)
+                  sessionStorage.setItem(instructionStorageKey(variant.id), value);
+                else
+                  sessionStorage.removeItem(instructionStorageKey(variant.id));
+              }}
               disabled={Boolean(busy) || Boolean(draft)}
               maxLength={500}
               rows={6}
@@ -509,6 +542,20 @@ export function VariantEditDialog({
           >
             {error}
           </p>
+        ) : null}
+        {!checkingDraft && !busy && !draft && latestFailure ? (
+          <div
+            role="alert"
+            className="mt-4 rounded-xl border border-[#f3c3b8] bg-[#fff1ed] p-3 text-sm text-danger"
+          >
+            <b>{locale === "zh" ? "细节调整生成失败" : "Detail adjustment failed"}</b>
+            <p className="mt-1">
+              {latestFailure.message ||
+                (locale === "zh"
+                  ? "上一次细节调整未能生成，请修改要求后重试。"
+                  : "The previous adjustment could not be generated. Update the instructions and try again.")}
+            </p>
+          </div>
         ) : null}
         {!checkingDraft ? <div className={`mt-5 flex flex-wrap justify-end gap-2 ${draft ? "mx-auto w-full max-w-[480px]" : ""}`}>
           {variant.activeRevisionId && !draft ? (

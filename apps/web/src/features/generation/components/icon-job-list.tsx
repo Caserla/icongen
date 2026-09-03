@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { ICON_STYLE_PRESETS, type IconStylePresetId } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -128,13 +129,13 @@ function JobPreviewGroup({ urls, locale }: { urls: string[]; locale: "en" | "zh"
   </div>;
 }
 
-function JobCard({ job, locale }: { job: GenerationJobListItem; locale: "en" | "zh" }) {
+function JobCard({ job, locale, returnHref }: { job: GenerationJobListItem; locale: "en" | "zh"; returnHref: string }) {
   return <Link href={`/icons/${job.id}`} onClick={() => {
     sessionStorage.setItem("icongen:icons-scroll", String(window.scrollY));
     sessionStorage.setItem("icongen:icons-return", "1");
     sessionStorage.setItem(
       "icongen:icons-return-href",
-      `${window.location.pathname}${window.location.search}`,
+      returnHref,
     );
   }} className="focus-ring block rounded-[20px] border border-border bg-white p-5 transition hover:border-brand">
     <div className="flex items-start justify-between gap-5">
@@ -150,6 +151,7 @@ function JobCard({ job, locale }: { job: GenerationJobListItem; locale: "en" | "
 
 export function IconJobList({ selectedPage, selectedUsage, selectedStyle, selectedStructure, selectedStatus }: { selectedPage: number; selectedUsage: GenerationJobUsageFilter; selectedStyle?: IconStylePresetId; selectedStructure?: GenerationJobStructureFilter; selectedStatus?: GenerationJobStatusFilter }) {
   const { locale } = useLocale();
+  const router = useRouter();
   const initialCacheKey = listCacheKey(selectedUsage, selectedStyle, selectedStatus, selectedStructure, selectedPage);
   const cachedInitialResult = iconJobPageCache.get(initialCacheKey);
   const [liveResult, setLiveResult] = useState<GenerationJobListPage>(() => cachedInitialResult ?? { jobs: [], page: selectedPage, pageSize: 12, total: 0, totalPages: 1 });
@@ -169,6 +171,7 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   const activeResult = liveResult;
   const groups = activeUsage === "interaction" ? structureOptions.map((preset) => ({ preset, jobs: activeResult.jobs.filter((job) => job.graphicStructure === preset.id) })).filter((group) => group.jobs.length > 0) : groupGenerationJobsByStyle(activeResult.jobs);
   const showStatusEmptyState = activeStatus === "in-progress" || activeStatus === "partial" || activeStatus === "failed";
+  const currentListHref = buildIconJobListHref(activeStyle, activeResult.page, activeStatus, activeUsage, activeStructure);
   const loadList = useCallback(async (usage: GenerationJobUsageFilter, style?: IconStylePresetId, status?: GenerationJobStatusFilter, structure?: GenerationJobStructureFilter, page = 1) => {
     const key = listCacheKey(usage, style, status, structure, page);
     const cached = resultCache.current.get(key);
@@ -261,8 +264,8 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   }, [pageToast]);
   function replaceFilterUrl(usage: GenerationJobUsageFilter, style?: IconStylePresetId, status?: GenerationJobStatusFilter, structure?: GenerationJobStructureFilter) {
     const href = buildIconJobListHref(style, 1, status, usage, structure);
-    window.history.replaceState(window.history.state, "", href);
     rememberIconJobFilters(href);
+    router.replace(href, { scroll: false });
   }
   function selectUsage(usage: GenerationJobUsageFilter) { dispatchFilters({ type: "select-usage", usage }); replaceFilterUrl(usage); void loadList(usage); }
   function selectStyle(style?: IconStylePresetId) { dispatchFilters({ type: "select-style", style }); replaceFilterUrl(activeUsage, style); void loadList(activeUsage, style); }
@@ -270,8 +273,8 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   function selectStatus(status?: GenerationJobStatusFilter) { dispatchFilters({ type: "select-status", status }); replaceFilterUrl(activeUsage, activeStyle, status, activeStructure); void loadList(activeUsage, activeStyle, status, activeStructure); }
   function selectPage(page: number) {
     const href = buildIconJobListHref(activeStyle, page, activeStatus, activeUsage, activeStructure);
-    window.history.replaceState(window.history.state, "", href);
     rememberIconJobFilters(href);
+    router.replace(href, { scroll: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
     void loadList(activeUsage, activeStyle, activeStatus, activeStructure, page);
   }
@@ -306,12 +309,12 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
       {showStatusEmptyState ? <Image src="/images/placeholders/generated-icon-no-options-v7.png" alt="" width={880} height={552} className="mx-auto h-auto w-56 object-contain opacity-90 sm:w-64" priority/> : null}
       <p className={`${showStatusEmptyState ? "mt-3 text-lg text-[#898BAF]" : ""} font-bold`}>{showStatusEmptyState || activeStyle ? (locale === "zh" ? "暂无图标" : "No icons yet") : (locale === "zh" ? "还没有图标集" : "No icon sets yet")}</p>
       {!showStatusEmptyState ? <Link href="/create" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">{locale === "zh" ? "创建一套图标" : "Create an icon set"}</Link> : null}
-    </section> : !activeStyle && !activeStructure ? <div className="mt-8 grid gap-4">{activeResult.jobs.map((job) => <JobCard key={job.id} job={job} locale={locale}/>)}</div> : <div className="mt-8 space-y-8">
+    </section> : !activeStyle && !activeStructure ? <div className="mt-8 grid gap-4">{activeResult.jobs.map((job) => <JobCard key={job.id} job={job} locale={locale} returnHref={currentListHref}/>)}</div> : <div className="mt-8 space-y-8">
       {groups.map(({ preset, jobs }) => <section key={preset.id} aria-labelledby={`style-${preset.id}`}>
         <div className="mb-3">
           <div><h2 id={`style-${preset.id}`} className="text-xl font-black">{preset.label[locale]}</h2><p className="mt-1 text-sm text-muted">{preset.description[locale]}</p></div>
         </div>
-        <div className="grid gap-4">{jobs.map((job) => <JobCard key={job.id} job={job} locale={locale}/>)}</div>
+        <div className="grid gap-4">{jobs.map((job) => <JobCard key={job.id} job={job} locale={locale} returnHref={currentListHref}/>)}</div>
       </section>)}
     </div>}
 

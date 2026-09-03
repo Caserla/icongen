@@ -165,19 +165,26 @@ async function run() {
     },
     dependencies,
   );
-  const masked =
+  const shouldPreserveAppIconAlpha =
     job.spec.purpose === "app-icon" &&
     effectiveBackground.enabled &&
-    effectiveBackground.container !== "square" &&
-    dependencies.imageProcessor.applyRoundedMask
-      ? await dependencies.imageProcessor.applyRoundedMask({
+    effectiveBackground.container !== "square";
+  const masked = shouldPreserveAppIconAlpha
+    ? dependencies.imageProcessor.restoreAlphaMask
+      ? await dependencies.imageProcessor.restoreAlphaMask({
           bytes: image.bytes,
-          cornerRadiusPercent:
-            effectiveBackground.container === "circle"
-              ? 50
-              : (effectiveBackground.cornerRadius ?? 22),
+          alphaSourceBytes: sourceBytes,
         })
-      : null;
+      : dependencies.imageProcessor.applyRoundedMask
+        ? await dependencies.imageProcessor.applyRoundedMask({
+            bytes: image.bytes,
+            cornerRadiusPercent:
+              effectiveBackground.container === "circle"
+                ? 50
+                : (effectiveBackground.cornerRadius ?? 22),
+          })
+        : null
+    : null;
   const finalBytes = masked?.bytes ?? image.bytes;
   const metadata =
     masked ??

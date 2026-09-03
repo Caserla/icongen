@@ -340,7 +340,13 @@ export class SharpImageQualityGate implements ImageQualityGate {
     if (input.outputBackground === "transparent") {
       const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
       const borderWidth = Math.max(1, Math.round(Math.min(info.width, info.height) * 0.04));
-      const cornerSize = Math.max(1, Math.round(Math.min(info.width, info.height) * 0.08));
+      const cornerSize = Math.max(
+        1,
+        Math.round(
+          Math.min(info.width, info.height) *
+            (input.purpose === "app-icon" ? 0.02 : 0.08),
+        ),
+      );
       let borderPixels = 0;
       let transparentBorderPixels = 0;
       let cornerPixels = 0;
@@ -363,7 +369,12 @@ export class SharpImageQualityGate implements ImageQualityGate {
       }
       const borderCoverage = borderPixels === 0 ? 0 : transparentBorderPixels / borderPixels;
       const cornerCoverage = cornerPixels === 0 ? 0 : transparentCornerPixels / cornerPixels;
-      if (borderCoverage < 0.82 || cornerCoverage < 0.97) {
+      // A rounded app-icon container is legitimate artwork and may touch the
+      // middle of all four canvas edges. Its exterior is proven by transparent
+      // corners; standalone transparent icons must additionally keep a clear
+      // perimeter around the subject.
+      const opaqueEdgeInvalid = input.purpose !== "app-icon" && borderCoverage < 0.82;
+      if (opaqueEdgeInvalid || cornerCoverage < 0.97) {
         warnings.push({
           code: "OPAQUE_TRANSPARENT_CANVAS_EDGE",
           message: `Transparent output has an opaque outer canvas: transparentBorderCoverage=${borderCoverage.toFixed(3)}, transparentCornerCoverage=${cornerCoverage.toFixed(3)}; required=0.820/0.970.`,
@@ -378,7 +389,11 @@ export class SharpImageQualityGate implements ImageQualityGate {
     // Structured background contracts already validate target color and
     // edge-connected coverage. Keep this legacy backdrop warning only for old
     // app-icon jobs that do not carry a background contract.
-    if (input.purpose === "app-icon" && !input.backgroundContract) {
+    if (
+      input.purpose === "app-icon" &&
+      input.outputBackground !== "transparent" &&
+      !input.backgroundContract
+    ) {
       const size = Math.max(1, Math.round(Math.min(metadata.width, metadata.height) * CORNER_SAMPLE_RATIO));
       const { data, info } = await image.removeAlpha().raw().toBuffer({ resolveWithObject: true });
       const corners = [

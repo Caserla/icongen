@@ -31,12 +31,10 @@ test("transparent detail editing forbids white matte and alpha-edge artifacts", 
   });
 
   assert.equal(request.background, "transparent");
-  assert.match(request.prompt, /true-alpha canvas edge/i);
-  assert.match(request.prompt, /white matte/i);
-  assert.match(request.prompt, /checkerboard, halo, fringe/i);
+  assert.match(request.prompt, /native RGBA PNG/i);
+  assert.match(request.prompt, /white, black, colored or checkerboard matte/i);
   assert.match(request.prompt, /all four corners/i);
-  assert.match(request.prompt, /pure chroma green #00FF00/i);
-  assert.match(request.prompt, /Never replace it with black/i);
+  assert.doesNotMatch(request.prompt, /chroma green/i);
 });
 
 test("flat-playful detail edit preserves the real style contract without resending its style board", () => {

@@ -50,6 +50,31 @@ test("accepts a truly transparent outer canvas", async () => {
   assert.ok(!warnings.some((warning) => warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE"));
 });
 
+test("accepts a rounded app-icon container that touches edge centers but has transparent corners", async () => {
+  const source = await sharp(Buffer.from(
+    `<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="1024" height="1024" rx="180" fill="#6D5CE7"/></svg>`,
+  )).png().toBuffer();
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: source,
+    purpose: "app-icon",
+    outputBackground: "transparent",
+  });
+  assert.ok(!warnings.some((warning) => warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE"));
+  assert.ok(!warnings.some((warning) => warning.code === "APP_ICON_DARK_OUTER_CORNERS"));
+});
+
+test("still requires a transparent perimeter for standalone transparent icons", async () => {
+  const source = await sharp(Buffer.from(
+    `<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="1024" height="1024" rx="180" fill="#6D5CE7"/></svg>`,
+  )).png().toBuffer();
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: source,
+    purpose: "interaction",
+    outputBackground: "transparent",
+  });
+  assert.ok(warnings.some((warning) => warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE"));
+});
+
 test("rejects a detail edit with no perceptible visual change", async () => {
   const source = await transparentSquare(256, 256, 512);
   const candidate = await sharp(source).modulate({ brightness: 1.002 }).png().toBuffer();

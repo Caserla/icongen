@@ -5,6 +5,7 @@ import type {
 } from "@icongen/backend-core";
 import type { CreateGenerationJobInput, IconStyle } from "@icongen/shared";
 import { createDetailEditRequest } from "./detail-edit-request";
+import { chromaHex, selectChromaKey } from "./select-chroma-key";
 
 const MAX_ATTEMPTS = 3;
 const BLOCKING_CODES = new Set([
@@ -15,6 +16,11 @@ const BLOCKING_CODES = new Set([
   "APP_ICON_DARK_OUTER_CORNERS",
   "SOURCE_NOT_SQUARE",
 ]);
+
+export function isNativeTransparencyUnsupported(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /transparent background is not supported|background[^\n]*transparent[^\n]*(unsupported|not supported)/i.test(message);
+}
 
 export async function generateValidatedDetailEdit(
   input: {
@@ -29,31 +35,56 @@ export async function generateValidatedDetailEdit(
   dependencies: ProcessGenerationJobDependencies,
 ): Promise<GeneratedImage> {
   let lastWarnings: ImageQualityWarning[] = [];
+  const chromaColor = input.outputBackground === "transparent"
+    ? await selectChromaKey(input.sourceBytes)
+    : undefined;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const transparencyStrategy = attempt === 1 ? "native-alpha" : "chroma-key";
     const correction = attempt === 1
       ? ""
       : lastWarnings.some((warning) => warning.code === "EDIT_NO_VISIBLE_CHANGE")
         ? `\n\nVISIBLE EDIT CORRECTION — RETRY ${attempt}\nThe previous output remained visually indistinguishable from the source. Apply the requested change clearly and observably to the named element while preserving every unspecified element. Do not return the source unchanged and do not limit the edit to antialiasing, compression, edge cleanup, or imperceptible pixel shifts. Diagnostics: ${lastWarnings.map((warning) => warning.message).join(" ")}`
-        : `\n\nTRANSPARENCY CORRECTION — RETRY ${attempt}\nThe previous result failed the transparent-edge contract: ${lastWarnings.map((warning) => warning.message).join(" ")} Re-edit from the supplied source. Outside the subject use only one edge-connected pure #00FF00 working region. All four corners must be #00FF00. Do not render black, white, gray, checkerboard, halo, shadow, glow or any opaque presentation canvas.`;
-    let image = await dependencies.imageProvider.generate(
-      createDetailEditRequest({
-        compiledPrompt: input.compiledPrompt,
-        instruction: `${input.instruction}${correction}`,
-        outputBackground: input.outputBackground,
-        sourceBytes: input.sourceBytes,
-      }),
-    );
-    if (input.outputBackground === "transparent") {
+        : `\n\nTRANSPARENCY CORRECTION — RETRY ${attempt}\nThe previous native-alpha result failed the transparent-edge contract: ${lastWarnings.map((warning) => warning.message).join(" ")} Re-edit from the supplied source using one edge-connected pure ${chromaHex(chromaColor!)} working region outside the complete artwork. All four corners must be ${chromaHex(chromaColor!)}. Do not render black, white, gray, checkerboard, halo, shadow, glow or any opaque presentation canvas.`;
+    let image: GeneratedImage;
+    try {
+      image = await dependencies.imageProvider.generate(
+        createDetailEditRequest({
+          compiledPrompt: input.compiledPrompt,
+          instruction: `${input.instruction}${correction}`,
+          outputBackground: input.outputBackground,
+          transparencyStrategy,
+          chromaColor,
+          sourceBytes: input.sourceBytes,
+        }),
+      );
+    } catch (error) {
+      if (
+        attempt === 1 &&
+        input.outputBackground === "transparent" &&
+        isNativeTransparencyUnsupported(error)
+      ) {
+        lastWarnings = [{
+          code: "MISSING_ALPHA_CHANNEL",
+          message: "The provider does not support native transparent image edits; use the chroma-key fallback.",
+        }];
+        dependencies.logger.info("Falling back from native alpha to chroma-key detail editing", {
+          editId: input.editId,
+        });
+        continue;
+      }
+      throw error;
+    }
+    if (input.outputBackground === "transparent" && transparencyStrategy === "chroma-key") {
       if (dependencies.imageProcessor.normalizeTransparentBackground) {
         image = await dependencies.imageProcessor.normalizeTransparentBackground({
           bytes: image.bytes,
-          chromaColor: { red: 0, green: 255, blue: 0 },
+          chromaColor: chromaColor!,
           tolerance: 72,
         });
       } else if (dependencies.imageProcessor.removeChromaBackground) {
         image = await dependencies.imageProcessor.removeChromaBackground({
           bytes: image.bytes,
-          color: { red: 0, green: 255, blue: 0 },
+          color: chromaColor!,
           tolerance: 72,
         });
       }

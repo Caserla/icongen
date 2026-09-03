@@ -1,15 +1,17 @@
 import type { ImageProvider } from "@icongen/backend-core";
 import OpenAI, { toFile } from "openai";
 import sharp from "sharp";
+import { chromaHex } from "../select-chroma-key";
 
 type ProviderPromptInput = Parameters<ImageProvider["generate"]>[0] & {
   wantsTransparency: boolean;
 };
 
-export function buildOpenAIImagePrompt({ mode, prompt, sourceImage, referenceImage, wantsTransparency }: ProviderPromptInput) {
+export function buildOpenAIImagePrompt({ mode, prompt, sourceImage, referenceImage, wantsTransparency, transparencyStrategy, chromaColor }: ProviderPromptInput) {
+  const keyHex = chromaHex(chromaColor ?? { red: 0, green: 255, blue: 0 });
   const transparencyPrompt = wantsTransparency
-    ? sourceImage || referenceImage
-      ? `${prompt}\n\nCHROMA KEY OUTPUT REQUIREMENT\nBecause this image-edit endpoint cannot return native transparency, render every background pixel as one perfectly uniform pure chroma green #00FF00. Use no green spill, shadow, glow, fog, texture, gradient, checkerboard, border, or secondary backdrop outside the subject. Never use #00FF00 inside the subject. The production worker will convert only this chroma background to real alpha.`
+    ? transparencyStrategy === "chroma-key"
+      ? `${prompt}\n\nCHROMA KEY FALLBACK REQUIREMENT\nRender every pixel outside the complete icon artwork as one perfectly uniform pure ${keyHex}. Do not use ${keyHex} inside the artwork. Prevent key-color spill, reflection, glow, fog, texture, gradient, checkerboard, border or secondary backdrop. The production worker converts this region to real alpha.`
       : `${prompt}\n\nTRANSPARENT OUTPUT REQUIREMENT\nReturn a native RGBA PNG with a real alpha channel. Every pixel outside the icon artwork must be fully transparent. Do not paint white, black, gray, colored, gradient, photographic, or checkerboard canvas pixels. Do not simulate transparency. Do not add an outer tile, card, frame, border, halo, glow, fog, or backdrop.`
     : prompt;
 
@@ -25,14 +27,16 @@ export function buildOpenAIImagePrompt({ mode, prompt, sourceImage, referenceIma
 export async function prepareTransparentEditInput(
   image: NonNullable<Parameters<ImageProvider["generate"]>[0]["sourceImage"]>,
   wantsTransparency: boolean,
+  strategy: "native-alpha" | "chroma-key" = "native-alpha",
+  chromaColor = { red: 0, green: 255, blue: 0 },
 ) {
-  if (!wantsTransparency) return image.bytes;
+  if (!wantsTransparency || strategy === "native-alpha") return image.bytes;
   // Image edit gateways commonly flatten transparent source pixels against
   // black before inference, which then becomes a black fringe in the result.
   // Use the same pure-green working canvas requested from the model so the
   // existing chroma-to-alpha pass can remove the entire temporary backdrop.
   return sharp(image.bytes)
-    .flatten({ background: { r: 0, g: 255, b: 0 } })
+    .flatten({ background: { r: chromaColor.red, g: chromaColor.green, b: chromaColor.blue } })
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toBuffer();
 }
@@ -51,7 +55,7 @@ export class OpenAIImageProvider implements ImageProvider {
     this.client = new OpenAI({ apiKey, baseURL });
   }
 
-  async generate({ mode, prompt, background = "auto", sourceImage, referenceImage }: Parameters<ImageProvider["generate"]>[0]) {
+  async generate({ mode, prompt, background = "auto", sourceImage, referenceImage, transparencyStrategy, chromaColor }: Parameters<ImageProvider["generate"]>[0]) {
     // Some OpenAI-compatible gateways reject the native
     // `background: "transparent"` request field even though the image model can
     // still return an RGBA PNG when transparency is specified in the prompt.
@@ -59,12 +63,16 @@ export class OpenAIImageProvider implements ImageProvider {
     // the returned alpha channel and retries when the provider paints a
     // background instead.
     const wantsTransparency = background === "transparent";
+    const effectiveTransparencyStrategy = transparencyStrategy ??
+      (wantsTransparency && (sourceImage || referenceImage)
+        ? "chroma-key"
+        : "native-alpha");
     const request = {
       model: this.model,
-      prompt: buildOpenAIImagePrompt({ mode, prompt, background, sourceImage, referenceImage, wantsTransparency }),
+      prompt: buildOpenAIImagePrompt({ mode, prompt, background, sourceImage, referenceImage, wantsTransparency, transparencyStrategy: effectiveTransparencyStrategy, chromaColor }),
       quality: this.quality,
       size: this.size,
-      background: wantsTransparency ? "auto" as const : background,
+      background: wantsTransparency && effectiveTransparencyStrategy === "native-alpha" ? "transparent" as const : wantsTransparency ? "auto" as const : background,
       output_format: "png" as const,
     };
     const editImages = await Promise.all(
@@ -72,7 +80,7 @@ export class OpenAIImageProvider implements ImageProvider {
         .filter((image): image is NonNullable<typeof image> => Boolean(image))
         .map(async (image) =>
           toFile(
-            Buffer.from(await prepareTransparentEditInput(image, wantsTransparency)),
+            Buffer.from(await prepareTransparentEditInput(image, wantsTransparency, effectiveTransparencyStrategy, chromaColor)),
             image.filename,
             { type: image.mimeType },
           ),

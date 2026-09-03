@@ -1,6 +1,58 @@
 import type { ImageProcessor } from "@icongen/backend-core";
 import sharp from "sharp";
 
+function repairDarkTransparentFringe(
+  source: Buffer,
+  width: number,
+  height: number,
+  channels: number,
+) {
+  if (channels !== 4) return source;
+  const output = Buffer.from(source);
+  const colorMax = (offset: number) =>
+    Math.max(source[offset], source[offset + 1], source[offset + 2]);
+  for (let pixel = 0; pixel < width * height; pixel += 1) {
+    const offset = pixel * channels;
+    const alpha = source[offset + 3];
+    if (alpha === 0) {
+      output[offset] = 0;
+      output[offset + 1] = 0;
+      output[offset + 2] = 0;
+      continue;
+    }
+    if (alpha > 64 || colorMax(offset) >= 56) continue;
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+    let coloredNeighbor = -1;
+    let hasDarkArtworkNeighbor = false;
+    for (let radius = 1; radius <= 3 && coloredNeighbor < 0; radius += 1) {
+      for (let dy = -radius; dy <= radius; dy += 1) {
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const neighbor = (ny * width + nx) * channels;
+          const neighborAlpha = source[neighbor + 3];
+          if (neighborAlpha < 96) continue;
+          if (colorMax(neighbor) < 56) {
+            hasDarkArtworkNeighbor = true;
+            continue;
+          }
+          coloredNeighbor = neighbor;
+          break;
+        }
+        if (coloredNeighbor >= 0) break;
+      }
+    }
+    if (hasDarkArtworkNeighbor || coloredNeighbor < 0) continue;
+    output[offset] = source[coloredNeighbor];
+    output[offset + 1] = source[coloredNeighbor + 1];
+    output[offset + 2] = source[coloredNeighbor + 2];
+  }
+  return output;
+}
+
 export class SharpImageProcessor implements ImageProcessor {
   async inspect(input: { bytes: Uint8Array }) {
     const metadata = await sharp(input.bytes).metadata();
@@ -40,6 +92,49 @@ export class SharpImageProcessor implements ImageProcessor {
     return { bytes: data, mimeType: "image/png" as const, width: info.width, height: info.height, hasAlpha: true };
   }
 
+  async restoreAlphaMask(input: {
+    bytes: Uint8Array;
+    alphaSourceBytes: Uint8Array;
+  }) {
+    const metadata = await sharp(input.bytes).metadata();
+    if (!metadata.width || !metadata.height)
+      throw new Error("Generated image dimensions could not be read");
+    const alpha = await sharp(input.alphaSourceBytes)
+      .resize(metadata.width, metadata.height, {
+        fit: "fill",
+        kernel: sharp.kernel.lanczos3,
+      })
+      .ensureAlpha()
+      .extractChannel("alpha")
+      .raw()
+      .toBuffer();
+    const { data, info } = await sharp(input.bytes)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    for (let pixel = 0; pixel < metadata.width * metadata.height; pixel += 1) {
+      data[pixel * info.channels + 3] = alpha[pixel];
+    }
+    const repaired = repairDarkTransparentFringe(
+      data,
+      info.width,
+      info.height,
+      info.channels,
+    );
+    const encoded = await sharp(repaired, {
+      raw: { width: info.width, height: info.height, channels: 4 },
+    })
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toBuffer();
+    return {
+      bytes: encoded,
+      mimeType: "image/png" as const,
+      width: info.width,
+      height: info.height,
+      hasAlpha: true,
+    };
+  }
+
   async removeChromaBackground(input: {
     bytes: Uint8Array;
     color: { red: number; green: number; blue: number };
@@ -65,7 +160,13 @@ export class SharpImageProcessor implements ImageProcessor {
           ),
         );
     }
-    const encoded = await sharp(output, {
+    const repaired = repairDarkTransparentFringe(
+      output,
+      info.width,
+      info.height,
+      info.channels,
+    );
+    const encoded = await sharp(repaired, {
       raw: { width: info.width, height: info.height, channels: 4 },
     })
       .png({ compressionLevel: 9, adaptiveFiltering: true })
@@ -134,6 +235,12 @@ export class SharpImageProcessor implements ImageProcessor {
     while (head < tail) {
       const pixel = queue[head++];
       const offset = pixel * channels;
+      // Fully transparent pixels must not retain the temporary key color.
+      // Some browser/image resize paths interpolate hidden RGB values before
+      // compositing alpha, which otherwise exposes a green fringe.
+      output[offset] = 0;
+      output[offset + 1] = 0;
+      output[offset + 2] = 0;
       output[offset + 3] = 0;
       const x = pixel % width;
       if (x > 0) enqueue(pixel - 1);
@@ -141,7 +248,33 @@ export class SharpImageProcessor implements ImageProcessor {
       if (pixel >= width) enqueue(pixel - width);
       if (pixel + width < pixelCount) enqueue(pixel + width);
     }
-    const encoded = await sharp(output, {
+
+    // Remove chroma spill from the one-pixel antialiased boundary without
+    // touching green artwork away from the transparent canvas edge.
+    const boundaryPixels = new Set<number>();
+    for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+      if (!visited[pixel]) continue;
+      const x = pixel % width;
+      if (x > 0 && !visited[pixel - 1]) boundaryPixels.add(pixel - 1);
+      if (x + 1 < width && !visited[pixel + 1]) boundaryPixels.add(pixel + 1);
+      if (pixel >= width && !visited[pixel - width]) boundaryPixels.add(pixel - width);
+      if (pixel + width < pixelCount && !visited[pixel + width]) boundaryPixels.add(pixel + width);
+    }
+    for (const pixel of boundaryPixels) {
+      const offset = pixel * channels;
+      const red = output[offset];
+      const green = output[offset + 1];
+      const blue = output[offset + 2];
+      const greenSpill = green - Math.max(red, blue);
+      if (greenSpill <= 20) continue;
+      output[offset + 1] = Math.max(red, blue);
+      output[offset + 3] = Math.min(
+        output[offset + 3],
+        Math.round(255 * (1 - Math.min(greenSpill, 255) / 255)),
+      );
+    }
+    const repaired = repairDarkTransparentFringe(output, width, height, 4);
+    const encoded = await sharp(repaired, {
       raw: { width, height, channels: 4 },
     }).png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
     return { bytes: encoded, mimeType: "image/png" as const, width, height, hasAlpha: true };
@@ -159,9 +292,19 @@ export class SharpImageProcessor implements ImageProcessor {
     if (input.profile !== "pixel-art" && isDownscaling && input.size <= 256) {
       pipeline = pipeline.sharpen({ sigma: input.size <= 128 ? 0.5 : 0.65 });
     }
-    const { data, info } = await pipeline
-      .png({ compressionLevel: 9, adaptiveFiltering: true })
+    const { data: resized, info } = await pipeline
+      .ensureAlpha()
+      .raw()
       .toBuffer({ resolveWithObject: true });
-    return { bytes: data, mimeType: "image/png" as const, width: info.width, height: info.height, hasAlpha: info.channels === 4 };
+    const repaired = repairDarkTransparentFringe(
+      resized,
+      info.width,
+      info.height,
+      info.channels,
+    );
+    const data = await sharp(repaired, {
+      raw: { width: info.width, height: info.height, channels: 4 },
+    }).png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
+    return { bytes: data, mimeType: "image/png" as const, width: info.width, height: info.height, hasAlpha: true };
   }
 }

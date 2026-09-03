@@ -4,6 +4,7 @@ import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { startLocalVariantEdit } from "@/features/generation/server/local-generation-runner";
 import { isVariantEditLeaseStale, type ActiveVariantEdit } from "@/features/generation/server/variant-edit-lease";
+import { latestVariantEditFailure } from "@/features/generation/server/latest-variant-edit-failure";
 
 const paramsSchema = z.object({ variantId: z.string().uuid() });
 const bodySchema = z.object({ instruction: z.string().trim().min(5).max(500) });
@@ -90,6 +91,16 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
         activeRevisionId: variantData.active_revision_id,
       });
     }
+    const latestRevision = await client
+      .from("generation_variant_revisions")
+      .select("id,status,instruction,error_code,error_message")
+      .eq("variant_id", variantData.id)
+      .order("revision_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestRevision.error) throw latestRevision.error;
+    const lastInstruction = latestRevision.data?.instruction ?? null;
+    const latestFailure = latestVariantEditFailure(latestRevision.data);
     const revisions = await client.from("generation_variant_revisions")
       .select("id,parent_revision_id,status,preview_bucket,preview_path,completed_at")
       .eq("variant_id", variantData.id)
@@ -107,6 +118,8 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
         draft: null,
         currentPreviewUrl,
         activeRevisionId: variantData.active_revision_id,
+        lastInstruction,
+        latestFailure,
       });
     const signed = await client.storage.from(pending.preview_bucket).createSignedUrl(pending.preview_path, 3600);
     if (signed.error) throw signed.error;
@@ -114,6 +127,8 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
       draft: { id: pending.id, previewUrl: signed.data.signedUrl },
       currentPreviewUrl,
       activeRevisionId: variantData.active_revision_id,
+      lastInstruction,
+      latestFailure,
     });
   } catch (error) {
     return authErrorResponse(error) ?? apiError("VARIANT_EDIT_READ_FAILED", "The detail adjustment could not be loaded.", 500);
