@@ -11,6 +11,9 @@ const FLAT_BACKGROUND_BORDER_WIDTH = 8;
 const REFERENCE_COMPARE_SIZE = 48;
 const REFERENCE_REPRODUCTION_MEAN_DELTA = 12;
 const CONSISTENCY_SAMPLE_SIZE = 128;
+const EDIT_COMPARE_SIZE = 96;
+const EDIT_MIN_MEAN_DELTA = 1.2;
+const EDIT_MIN_STRONG_PIXEL_FRACTION = 0.002;
 
 type SubjectGeometry = {
   scale: number;
@@ -18,6 +21,38 @@ type SubjectGeometry = {
   centerY: number;
   lineWeight: number;
 };
+
+async function inspectVisibleEditDelta(candidateBytes: Uint8Array, sourceBytes: Uint8Array) {
+  const prepare = (bytes: Uint8Array) => sharp(bytes)
+    .resize(EDIT_COMPARE_SIZE, EDIT_COMPARE_SIZE, { fit: "fill" })
+    // Flattening ignores meaningless RGB differences hidden under alpha 0.
+    .flatten({ background: "#ffffff" })
+    .blur(0.5)
+    .raw()
+    .toBuffer();
+  const [candidate, source] = await Promise.all([prepare(candidateBytes), prepare(sourceBytes)]);
+  let deltaSum = 0;
+  let strongPixels = 0;
+  const pixels = EDIT_COMPARE_SIZE * EDIT_COMPARE_SIZE;
+  for (let offset = 0; offset < candidate.length; offset += 3) {
+    const delta = (
+      Math.abs(candidate[offset] - source[offset]) +
+      Math.abs(candidate[offset + 1] - source[offset + 1]) +
+      Math.abs(candidate[offset + 2] - source[offset + 2])
+    ) / 3;
+    deltaSum += delta;
+    if (delta > 8) strongPixels += 1;
+  }
+  const meanDelta = deltaSum / pixels;
+  const strongPixelFraction = strongPixels / pixels;
+  return {
+    invalid:
+      meanDelta < EDIT_MIN_MEAN_DELTA &&
+      strongPixelFraction < EDIT_MIN_STRONG_PIXEL_FRACTION,
+    meanDelta,
+    strongPixelFraction,
+  };
+}
 
 async function measureTransparentSubject(bytes: Uint8Array): Promise<SubjectGeometry | null> {
   const { data, info } = await sharp(bytes)
@@ -295,6 +330,46 @@ export class SharpImageQualityGate implements ImageQualityGate {
         warnings.push({ code: "GEOMETRY_SYMMETRY_BROKEN", message: `The ${input.geometryContract.category} silhouette has ${(symmetryError * 100).toFixed(1)}% vertical mirror disagreement; allowed ${(input.geometryContract.maxSymmetryError * 100).toFixed(1)}%. Restore its canonical balanced geometry.` });
     }
     if (await hasPaintedTransparencyCheckerboard(input.bytes)) warnings.push({ code: "FAKE_TRANSPARENCY_CHECKERBOARD", message: "The image appears to contain an opaque painted checkerboard instead of native transparency." });
+    if (input.editSourceBytes) {
+      const delta = await inspectVisibleEditDelta(input.bytes, input.editSourceBytes);
+      if (delta.invalid) warnings.push({
+        code: "EDIT_NO_VISIBLE_CHANGE",
+        message: `The edited image is visually indistinguishable from its source: meanDelta=${delta.meanDelta.toFixed(3)}, strongPixelFraction=${delta.strongPixelFraction.toFixed(4)}; required meanDelta>=${EDIT_MIN_MEAN_DELTA.toFixed(1)} or strongPixelFraction>=${EDIT_MIN_STRONG_PIXEL_FRACTION.toFixed(3)}.`,
+      });
+    }
+    if (input.outputBackground === "transparent") {
+      const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const borderWidth = Math.max(1, Math.round(Math.min(info.width, info.height) * 0.04));
+      const cornerSize = Math.max(1, Math.round(Math.min(info.width, info.height) * 0.08));
+      let borderPixels = 0;
+      let transparentBorderPixels = 0;
+      let cornerPixels = 0;
+      let transparentCornerPixels = 0;
+      for (let y = 0; y < info.height; y += 1) {
+        for (let x = 0; x < info.width; x += 1) {
+          const isBorder = x < borderWidth || y < borderWidth || x >= info.width - borderWidth || y >= info.height - borderWidth;
+          const isCorner = (x < cornerSize || x >= info.width - cornerSize) && (y < cornerSize || y >= info.height - cornerSize);
+          if (!isBorder && !isCorner) continue;
+          const alpha = data[(y * info.width + x) * info.channels + 3];
+          if (isBorder) {
+            borderPixels += 1;
+            if (alpha <= 8) transparentBorderPixels += 1;
+          }
+          if (isCorner) {
+            cornerPixels += 1;
+            if (alpha <= 8) transparentCornerPixels += 1;
+          }
+        }
+      }
+      const borderCoverage = borderPixels === 0 ? 0 : transparentBorderPixels / borderPixels;
+      const cornerCoverage = cornerPixels === 0 ? 0 : transparentCornerPixels / cornerPixels;
+      if (borderCoverage < 0.82 || cornerCoverage < 0.97) {
+        warnings.push({
+          code: "OPAQUE_TRANSPARENT_CANVAS_EDGE",
+          message: `Transparent output has an opaque outer canvas: transparentBorderCoverage=${borderCoverage.toFixed(3)}, transparentCornerCoverage=${cornerCoverage.toFixed(3)}; required=0.820/0.970.`,
+        });
+      }
+    }
     if (input.purpose === "app-icon" && input.stylePreset && input.backgroundContract?.mode === "solid") {
       const result = await inspectConnectedSolidBackground(input.bytes, input.backgroundContract);
       if (result.invalid) warnings.push({ code: "NON_UNIFORM_SOLID_BACKGROUND", message: `The ${input.stylePreset} background failed its ${input.backgroundContract.profile} profile: borderCoverage=${result.borderCoverage.toFixed(3)}, canvasCoverage=${result.canvasCoverage.toFixed(3)}, targetDistance=${result.targetDistance.toFixed(1)}, required=${input.backgroundContract.minBorderCoverage.toFixed(3)}/${input.backgroundContract.minCanvasCoverage.toFixed(3)}, tolerances=${input.backgroundContract.colorTolerance}/${input.backgroundContract.targetTolerance}, observed=${result.observedColor}, target=${input.backgroundContract.color}.` });

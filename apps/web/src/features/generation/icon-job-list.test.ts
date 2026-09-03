@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildIconJobListHref, groupGenerationJobsByStyle } from "./components/icon-job-list";
-import { matchesGenerationJobStatus, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, type GenerationJobListItem } from "./server/generation-job-list-reader";
+import { buildIconJobListHref, groupGenerationJobsByStyle, validatePageJump } from "./components/icon-job-list";
+import { matchesGenerationJobStatus, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, readGenerationJobs, type GenerationJobListItem } from "./server/generation-job-list-reader";
 
 test("parses stored style presets and safely classifies legacy jobs", () => {
   assert.equal(parseStylePreset({ style: { preset: "flat-playful" } }), "flat-playful");
@@ -40,4 +40,33 @@ test("matches combined in-progress statuses without broadening other filters", (
   assert.equal(matchesGenerationJobStatus("processing", "in-progress"), true);
   assert.equal(matchesGenerationJobStatus("completed", "in-progress"), false);
   assert.equal(matchesGenerationJobStatus("completed", "completed"), true);
+});
+
+test("applies icon usage and illustration style filters together when paging", async () => {
+  const filters: Array<[string, unknown]> = [];
+  const query = {
+    select() { return this; },
+    eq(field: string, value: unknown) { filters.push([field, value]); return this; },
+    not() { return this; },
+    order() { return this; },
+    range() { return Promise.resolve({ data: [], error: null, count: 0 }); },
+  };
+  const client = { from: () => query };
+  await readGenerationJobs(client as never, "user-1", {
+    page: 4,
+    usageFilter: "illustration",
+    stylePreset: "isometric-3d",
+  });
+  assert.ok(filters.some(([field, value]) => field === "generation_spec->>purpose" && value === "app-icon"));
+  assert.ok(filters.some(([field, value]) => field === "generation_spec->style->>preset" && value === "isometric-3d"));
+});
+
+test("validates direct page input against integer and page boundaries", () => {
+  assert.deepEqual(validatePageJump("2", 4), { page: 2 });
+  assert.deepEqual(validatePageJump(" 4 ", 4), { page: 4 });
+  assert.deepEqual(validatePageJump("", 4), { error: "empty" });
+  assert.deepEqual(validatePageJump("1.5", 4), { error: "integer" });
+  assert.deepEqual(validatePageJump("abc", 4), { error: "integer" });
+  assert.deepEqual(validatePageJump("0", 4), { error: "below-range" });
+  assert.deepEqual(validatePageJump("5", 4), { error: "above-range" });
 });

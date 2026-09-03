@@ -9,7 +9,7 @@ export function createDetailEditRequest(input: {
   sourceBytes: Uint8Array;
 }): GenerateInput {
   const edgeContract = input.outputBackground === "transparent"
-    ? "Keep the existing true-alpha canvas edge. Do not add a white matte, checkerboard, halo, fringe, key-color residue, outline, frame or opaque pixels around the subject or canvas perimeter."
+    ? "Keep the existing true-alpha canvas edge. The image-edit transport temporarily presents transparent pixels as pure chroma green #00FF00. Preserve that exact, perfectly uniform working color across every pixel outside the subject, including all four corners and one continuous perimeter connected to those corners. Never replace it with black, near-black, white, gray, a gradient, shadow, glow, fog or textured backdrop. Do not add a white matte, checkerboard, halo, fringe, colored matte, key-color residue, outline, frame or opaque pixels around the subject or canvas perimeter. The production worker converts this temporary green region to real alpha after generation."
     : "Keep the existing background continuous and full-bleed through every canvas edge and corner. Do not add a white or near-white border, matte, inset frame, outline, halo, fringe, padding band or unpainted margin around the subject, background shape or canvas perimeter.";
 
   return {

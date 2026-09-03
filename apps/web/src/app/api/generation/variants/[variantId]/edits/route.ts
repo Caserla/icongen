@@ -26,7 +26,7 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
     if (job.error) throw job.error;
     if (!job.data) return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon option was not found.", 404);
     const activeRevision = await client.from("generation_variant_revisions")
-      .select("id,status,created_at,updated_at")
+      .select("id,status,instruction,created_at,updated_at")
       .eq("variant_id", variantData.id)
       .in("status", ["queued", "processing"])
       .order("revision_number", { ascending: false })
@@ -51,6 +51,7 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
         inProgress: {
           id: activeRevision.data.id,
           status: activeRevision.data.status,
+          instruction: activeRevision.data.instruction,
         },
         draft: null,
       });

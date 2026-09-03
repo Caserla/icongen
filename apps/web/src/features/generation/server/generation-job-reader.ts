@@ -4,27 +4,65 @@ import {
 } from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+type StoredAsset = { storage_bucket: string; storage_path: string };
+
+async function signStoredAssets<T extends StoredAsset>(
+  client: SupabaseClient,
+  assets: T[],
+): Promise<Array<T & { previewUrl: string }>> {
+  const byBucket = new Map<string, Array<{ asset: T; index: number }>>();
+  assets.forEach((asset, index) => {
+    const group = byBucket.get(asset.storage_bucket) ?? [];
+    group.push({ asset, index });
+    byBucket.set(asset.storage_bucket, group);
+  });
+  const signed = new Array<T & { previewUrl: string }>(assets.length);
+  await Promise.all(
+    [...byBucket.entries()].map(async ([bucket, group]) => {
+      const result = await client.storage
+        .from(bucket)
+        .createSignedUrls(
+          group.map(({ asset }) => asset.storage_path),
+          3600,
+        );
+      if (result.error) throw result.error;
+      result.data.forEach((item, offset) => {
+        if (!item.signedUrl)
+          throw new Error("Generated icon preview URL was not returned");
+        const { asset, index } = group[offset];
+        signed[index] = { ...asset, previewUrl: item.signedUrl };
+      });
+    }),
+  );
+  return signed;
+}
+
 export async function readGenerationJob(
   client: SupabaseClient,
   userId: string,
   jobId: string,
+  options: { includeAssets?: boolean } = {},
 ): Promise<GenerationJobV2 | null> {
-  const { data: job, error: jobError } = await client
-    .from("generation_jobs")
-    .select(
-      "id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,completed_at",
-    )
-    .eq("id", jobId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const includeAssets = options.includeAssets ?? true;
+  const [jobResult, subjectResult] = await Promise.all([
+    client
+      .from("generation_jobs")
+      .select(
+        "id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,completed_at",
+      )
+      .eq("id", jobId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    client
+      .from("generation_subjects")
+      .select("id,client_id,name,description,position,status")
+      .eq("job_id", jobId)
+      .order("position"),
+  ]);
+  const { data: job, error: jobError } = jobResult;
   if (jobError) throw jobError;
   if (!job) return null;
-
-  const { data: subjects, error: subjectError } = await client
-    .from("generation_subjects")
-    .select("id,client_id,name,description,position,status")
-    .eq("job_id", jobId)
-    .order("position");
+  const { data: subjects, error: subjectError } = subjectResult;
   if (subjectError) throw subjectError;
   const subjectIds = (subjects ?? []).map((subject) => subject.id);
   let variants: Array<
@@ -71,7 +109,7 @@ export async function readGenerationJob(
     storage_bucket: string;
     storage_path: string;
   }> = [];
-  if (variantIds.length) {
+  if (variantIds.length && includeAssets) {
     const roleResult = await client
       .from("generation_assets")
       .select(
@@ -99,9 +137,9 @@ export async function readGenerationJob(
     }
   }
 
-  const activeRevisionIds = (variants ?? []).flatMap((variant) =>
+  const activeRevisionIds = includeAssets ? (variants ?? []).flatMap((variant) =>
     variant.active_revision_id ? [variant.active_revision_id] : [],
-  );
+  ) : [];
   const revisionResult = activeRevisionIds.length
     ? await client
         .from("generation_variant_revisions")
@@ -114,9 +152,10 @@ export async function readGenerationJob(
     string,
     Array<(typeof assets)[number] & { previewUrl: string }>
   >();
-  for (const revision of revisionResult.data ?? []) {
-    const parsed = Array.isArray(revision.assets)
+  const parsedRevisionAssets = (revisionResult.data ?? []).flatMap((revision) =>
+    Array.isArray(revision.assets)
       ? revision.assets.map((asset) => ({
+          revision_id: revision.id,
           id: String(asset.id),
           variant_id: "",
           asset_role: String(asset.assetRole),
@@ -128,31 +167,17 @@ export async function readGenerationJob(
           storage_bucket: String(asset.storageBucket),
           storage_path: String(asset.storagePath),
         }))
-      : [];
-    const signedAssets = await Promise.all(
-      parsed.map(async (asset) => {
-        const signed = await client.storage
-          .from(asset.storage_bucket)
-          .createSignedUrl(asset.storage_path, 3600);
-        if (signed.error) throw signed.error;
-        return { ...asset, previewUrl: signed.data.signedUrl };
-      }),
-    );
-    revisionAssets.set(revision.id, signedAssets);
-  }
-
-  const assetRows = await Promise.all(
-    (assets ?? []).map(async (asset) => {
-      const signed = await client.storage
-        .from(asset.storage_bucket)
-        .createSignedUrl(asset.storage_path, 3600);
-      if (signed.error)
-        throw new Error(
-          `Failed to create generated icon preview URL: ${signed.error.message}`,
-        );
-      return { ...asset, previewUrl: signed.data.signedUrl };
-    }),
+      : [],
   );
+  const [signedRevisionAssets, assetRows] = await Promise.all([
+    signStoredAssets(client, parsedRevisionAssets),
+    signStoredAssets(client, assets ?? []),
+  ]);
+  for (const asset of signedRevisionAssets) {
+    const current = revisionAssets.get(asset.revision_id) ?? [];
+    current.push(asset);
+    revisionAssets.set(asset.revision_id, current);
+  }
   const completedSubjects = (subjects ?? []).filter(
     (subject) => subject.status === "completed",
   ).length;

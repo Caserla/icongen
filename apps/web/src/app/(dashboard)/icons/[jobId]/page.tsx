@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Icon set results" };
 export default async function IconJobPage({ params }: { params: Promise<{ jobId: string }> }) {
   const [{ jobId }, user] = await Promise.all([params, requireActiveUser()]);
   const client = createAdminSupabaseClient();
-  const job = await readGenerationJob(client, user.id, jobId).catch((error) => {
+  const job = await readGenerationJob(client, user.id, jobId, { includeAssets: false }).catch((error) => {
     console.error("Failed to read generation job", { jobId, error });
     return null;
   });

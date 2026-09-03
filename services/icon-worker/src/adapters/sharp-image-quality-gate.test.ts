@@ -27,6 +27,52 @@ test("accepts a bright full-canvas app-icon background", async () => {
   assert.deepEqual(warnings, []);
 });
 
+test("rejects an opaque white outer canvas when transparent output is required", async () => {
+  const alpha = Buffer.alloc(1024 * 1024, 255);
+  alpha[512 * 1024 + 512] = 0;
+  const source = await sharp({ create: { width: 1024, height: 1024, channels: 3, background: "#ffffff" } })
+    .joinChannel(alpha, { raw: { width: 1024, height: 1024, channels: 1 } })
+    .png()
+    .toBuffer();
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: source,
+    outputBackground: "transparent",
+  });
+  assert.ok(warnings.some((warning) => warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE"));
+});
+
+test("accepts a truly transparent outer canvas", async () => {
+  const source = await transparentSquare(256, 256, 512);
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: source,
+    outputBackground: "transparent",
+  });
+  assert.ok(!warnings.some((warning) => warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE"));
+});
+
+test("rejects a detail edit with no perceptible visual change", async () => {
+  const source = await transparentSquare(256, 256, 512);
+  const candidate = await sharp(source).modulate({ brightness: 1.002 }).png().toBuffer();
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: candidate,
+    editSourceBytes: source,
+  });
+  assert.ok(warnings.some((warning) => warning.code === "EDIT_NO_VISIBLE_CHANGE"));
+});
+
+test("accepts a detail edit with a clear local visual change", async () => {
+  const source = await transparentSquare(256, 256, 512);
+  const candidate = await sharp(source)
+    .composite([{ input: { create: { width: 96, height: 160, channels: 4, background: "#F59E0B" } }, left: 464, top: 432 }])
+    .png()
+    .toBuffer();
+  const warnings = await new SharpImageQualityGate().inspect({
+    bytes: candidate,
+    editSourceBytes: source,
+  });
+  assert.ok(!warnings.some((warning) => warning.code === "EDIT_NO_VISIBLE_CHANGE"));
+});
+
 test("rejects a painted transparency checkerboard", async () => {
   const tile = 128;
   const source = await sharp({ create: { width: 1024, height: 1024, channels: 3, background: "#f3f3f3" } })

@@ -2,7 +2,11 @@ export const QUEUED_EDIT_DISPATCH_TIMEOUT_MS = 2 * 60 * 1000;
 // The worker refreshes `updated_at` every 30 seconds. Two missed minutes are
 // enough to distinguish an interrupted worker from a slow image request while
 // avoiding a long-lived phantom progress state after a server restart.
-export const PROCESSING_EDIT_LEASE_TIMEOUT_MS = 2 * 60 * 1000;
+// A detail edit can perform up to three provider attempts plus raster
+// post-processing. The worker renews this lease every 20 seconds; five minutes
+// prevents a slow provider response from being mistaken for a dead worker while
+// still closing abandoned work automatically.
+export const PROCESSING_EDIT_LEASE_TIMEOUT_MS = 5 * 60 * 1000;
 
 export type ActiveVariantEdit = {
   id: string;

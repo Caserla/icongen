@@ -1,12 +1,13 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- previews use short-lived private signed URLs */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GenerationJobV2 } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
+import { SkeletonBlock } from "@/components/ui/page-skeletons";
 import { VariantEditDialog } from "./variant-edit-dialog";
 
 const finished = new Set(["completed", "partial", "failed"]);
@@ -27,6 +28,10 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     variant: GenerationJobV2["subjects"][number]["variants"][number];
     subjectName: string;
   } | null>(null);
+  const requestedInitialAssets = useRef(false);
+  const [settledPreviewUrls, setSettledPreviewUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   async function refreshJob() {
     const response = await fetch(`/api/generation/jobs/${job.id}`, {
@@ -90,6 +95,27 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     () => job.subjects.flatMap((subject) => subject.variants),
     [job],
   );
+  useEffect(() => {
+    if (requestedInitialAssets.current) return;
+    const needsAssets = allVariants.some(
+      (variant) => variant.status === "completed" && !variant.previewUrl,
+    );
+    if (!needsAssets) return;
+    requestedInitialAssets.current = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/generation/jobs/${job.id}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Could not load generated assets");
+        setJob(await response.json());
+        setLastUpdatedAt(Date.now());
+      } catch {
+        requestedInitialAssets.current = false;
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [allVariants, job.id]);
   const available = useMemo(
     () =>
       allVariants.filter(
@@ -101,6 +127,32 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       ),
     [allVariants],
   );
+  const resultPreviewUrls = useMemo(
+    () =>
+      allVariants.flatMap((variant) => {
+        const largest = variant.assets.reduce<
+          (typeof variant.assets)[number] | undefined
+        >(
+          (current, asset) =>
+            !current || asset.size > current.size ? asset : current,
+          undefined,
+        );
+        const source = variant.previewUrl ?? largest?.previewUrl;
+        return source ? [source] : [];
+      }),
+    [allVariants],
+  );
+  const resultPreviewsReady =
+    resultPreviewUrls.length > 0 &&
+    resultPreviewUrls.every((source) => settledPreviewUrls.has(source));
+  function markPreviewSettled(source: string) {
+    setSettledPreviewUrls((current) => {
+      if (current.has(source)) return current;
+      const next = new Set(current);
+      next.add(source);
+      return next;
+    });
+  }
   const allAvailableSelected =
     available.length > 0 &&
     available.every((variant) => selected.has(variant.id));
@@ -379,8 +431,13 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                             src={previewUrl}
                             alt={`${subject.name} option ${variant.slot}`}
                             className="h-full w-full"
+                            reveal={resultPreviewsReady}
+                            onLoad={() => markPreviewSettled(previewUrl)}
+                            onError={() => markPreviewSettled(previewUrl)}
                             failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
                           />
+                        ) : effectiveStatus === "completed" ? (
+                          <SkeletonBlock className="h-full w-full rounded-xl" />
                         ) : (
                           <div className="grid place-items-center gap-3 text-sm text-muted">
                             {effectiveStatus === "processing" ? (
@@ -420,7 +477,8 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                       </button>
                     ) : null}
                     {job.supportsVariantEditing &&
-                    effectiveStatus === "completed" ? (
+                    effectiveStatus === "completed" &&
+                    Boolean(previewUrl) ? (
                       <button
                         type="button"
                         onClick={() =>

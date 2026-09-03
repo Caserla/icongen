@@ -66,6 +66,17 @@ export function VariantEditDialog({
   const [selectedVersion, setSelectedVersion] = useState<"previous" | "new">(
     "new",
   );
+  const [comparisonLoaded, setComparisonLoaded] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const comparisonSources = draft
+    ? [variant.previewUrl, draft.previewUrl].filter(
+        (source): source is string => Boolean(source),
+      )
+    : [];
+  const comparisonReady =
+    comparisonSources.length === 2 &&
+    comparisonSources.every((source) => comparisonLoaded.has(source));
   async function pollEdit(
     editId: string,
     isCancelled: () => boolean = () => false,
@@ -112,6 +123,8 @@ export function VariantEditDialog({
       })
       .then((body) => {
         if (!cancelled && body?.inProgress?.id) {
+          if (typeof body.inProgress.instruction === "string")
+            setInstruction(body.inProgress.instruction);
           setBusy("edit");
           setEditStage(
             body.inProgress.status === "processing"
@@ -287,7 +300,7 @@ export function VariantEditDialog({
           </div>
         ) : null}
         {!checkingDraft && !draft ? <div className="mt-5 grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
-          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-2xl bg-surface-muted">
+          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#f1effb,#e5e2f5)]">
             {variant.previewUrl ? (
               <ImageWithSkeleton
                 src={variant.previewUrl}
@@ -341,7 +354,14 @@ export function VariantEditDialog({
             <legend className="text-sm font-bold">
               {locale === "zh" ? "选择要保留的版本" : "Choose a version"}
             </legend>
-            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <div className="relative mt-2">
+              {!comparisonReady ? (
+                <div className="absolute inset-0 z-10 grid gap-3 sm:grid-cols-2" aria-label={locale === "zh" ? "正在加载版本图片" : "Loading version images"} aria-busy="true">
+                  <SkeletonBlock className="aspect-square rounded-xl" />
+                  <SkeletonBlock className="aspect-square rounded-xl" />
+                </div>
+              ) : null}
+              <div className={`grid gap-3 sm:grid-cols-2 ${comparisonReady ? "visible" : "invisible"}`}>
               {[
                 {
                   id: "previous" as const,
@@ -369,12 +389,29 @@ export function VariantEditDialog({
                         : "border-border bg-background hover:border-brand/40"
                     }`}
                   >
-                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-surface-muted">
+                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-[linear-gradient(145deg,#f1effb,#e5e2f5)]">
                       {option.src ? (
                         <ImageWithSkeleton
                           src={option.src}
                           alt=""
                           className="h-full w-full"
+                          showSkeleton={false}
+                          onLoad={() =>
+                            setComparisonLoaded((current) => {
+                              if (current.has(option.src!)) return current;
+                              const next = new Set(current);
+                              next.add(option.src!);
+                              return next;
+                            })
+                          }
+                          onError={() =>
+                            setComparisonLoaded((current) => {
+                              if (current.has(option.src!)) return current;
+                              const next = new Set(current);
+                              next.add(option.src!);
+                              return next;
+                            })
+                          }
                           failureLabel={
                             locale === "zh" ? "加载失败" : "Failed to load"
                           }
@@ -397,6 +434,7 @@ export function VariantEditDialog({
                   </button>
                 );
               })}
+              </div>
             </div>
           </fieldset>
         ) : null}

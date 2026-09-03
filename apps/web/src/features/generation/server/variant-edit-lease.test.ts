@@ -12,8 +12,12 @@ test("keeps a processing edit alive while its heartbeat is fresh", () => {
   assert.equal(isVariantEditLeaseStale({ id: "edit", status: "processing", created_at: "2026-09-01T23:00:00.000Z", updated_at: "2026-09-02T00:19:30.000Z" }, now), false);
 });
 
-test("reclaims a processing edit after two minutes without a heartbeat", () => {
-  assert.equal(isVariantEditLeaseStale({ id: "edit", status: "processing", created_at: "2026-09-01T23:00:00.000Z", updated_at: "2026-09-02T00:17:59.000Z" }, now), true);
+test("keeps a slow processing edit alive for provider retries", () => {
+  assert.equal(isVariantEditLeaseStale({ id: "edit", status: "processing", created_at: "2026-09-01T23:00:00.000Z", updated_at: "2026-09-02T00:17:59.000Z" }, now), false);
+});
+
+test("reclaims a processing edit after five minutes without a heartbeat", () => {
+  assert.equal(isVariantEditLeaseStale({ id: "edit", status: "processing", created_at: "2026-09-01T23:00:00.000Z", updated_at: "2026-09-02T00:14:59.000Z" }, now), true);
 });
 
 test("uses an explicit worker switch for production previews", () => {

@@ -56,6 +56,7 @@ function isBlockingWarning(warning: ImageQualityWarning) {
   return (
     warning.code === "FAKE_TRANSPARENCY_CHECKERBOARD" ||
     warning.code === "MISSING_ALPHA_CHANNEL" ||
+    warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE" ||
     warning.code === "REFERENCE_BOARD_REPRODUCTION" ||
     warning.code === "SOURCE_NOT_SQUARE"
   );
@@ -92,6 +93,12 @@ function createTerminalQualityError(
   )
     return new Error(
       `Generated icon ${variantId} is missing a real alpha channel after ${QUALITY_RETRY_ATTEMPTS} attempts`,
+    );
+  if (
+    warnings.some((warning) => warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE")
+  )
+    return new Error(
+      `Generated icon ${variantId} has an opaque outer canvas despite requesting transparency after ${QUALITY_RETRY_ATTEMPTS} attempts`,
     );
   const diagnostics = warnings
     .filter((warning) => warning.code === "NON_UNIFORM_SOLID_BACKGROUND")
@@ -146,6 +153,12 @@ export async function generateValidatedImage(
       previousBlockingCodes.includes("SOURCE_NOT_SQUARE")
         ? "\n\nREFERENCE REPRODUCTION CORRECTION\nThe previous result incorrectly preserved the complete reference board or its presentation canvas. Start again from a blank square canvas. Create exactly one independent icon for the requested subject. Match the reference style closely, but do not return, crop, extract, preserve, or reconstruct the reference board, its grid, its multi-icon layout, or its original aspect ratio."
         : previousBlockingCodes.some((code) =>
+              code === "MISSING_ALPHA_CHANNEL" ||
+              code === "OPAQUE_TRANSPARENT_CANVAS_EDGE" ||
+              code === "FAKE_TRANSPARENCY_CHECKERBOARD",
+            )
+          ? `\n\nTRANSPARENT CANVAS CORRECTION\nThe previous result violated the transparent-background contract. Diagnostics: ${previousDiagnostics} Start from a transparent square RGBA canvas. Keep every pixel outside the requested subject genuinely transparent. All four corners and the complete outer perimeter must have alpha 0. Do not paint white, black, gray, checkerboard, glow, shadow, halo, frame, backdrop, or any presentation canvas.`
+          : previousBlockingCodes.some((code) =>
               code === "SUBJECT_SCALE_INCONSISTENT" ||
               code === "SUBJECT_ALIGNMENT_INCONSISTENT" ||
               code === "LINE_WEIGHT_INCONSISTENT",
@@ -185,6 +198,7 @@ export async function generateValidatedImage(
         purpose: input.purpose,
         stylePreset: input.stylePreset,
         backgroundContract: input.qualityContract,
+        outputBackground: input.outputBackground,
       })) ?? [];
 
     if (input.outputBackground === "transparent") {

@@ -142,9 +142,9 @@ export async function readGenerationJobs(client: SupabaseClient, userId: string,
     .select("id,status,created_at,generation_spec", { count: "exact" }).eq("user_id", userId)
     .not("id", "in", `(${demoJobIds.join(",")})`)
     .order("created_at", { ascending: false });
-  if (options.stylePreset) query = query.eq("generation_spec->style->>preset", options.stylePreset);
-  else if (options.usageFilter === "interaction") query = query.eq("generation_spec->>purpose", "interaction");
+  if (options.usageFilter === "interaction") query = query.eq("generation_spec->>purpose", "interaction");
   else if (options.usageFilter === "illustration") query = query.eq("generation_spec->>purpose", "app-icon");
+  if (options.stylePreset) query = query.eq("generation_spec->style->>preset", options.stylePreset);
   if (options.structureFilter) query = query.eq("generation_spec->style->>graphicStructure", options.structureFilter);
   if (options.statusFilter === "in-progress") query = query.in("status", ["queued", "processing"]);
   else if (options.statusFilter) query = query.eq("status", options.statusFilter);

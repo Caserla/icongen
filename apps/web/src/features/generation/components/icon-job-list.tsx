@@ -7,8 +7,10 @@ import { ICON_STYLE_PRESETS, type IconStylePresetId } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
+import { Toast } from "@/components/ui/toast";
 import { GeneratedIconPreview } from "@/features/generation/components/generated-icon-preview";
 import { reduceIconJobFilters } from "@/features/generation/icon-job-filters";
+import { matchesGenerationJobStatus } from "@/features/generation/server/generation-job-list-reader";
 import type { GenerationJobListItem, GenerationJobListPage, GenerationJobStatusFilter, GenerationJobStructureFilter, GenerationJobUsageFilter } from "@/features/generation/server/generation-job-list-reader";
 
 const statusOptions: { id?: GenerationJobStatusFilter; label: { zh: string; en: string } }[] = [
@@ -56,6 +58,52 @@ function listCacheKey(usage: GenerationJobUsageFilter, style?: IconStylePresetId
   return `${usage}:${style ?? "all"}:${structure ?? "all"}:${status ?? "all"}:${page}`;
 }
 
+// Keep already-rendered pages alive across list -> details -> list navigation.
+// The changed card is refreshed separately when the user returns.
+const iconJobPageCache = new Map<string, GenerationJobListPage>();
+
+export function validatePageJump(value: string, totalPages: number) {
+  const normalized = value.trim();
+  if (!normalized) return { error: "empty" as const };
+  if (!/^\d+$/.test(normalized)) return { error: "integer" as const };
+  const page = Number(normalized);
+  if (!Number.isSafeInteger(page)) return { error: "integer" as const };
+  if (page < 1) return { error: "below-range" as const };
+  if (page > totalPages) return { error: "above-range" as const };
+  return { page };
+}
+
+function PageJumpInput({ page, totalPages, locale, disabled, onJump, onInvalid }: { page: number; totalPages: number; locale: "en" | "zh"; disabled: boolean; onJump: (page: number) => void; onInvalid: (message: string) => void }) {
+  const [value, setValue] = useState(String(page));
+  function submit() {
+    const result = validatePageJump(value, totalPages);
+    if (result.page !== undefined) {
+      setValue(String(result.page));
+      if (result.page !== page) onJump(result.page);
+      return;
+    }
+    const messages = locale === "zh" ? {
+      empty: "请输入要跳转的页码。",
+      integer: "页码必须是整数。",
+      "below-range": "页码不能小于 1。",
+      "above-range": `页码不能超过 ${totalPages}。`,
+    } : {
+      empty: "Enter a page number.",
+      integer: "The page number must be an integer.",
+      "below-range": "The page number cannot be less than 1.",
+      "above-range": `The page number cannot exceed ${totalPages}.`,
+    };
+    onInvalid(messages[result.error]);
+    setValue(String(page));
+  }
+  if (totalPages <= 1) return <span aria-current="page" className="min-w-14 border-x border-border/70 px-3 text-center text-xs font-black tabular-nums text-foreground">1<span className="mx-1.5 font-medium text-muted">/</span>1</span>;
+  return <label className="pointer-events-auto flex h-7 items-center gap-0.5 border-x border-border/70 px-2.5 text-xs font-black tabular-nums text-foreground">
+    <span className="sr-only">{locale === "zh" ? "输入页码" : "Enter page number"}</span>
+    <input key={page} type="text" inputMode="numeric" disabled={disabled} value={value} onChange={(event) => setValue(event.target.value)} onFocus={(event) => event.currentTarget.select()} onBlur={submit} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} aria-label={locale === "zh" ? `当前第 ${page} 页，输入页码跳转` : `Page ${page}; enter a page to jump`} className="h-7 w-7 rounded-md border-0 bg-transparent p-0 text-center text-xs font-black outline-none transition hover:bg-white/45 focus:bg-white/60 focus:text-brand disabled:cursor-wait disabled:opacity-50"/>
+    <span className="mx-0.5 font-medium text-muted">/</span><span className="min-w-5 text-center">{totalPages}</span>
+  </label>;
+}
+
 function JobPreviewGroup({ urls, locale }: { urls: string[]; locale: "en" | "zh" }) {
   const key = urls.join("\n");
   const [loadState, setLoadState] = useState<{ key: string; settled: Set<number> }>(() => ({ key, settled: new Set() }));
@@ -95,12 +143,15 @@ function JobCard({ job, locale }: { job: GenerationJobListItem; locale: "en" | "
 
 export function IconJobList({ selectedPage, selectedUsage, selectedStyle, selectedStructure, selectedStatus }: { selectedPage: number; selectedUsage: GenerationJobUsageFilter; selectedStyle?: IconStylePresetId; selectedStructure?: GenerationJobStructureFilter; selectedStatus?: GenerationJobStatusFilter }) {
   const { locale } = useLocale();
-  const [liveResult, setLiveResult] = useState<GenerationJobListPage>({ jobs: [], page: selectedPage, pageSize: 12, total: 0, totalPages: 1 });
-  const [isLoading, setIsLoading] = useState(true);
+  const initialCacheKey = listCacheKey(selectedUsage, selectedStyle, selectedStatus, selectedStructure, selectedPage);
+  const cachedInitialResult = iconJobPageCache.get(initialCacheKey);
+  const [liveResult, setLiveResult] = useState<GenerationJobListPage>(() => cachedInitialResult ?? { jobs: [], page: selectedPage, pageSize: 12, total: 0, totalPages: 1 });
+  const [isLoading, setIsLoading] = useState(!cachedInitialResult);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [pageToast, setPageToast] = useState<string | null>(null);
   const requestSequence = useRef(0);
   const pendingScrollTop = useRef<number | null>(null);
-  const resultCache = useRef(new Map<string, GenerationJobListPage>());
+  const resultCache = useRef(iconJobPageCache);
   const [filters, dispatchFilters] = useReducer(reduceIconJobFilters, {
     usage: selectedUsage,
     style: selectedStyle,
@@ -110,8 +161,6 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   const { usage: activeUsage, style: activeStyle, structure: activeStructure, status: activeStatus } = filters;
   const activeResult = liveResult;
   const groups = activeUsage === "interaction" ? structureOptions.map((preset) => ({ preset, jobs: activeResult.jobs.filter((job) => job.graphicStructure === preset.id) })).filter((group) => group.jobs.length > 0) : groupGenerationJobsByStyle(activeResult.jobs);
-  const pageStart = activeResult.total === 0 ? 0 : (activeResult.page - 1) * activeResult.pageSize + 1;
-  const pageEnd = Math.min(activeResult.page * activeResult.pageSize, activeResult.total);
   const showStatusEmptyState = activeStatus === "in-progress" || activeStatus === "partial" || activeStatus === "failed";
   const loadList = useCallback(async (usage: GenerationJobUsageFilter, style?: IconStylePresetId, status?: GenerationJobStatusFilter, structure?: GenerationJobStructureFilter, page = 1) => {
     const key = listCacheKey(usage, style, status, structure, page);
@@ -134,6 +183,13 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
       });
       if (!response.ok) throw new Error("Icon list request failed");
       const next = await response.json() as GenerationJobListPage;
+      const containsMismatchedJob = next.jobs.some((job) =>
+        job.usage !== usage ||
+        (style !== undefined && job.stylePreset !== style) ||
+        (structure !== undefined && job.graphicStructure !== structure) ||
+        !matchesGenerationJobStatus(job.status, status),
+      );
+      if (containsMismatchedJob) throw new Error("Icon list response did not match its requested filters");
       resultCache.current.set(key, next);
       if (sequence === requestSequence.current) setLiveResult(next);
     } catch {
@@ -149,14 +205,14 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   useEffect(() => {
     rememberIconJobFilters(
       buildIconJobListHref(
-        selectedStyle,
+        activeStyle,
         liveResult.page,
-        selectedStatus,
-        selectedUsage,
-        selectedStructure,
+        activeStatus,
+        activeUsage,
+        activeStructure,
       ),
     );
-  }, [liveResult.page, selectedStatus, selectedStructure, selectedStyle, selectedUsage]);
+  }, [activeStatus, activeStructure, activeStyle, activeUsage, liveResult.page]);
   const refreshChangedCard = useCallback(async () => {
     const jobId = sessionStorage.getItem("icongen:refresh-job");
     if (!jobId) return;
@@ -191,6 +247,11 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
     const frame = requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: target })));
     return () => cancelAnimationFrame(frame);
   }, [isLoading]);
+  useEffect(() => {
+    if (!pageToast) return;
+    const timeout = window.setTimeout(() => setPageToast(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [pageToast]);
   function replaceFilterUrl(usage: GenerationJobUsageFilter, style?: IconStylePresetId, status?: GenerationJobStatusFilter, structure?: GenerationJobStructureFilter) {
     const href = buildIconJobListHref(style, 1, status, usage, structure);
     window.history.replaceState(window.history.state, "", href);
@@ -200,8 +261,16 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   function selectStyle(style?: IconStylePresetId) { dispatchFilters({ type: "select-style", style }); replaceFilterUrl(activeUsage, style); void loadList(activeUsage, style); }
   function selectStructure(structure?: GenerationJobStructureFilter) { dispatchFilters({ type: "select-structure", structure }); replaceFilterUrl(activeUsage, undefined, undefined, structure); void loadList(activeUsage, undefined, undefined, structure); }
   function selectStatus(status?: GenerationJobStatusFilter) { dispatchFilters({ type: "select-status", status }); replaceFilterUrl(activeUsage, activeStyle, status, activeStructure); void loadList(activeUsage, activeStyle, status, activeStructure); }
+  function selectPage(page: number) {
+    const href = buildIconJobListHref(activeStyle, page, activeStatus, activeUsage, activeStructure);
+    window.history.replaceState(window.history.state, "", href);
+    rememberIconJobFilters(href);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    void loadList(activeUsage, activeStyle, activeStatus, activeStructure, page);
+  }
 
   return <div>
+    {pageToast ? <Toast message={pageToast} variant="warning" placement="center"/> : null}
     <h1 className="display-serif text-4xl font-medium tracking-[-.045em] sm:text-5xl">{locale === "zh" ? "我的图标" : "My Icons"}</h1>
 
     <div className="mt-6">
@@ -239,13 +308,14 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
       </section>)}
     </div>}
 
-    {activeResult.totalPages > 1 && <nav aria-label={locale === "zh" ? "图标集分页" : "Icon set pagination"} className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
-      <p className="text-sm text-muted">{locale === "zh" ? `显示 ${pageStart}–${pageEnd}，共 ${activeResult.total} 套` : `Showing ${pageStart}–${pageEnd} of ${activeResult.total}`}</p>
-      <div className="flex items-center gap-2">
-        {activeResult.page > 1 && <Link href={buildIconJobListHref(activeStyle, activeResult.page - 1, activeStatus, activeUsage, activeStructure)} className="focus-ring rounded-xl border border-border bg-white px-4 py-2 text-sm font-bold hover:border-brand">{locale === "zh" ? "上一页" : "Previous"}</Link>}
-        <span className="min-w-20 text-center text-sm font-bold">{activeResult.page} / {activeResult.totalPages}</span>
-        {activeResult.page < activeResult.totalPages && <Link href={buildIconJobListHref(activeStyle, activeResult.page + 1, activeStatus, activeUsage, activeStructure)} className="focus-ring rounded-xl border border-border bg-white px-4 py-2 text-sm font-bold hover:border-brand">{locale === "zh" ? "下一页" : "Next"}</Link>}
-      </div>
+    {activeResult.total > 0 && <nav aria-label={locale === "zh" ? "图标集分页" : "Icon set pagination"} aria-busy={isLoading} className="pointer-events-none fixed bottom-4 left-1/2 z-40 flex h-11 -translate-x-1/2 items-center rounded-full border border-white/70 bg-white/55 px-1.5 shadow-[0_10px_30px_rgba(32,27,48,.10),inset_0_1px_0_rgba(255,255,255,.85)] backdrop-blur-xl backdrop-saturate-150">
+      <span>
+        <button type="button" disabled={isLoading || activeResult.page <= 1} title={locale === "zh" ? "上一页" : "Previous"} aria-label={locale === "zh" ? (activeResult.page <= 1 ? "已是第一页" : `上一页，第 ${activeResult.page - 1} 页`) : (activeResult.page <= 1 ? "Already on the first page" : `Previous, page ${activeResult.page - 1}`)} onClick={() => selectPage(activeResult.page - 1)} className="focus-ring pointer-events-auto grid size-9 place-items-center rounded-full text-foreground transition duration-150 hover:bg-white/55 hover:text-brand disabled:cursor-not-allowed disabled:text-muted disabled:opacity-30"><svg aria-hidden="true" viewBox="0 0 24 24" className="size-[17px] fill-none stroke-current stroke-[2.2]"><path d="m14.5 6.5-5 5.5 5 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+      </span>
+      <PageJumpInput key={`${activeResult.page}:${activeResult.totalPages}`} page={activeResult.page} totalPages={activeResult.totalPages} locale={locale} disabled={isLoading} onJump={selectPage} onInvalid={setPageToast}/>
+      <span>
+        <button type="button" disabled={isLoading || activeResult.page >= activeResult.totalPages} title={locale === "zh" ? "下一页" : "Next"} aria-label={locale === "zh" ? (activeResult.page >= activeResult.totalPages ? "已是最后一页" : `下一页，第 ${activeResult.page + 1} 页`) : (activeResult.page >= activeResult.totalPages ? "Already on the last page" : `Next, page ${activeResult.page + 1}`)} onClick={() => selectPage(activeResult.page + 1)} className="focus-ring pointer-events-auto grid size-9 place-items-center rounded-full text-foreground transition duration-150 hover:bg-white/55 hover:text-brand disabled:cursor-not-allowed disabled:text-muted disabled:opacity-30"><svg aria-hidden="true" viewBox="0 0 24 24" className="size-[17px] fill-none stroke-current stroke-[2.2]"><path d="m9.5 6.5 5 5.5-5 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+      </span>
     </nav>}
   </div>;
 }

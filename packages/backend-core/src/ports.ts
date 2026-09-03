@@ -166,6 +166,8 @@ export type ImageQualityWarning = {
     | "FAKE_TRANSPARENCY_CHECKERBOARD"
     | "NON_UNIFORM_SOLID_BACKGROUND"
     | "MISSING_ALPHA_CHANNEL"
+    | "OPAQUE_TRANSPARENT_CANVAS_EDGE"
+    | "EDIT_NO_VISIBLE_CHANGE"
     | "REFERENCE_BOARD_REPRODUCTION"
     | "SUBJECT_SCALE_INCONSISTENT"
     | "SUBJECT_ALIGNMENT_INCONSISTENT"
@@ -211,6 +213,8 @@ export interface ImageQualityGate {
     purpose?: CreateGenerationJobInput["purpose"];
     stylePreset?: IconStyle["preset"];
     backgroundContract?: BackgroundQualityContract;
+    outputBackground?: "transparent" | "opaque";
+    editSourceBytes?: Uint8Array;
   }): Promise<ImageQualityWarning[]>;
 }
 

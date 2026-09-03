@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
 import { createDependencies } from "./dependencies";
-import { createDetailEditRequest } from "./detail-edit-request";
+import { generateValidatedDetailEdit } from "./generate-validated-detail-edit";
 
 const editId = process.argv[2];
 if (!editId) throw new Error("Usage: npm run process-edit -- <edit-id>");
@@ -89,11 +89,21 @@ async function run() {
   if (!claimed.data) return;
   heartbeatTimer = setInterval(() => {
     const now = new Date().toISOString();
-    void client.from("generation_variant_revisions")
-      .update({ updated_at: now })
-      .eq("id", editId)
-      .eq("status", "processing");
-  }, 30_000);
+    // PostgREST builders are lazy thenables. Awaiting the builder is required;
+    // merely constructing it does not dispatch the heartbeat request.
+    void (async () => {
+      const heartbeat = await client.from("generation_variant_revisions")
+        .update({ updated_at: now })
+        .eq("id", editId)
+        .eq("status", "processing");
+      if (heartbeat.error) {
+        dependencies.logger.error("Variant detail edit heartbeat failed", {
+          editId,
+          error: heartbeat.error.message,
+        });
+      }
+    })();
+  }, 20_000);
   heartbeatTimer.unref();
 
   let sourceBucket: string;
@@ -143,29 +153,18 @@ async function run() {
       targetStrokeWidthPercent: job.spec.style.linearStrokeWidthPercent,
     },
   });
-  let image = await dependencies.imageProvider.generate(
-    createDetailEditRequest({
+  const image = await generateValidatedDetailEdit(
+    {
+      editId,
       compiledPrompt: compiled.prompt,
       instruction: revision.instruction,
       outputBackground: compiled.outputBackground,
       sourceBytes,
-    }),
+      purpose: job.spec.purpose,
+      stylePreset: job.spec.style.preset,
+    },
+    dependencies,
   );
-  if (compiled.outputBackground === "transparent") {
-    if (dependencies.imageProcessor.normalizeTransparentBackground) {
-      image = await dependencies.imageProcessor.normalizeTransparentBackground({
-        bytes: image.bytes,
-        chromaColor: { red: 0, green: 255, blue: 0 },
-        tolerance: 72,
-      });
-    } else if (dependencies.imageProcessor.removeChromaBackground) {
-      image = await dependencies.imageProcessor.removeChromaBackground({
-        bytes: image.bytes,
-        color: { red: 0, green: 255, blue: 0 },
-        tolerance: 72,
-      });
-    }
-  }
   const masked =
     job.spec.purpose === "app-icon" &&
     effectiveBackground.enabled &&
