@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { readGenerationJobs, type GenerationJobStatusFilter } from "@/features/generation/server/generation-job-list-reader";
 
 const listRequestSchema = z.object({
@@ -29,13 +30,13 @@ export async function POST(request: Request) {
     const effectiveStyle = stylePreset && (parsed.data.usage === "interaction" ? stylePreset === "line-icon" : stylePreset !== "line-icon")
       ? stylePreset
       : undefined;
-    const result = await readGenerationJobs(createAdminSupabaseClient(), user.id, {
+    const result = await readGenerationJobs(await createServerSupabaseClient(), user.id, {
       page: parsed.data.page,
       usageFilter: parsed.data.usage,
       stylePreset: effectiveStyle,
       structureFilter: parsed.data.usage === "interaction" ? parsed.data.structure : undefined,
       statusFilter: parsed.data.status as GenerationJobStatusFilter | undefined,
-    });
+    }, createAdminSupabaseClient());
     return Response.json(result, { headers: { "cache-control": "private, no-store" } });
   } catch (error) {
     return authErrorResponse(error) ?? apiError("GENERATION_LIST_LOAD_FAILED", "We could not load the icon list.", 500);

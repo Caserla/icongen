@@ -16,7 +16,11 @@
     "start": "npm run start --workspace=@icongen/web",
     "lint": "npm run lint --workspace=@icongen/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "node --test scripts/*.test.mjs && npm run test --workspaces --if-present",
+    "test:security:cost": "node scripts/test-runtime-cost-limits.mjs",
+    "test:security:rls": "node scripts/test-cross-account-isolation.mjs",
+    "test:security:worker": "node scripts/test-worker-failover.mjs",
+    "test:security:staging": "npm run test:security:cost && npm run test:security:rls && npm run test:security:worker",
     "cd-key:create": "node scripts/create-cd-key.mjs"
   }
 }

@@ -160,6 +160,7 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
   const [loadFailed, setLoadFailed] = useState(false);
   const [pageToast, setPageToast] = useState<string | null>(null);
   const requestSequence = useRef(0);
+  const activeListRequest = useRef<AbortController | null>(null);
   const pendingScrollTop = useRef<number | null>(null);
   const resultCache = useRef(iconJobPageCache);
   const [filters, dispatchFilters] = useReducer(reduceIconJobFilters, {
@@ -177,7 +178,9 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
     const key = listCacheKey(usage, style, status, structure, page);
     const cached = resultCache.current.get(key);
     const sequence = ++requestSequence.current;
+    activeListRequest.current?.abort();
     if (cached) {
+      activeListRequest.current = null;
       setLiveResult(cached);
       setIsLoading(false);
       setLoadFailed(false);
@@ -185,11 +188,14 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
     }
     setIsLoading(true);
     setLoadFailed(false);
+    const controller = new AbortController();
+    activeListRequest.current = controller;
     try {
       const response = await fetch("/api/generation/jobs/list", {
         method: "POST",
         headers: { "content-type": "application/json" },
         cache: "no-store",
+        signal: controller.signal,
         body: JSON.stringify({ page, usage, style, status, structure }),
       });
       if (!response.ok) throw new Error("Icon list request failed");
@@ -203,15 +209,21 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
       if (containsMismatchedJob) throw new Error("Icon list response did not match its requested filters");
       resultCache.current.set(key, next);
       if (sequence === requestSequence.current) setLiveResult(next);
-    } catch {
-      if (sequence === requestSequence.current) setLoadFailed(true);
+    } catch (error) {
+      if (sequence === requestSequence.current && !(error instanceof DOMException && error.name === "AbortError")) setLoadFailed(true);
     } finally {
-      if (sequence === requestSequence.current) setIsLoading(false);
+      if (sequence === requestSequence.current) {
+        activeListRequest.current = null;
+        setIsLoading(false);
+      }
     }
   }, []);
   useEffect(() => {
     const frame = requestAnimationFrame(() => void loadList(selectedUsage, selectedStyle, selectedStatus, selectedStructure, selectedPage));
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      activeListRequest.current?.abort();
+    };
   }, [loadList, selectedPage, selectedStatus, selectedStructure, selectedStyle, selectedUsage]);
   useEffect(() => {
     rememberIconJobFilters(
@@ -267,16 +279,15 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
     rememberIconJobFilters(href);
     router.replace(href, { scroll: false });
   }
-  function selectUsage(usage: GenerationJobUsageFilter) { dispatchFilters({ type: "select-usage", usage }); replaceFilterUrl(usage); void loadList(usage); }
-  function selectStyle(style?: IconStylePresetId) { dispatchFilters({ type: "select-style", style }); replaceFilterUrl(activeUsage, style); void loadList(activeUsage, style); }
-  function selectStructure(structure?: GenerationJobStructureFilter) { dispatchFilters({ type: "select-structure", structure }); replaceFilterUrl(activeUsage, undefined, undefined, structure); void loadList(activeUsage, undefined, undefined, structure); }
-  function selectStatus(status?: GenerationJobStatusFilter) { dispatchFilters({ type: "select-status", status }); replaceFilterUrl(activeUsage, activeStyle, status, activeStructure); void loadList(activeUsage, activeStyle, status, activeStructure); }
+  function selectUsage(usage: GenerationJobUsageFilter) { dispatchFilters({ type: "select-usage", usage }); replaceFilterUrl(usage); }
+  function selectStyle(style?: IconStylePresetId) { dispatchFilters({ type: "select-style", style }); replaceFilterUrl(activeUsage, style); }
+  function selectStructure(structure?: GenerationJobStructureFilter) { dispatchFilters({ type: "select-structure", structure }); replaceFilterUrl(activeUsage, undefined, undefined, structure); }
+  function selectStatus(status?: GenerationJobStatusFilter) { dispatchFilters({ type: "select-status", status }); replaceFilterUrl(activeUsage, activeStyle, status, activeStructure); }
   function selectPage(page: number) {
     const href = buildIconJobListHref(activeStyle, page, activeStatus, activeUsage, activeStructure);
     rememberIconJobFilters(href);
     router.replace(href, { scroll: false });
     window.scrollTo({ top: 0, behavior: "smooth" });
-    void loadList(activeUsage, activeStyle, activeStatus, activeStructure, page);
   }
 
   return <div>

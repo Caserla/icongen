@@ -22,3 +22,18 @@ export function parseClaimedTask(
     id: row.task_id,
   };
 }
+
+export type WorkerLeaseRow = {
+  worker_lease_owner: string | null;
+  worker_lease_expires_at: string | null;
+};
+
+export function hasActiveWorkerLease(
+  row: WorkerLeaseRow | null,
+  workerId: string,
+  now = Date.now(),
+) {
+  if (!row || row.worker_lease_owner !== workerId || !row.worker_lease_expires_at) return false;
+  const expiresAt = Date.parse(row.worker_lease_expires_at);
+  return Number.isFinite(expiresAt) && expiresAt > now;
+}

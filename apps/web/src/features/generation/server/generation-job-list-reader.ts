@@ -25,8 +25,35 @@ const demoJobIds = [
 const DEFAULT_PAGE_SIZE = 12;
 
 type ListSubjectRow = { id: string; job_id: string; name: string; position: number };
+type ListAssetRow = { id: string; variant_id: string; asset_role: string; format: string; size: number; storage_bucket: string; storage_path: string };
 
-async function readListPreviewUrls(client: SupabaseClient, subjects: ListSubjectRow[]) {
+async function readPreferredListAssets(client: SupabaseClient, variantIds: string[]) {
+  const assets: ListAssetRow[] = [];
+  let missing = new Set(variantIds);
+  for (const role of ["preview", "source", "output"] as const) {
+    if (!missing.size) break;
+    const unresolved = [...missing];
+    const found: ListAssetRow[] = [];
+    for (let index = 0; index < unresolved.length; index += 100) {
+      const { data, error } = await client.from("generation_assets")
+        .select("id,variant_id,asset_role,format,size,storage_bucket,storage_path")
+        .in("variant_id", unresolved.slice(index, index + 100))
+        .eq("format", "png")
+        .eq("asset_role", role)
+        .order("size", { ascending: false });
+      if (error) throw error;
+      found.push(...((data ?? []) as ListAssetRow[]));
+    }
+    const bestByVariant = new Map<string, ListAssetRow>();
+    for (const asset of found)
+      if (!bestByVariant.has(asset.variant_id)) bestByVariant.set(asset.variant_id, asset);
+    assets.push(...bestByVariant.values());
+    missing = new Set(unresolved.filter((variantId) => !bestByVariant.has(variantId)));
+  }
+  return assets;
+}
+
+async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClient, subjects: ListSubjectRow[]) {
   const previewSubjects: ListSubjectRow[] = [];
   const countsByJobId = new Map<string, number>();
   for (const subject of subjects) {
@@ -42,13 +69,7 @@ async function readListPreviewUrls(client: SupabaseClient, subjects: ListSubject
     if (error) throw error;
     variants.push(...((data ?? []) as typeof variants));
   }
-  const assets: { id: string; variant_id: string; asset_role: string; format: string; size: number; storage_bucket: string; storage_path: string }[] = [];
-  for (let index = 0; index < variants.length; index += 100) {
-    const ids = variants.slice(index, index + 100).map((variant) => variant.id);
-    const { data, error } = await client.from("generation_assets").select("id,variant_id,asset_role,format,size,storage_bucket,storage_path").in("variant_id", ids).eq("format", "png").order("size");
-    if (error) throw error;
-    assets.push(...((data ?? []) as typeof assets));
-  }
+  const assets = await readPreferredListAssets(client, variants.map((variant) => variant.id));
   const assetsByVariantId = new Map<string, typeof assets>();
   for (const asset of assets)
     assetsByVariantId.set(asset.variant_id, [
@@ -72,7 +93,7 @@ async function readListPreviewUrls(client: SupabaseClient, subjects: ListSubject
   for (const asset of [...selectedByJobId.values()].flat())
     assetsByBucket.set(asset.storage_bucket, [...(assetsByBucket.get(asset.storage_bucket) ?? []), asset]);
   await Promise.all([...assetsByBucket.entries()].map(async ([bucket, bucketAssets]) => {
-    const { data, error } = await client.storage.from(bucket).createSignedUrls(bucketAssets.map((asset) => asset.storage_path), 3600);
+    const { data, error } = await signer.storage.from(bucket).createSignedUrls(bucketAssets.map((asset) => asset.storage_path), 3600);
     if (error) return;
     data.forEach((signed, index) => {
       if (signed.signedUrl) signedUrlByAssetId.set(bucketAssets[index].id, signed.signedUrl);
@@ -85,6 +106,7 @@ export async function readGenerationJobListItem(
   client: SupabaseClient,
   userId: string,
   jobId: string,
+  signer: SupabaseClient = client,
 ): Promise<GenerationJobListItem | null> {
   const { data: job, error } = await client.from("generation_jobs")
     .select("id,status,created_at,generation_spec")
@@ -99,7 +121,7 @@ export async function readGenerationJobListItem(
     .order("position", { ascending: true });
   if (subjectsError) throw subjectsError;
   const subjects = (data ?? []) as ListSubjectRow[];
-  const previews = await readListPreviewUrls(client, subjects);
+  const previews = await readListPreviewUrls(client, signer, subjects);
   return {
     id: job.id,
     status: job.status as GenerationJobStatusV2,
@@ -135,7 +157,7 @@ export function parseGenerationJobUsage(spec: unknown): GenerationJobUsageFilter
   return parseStylePreset(spec) === "line-icon" ? "interaction" : "illustration";
 }
 
-export async function readGenerationJobs(client: SupabaseClient, userId: string, options: { page?: number; pageSize?: number; stylePreset?: IconStylePresetId; statusFilter?: GenerationJobStatusFilter; usageFilter?: GenerationJobUsageFilter; structureFilter?: GenerationJobStructureFilter } = {}): Promise<GenerationJobListPage> {
+export async function readGenerationJobs(client: SupabaseClient, userId: string, options: { page?: number; pageSize?: number; stylePreset?: IconStylePresetId; statusFilter?: GenerationJobStatusFilter; usageFilter?: GenerationJobUsageFilter; structureFilter?: GenerationJobStructureFilter } = {}, signer: SupabaseClient = client): Promise<GenerationJobListPage> {
   const requestedPage = Math.max(1, Math.floor(options.page ?? 1));
   const pageSize = Math.max(1, Math.min(48, Math.floor(options.pageSize ?? DEFAULT_PAGE_SIZE)));
   let query = client.from("generation_jobs")
@@ -153,14 +175,14 @@ export async function readGenerationJobs(client: SupabaseClient, userId: string,
   if (jobsError) throw jobsError;
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  if (requestedPage > totalPages && total > 0) return readGenerationJobs(client, userId, { ...options, page: totalPages, pageSize });
+  if (requestedPage > totalPages && total > 0) return readGenerationJobs(client, userId, { ...options, page: totalPages, pageSize }, signer);
   if (!jobs?.length) return { jobs: [], page: requestedPage, pageSize, total, totalPages };
 
   const { data: subjects, error: subjectsError } = await client.from("generation_subjects")
     .select("id,job_id,name,position").in("job_id", jobs.map((job) => job.id)).order("position", { ascending: true });
   if (subjectsError) throw subjectsError;
   const subjectRows = (subjects ?? []) as ListSubjectRow[];
-  const previewUrls = await readListPreviewUrls(client, subjectRows);
+  const previewUrls = await readListPreviewUrls(client, signer, subjectRows);
   const subjectsByJobId = new Map<string, ListSubjectRow[]>();
   for (const subject of subjectRows)
     subjectsByJobId.set(subject.job_id, [

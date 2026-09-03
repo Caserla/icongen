@@ -22,7 +22,9 @@
 - 首次生成扣点、任务创建、账本写入与幂等检查在数据库事务中完成。
 - CD-Key 只保存哈希和末四位提示，兑换使用行锁和唯一流水。
 - 完整生成 Prompt 已停止写入用户可读业务表；迁移 `0019_remove_persisted_generation_prompts.sql` 已在 Supabase 执行，历史 Prompt 字段已清理。
+- 公共生成设置只返回稳定选项 ID、展示文本和预览资产，不再向浏览器返回 `promptToken`；完整风格协议仅由 Worker 在内存中编译。
 - 供应商错误写入用户可读记录前会转换为产品自有安全文案，Worker 日志同时过滤嵌入错误字符串的 Prompt、Token 和 API Key。
+- Web 使用 Next standalone 独立镜像，镜像内不包含 `icon-skill` 源码、完整 Prompt 或参考图库；这些内容只存在于 Worker 镜像。所有层级的 `.env*` 文件均被排除在 Docker build context 之外。
 - 2026-09-03 执行 `npm audit --omit=dev`，生产依赖未发现已知漏洞。
 
 这些措施是安全基础，不代表已达到公网生产上线条件。
@@ -31,10 +33,10 @@
 
 | 编号 | 类型 | 工作项 | 当前状态 | 完成标准 | 人工干预 |
 | --- | --- | --- | --- | --- | --- |
-| SEC-P0-001 | 联合 | 统一限流与防刷 | 代码底座完成，待迁移和定值 | 单机 Web 已对全部 API 写请求限流；迁移 `0021` 增加数据库级全局并发、全局每日主体数、用户每日主体数原子熔断；边缘/IP 分布式限流仍需 Cloudflare 或 Redis | **需要**：执行 `0021`、确定并启用阈值、创建 Cloudflare 规则；多 Web 实例时准备 Redis |
+| SEC-P0-001 | 联合 | 统一限流与防刷 | 代码底座及 staging 验收包完成，待迁移、定值和实测 | 单机 Web 已对全部 API 写请求限流；迁移 `0021` 增加数据库级全局并发、全局每日/月度主体数、用户每日主体数原子熔断；`test:security:cost` 验证拒绝不扣点；边缘/IP 分布式限流仍需 Cloudflare 或 Redis | **需要**：在 staging 执行 `0021` 和验收包；确定并启用生产阈值；创建 Cloudflare 规则；多 Web 实例时准备 Redis |
 | SEC-P0-002 | 代码 | ZIP 下载资源保护 | **安全闭环完成** | 已限制单次最多 20 个方案、单资源 16 MiB、归档输入总量 64 MiB，超限直接拒绝；大包异步生成属于后续性能优化，不再阻断安全上线 | 不需要 |
-| SEC-P0-003 | 联合 | 生产 Worker 常驻执行器 | 代码底座完成，待迁移和故障演练 | 迁移 `0020` 使用 `FOR UPDATE SKIP LOCKED` 原子领取任务，提供租约续期、过期回收和旧任务兜底回收；守护进程支持 SIGTERM、心跳、健康检查和自动重启 | **需要**：执行 `0020`，在云服务器启动至少两个 Worker，完成竞争领取、强杀和租约恢复演练 |
-| SEC-P0-004 | 联合 | 生产容器与网络隔离 | 仓库模板加固完成 | Web/Worker 使用非 root、只读根文件系统、临时写目录、移除 capabilities、PID/CPU/内存限制；仅 Caddy 暴露 80/443，且只保留绑定低端口所需 capability | **需要**：配置真实安全组、SSH、私有网络并执行公网端口扫描和资源限制验收 |
+| SEC-P0-003 | 联合 | 生产 Worker 常驻执行器 | 代码底座、写入前租约校验及 staging 故障验收包完成，待真实演练 | 迁移 `0020` 使用 `FOR UPDATE SKIP LOCKED` 原子领取任务，提供租约续期和过期回收；Repository 写入前校验 owner/expiry，旧 Worker 失权后不能发布数据库结果；`test:security:worker` 覆盖并发领取、过期接管和旧 owner 续租拒绝 | **需要**：在 staging 执行 `0020` 和验收包；云服务器至少启动两个 Worker，并补做进程强杀演练 |
+| SEC-P0-004 | 联合 | 生产容器与网络隔离 | 仓库模板加固完成 | Web/Worker 使用不同镜像 target；Web standalone 镜像不含 Prompt 包；`.env*` 不进入构建上下文；容器使用非 root、只读根文件系统、临时写目录、移除 capabilities、PID/CPU/内存限制；仅 Caddy 暴露 80/443 | **需要**：配置真实安全组、SSH、私有网络并执行公网端口扫描和资源限制验收 |
 | SEC-P0-005 | 联合 | Stripe Checkout 与 Webhook | 占位，返回 501 | 服务端套餐白名单、原始请求体验签、Event ID 幂等、支付入账、退款与重放测试通过 | **需要**：开通 Stripe、完成企业/KYC 信息、创建 Product/Price、配置生产 Webhook 和密钥 |
 | SEC-P0-006 | 联合 | 生产密钥管理 | 本地 `.env` 方案 | 密钥不进入镜像、Git、日志和客户端包；按服务拆分；有轮换和吊销流程 | **需要**：在云密钥服务或 Docker secrets 写入真实密钥并完成首次轮换演练 |
 
@@ -44,7 +46,7 @@
 | --- | --- | --- | --- | --- |
 | SEC-P1-001 | 代码 | 安全响应头 | **代码完成**：CSP、HSTS、`nosniff`、`frame-ancestors`、Referrer Policy、Permissions Policy 已返回；生产域名上线后复验 | 不需要 |
 | SEC-P1-002 | 联合 | 请求来源和 CSRF 防护 | **代码完成**：API 写请求验证 Origin/Host 与 `Sec-Fetch-Site`、有请求体时强制 JSON、1 MiB 请求体上限；生产反向代理需正确传递 Host/Proto 后复验 | **需要**：提供最终生产域名和允许的回调域名 |
-| SEC-P1-003 | 代码 | Service Role 权限收缩 | 普通资产预览已改用 Session + RLS；列表、摘要、详情与下载因当前 Storage 批量签名策略仍保留显式用户归属校验后的 Admin 签名；测试固定允许清单，新增高权限消费者会导致 CI 失败；待执行 `0022` 并完成 Storage 回归后继续收缩 | 不需要，但部署后需人工轮换旧 Service Role |
+| SEC-P1-003 | 代码 | Service Role 权限收缩 | 普通资产预览、列表、摘要和详情数据查询均使用 Session + RLS；仅已验证归属的 Storage 路径交由独立 Admin signer，下载和写操作仍保留显式用户归属校验；测试固定允许清单，新增高权限消费者会导致 CI 失败 | 不需要，但部署后需人工轮换旧 Service Role |
 | SEC-P1-004 | 联合 | CD-Key 防猜测 | 兑换码随机空间提升到至少 128 bit；账户/IP 失败限流；异常尝试审计和告警 | **需要**：确定冻结阈值、客服解锁流程和告警接收人 |
 | SEC-P1-005 | 代码 | 日志脱敏 | **代码闭环完成**：Worker 与 Web/BFF 统一过滤密钥字段、Bearer 凭据、签名查询参数、邮箱、Prompt 与调整指令；已有泄漏回归测试 | 不需要 |
 | SEC-P1-006 | 联合 | 管理员安全 | 管理员账户强制 MFA；角色变更有审计；后台入口增加独立访问策略 | **需要**：指定管理员、启用 MFA、保管恢复码、配置 Cloudflare Access 或 VPN |
@@ -156,7 +158,7 @@ Next.js Web/BFF ───── Supabase Auth / PostgreSQL / Private Storage
 | P0 | 监控、告警与费用异常响应 | 缺少覆盖 5xx、Worker、队列、模型费用、主机资源、证书和备份的统一告警闭环 | 每类告警至少真实触发一次并由指定人员确认收到；具备升级和恢复流程 | 联合 |
 | P0* | 海外充值与支付闭环 | 购买入口当前计划暂缓；若公开售卖点数，则支付仍没有生产实现 | Checkout、Webhook 验签、事件幂等、到账、退款和重放测试通过 | 联合 |
 | P1 | Web/BFF 日志全量脱敏 | **代码完成**：现有错误日志已统一进入结构化脱敏器，自动测试覆盖 Prompt、Token、签名 URL、邮箱和 API Key | 接入正式错误平台后再次注入模拟敏感值，确认平台中不出现原文 | 部署验收 |
-| P1 | Service Role 最小权限 | 普通资产预览已迁移到 Session + RLS，并由允许清单测试防止权限重新扩张；列表、摘要、详情和下载因 Storage 批量签名及 revision 权限缺口暂时保留 Admin，所有入口仍显式校验 `user_id` | 执行 `0022` 并完成本人/跨账户普通资产与 revision 对象测试后，再移除这些读取入口的 Admin Client | 迁移 + 代码 |
+| P1 | Service Role 最小权限 | 普通资产预览、列表、摘要和详情数据查询已迁移到 Session + RLS，并由允许清单测试防止权限重新扩张；Admin 仅负责已验证路径的 Storage 签名，下载和写操作仍显式校验 `user_id` | 完成本人/跨账户普通资产与 revision 对象测试；验证后轮换旧 Service Role | 部署验收 |
 | P1 | 大型 ZIP 异步化 | 已有数量和内存硬上限，但归档仍可能占用 Web 进程 | 大包转为 Worker 异步归档；并发压测不拖慢 Web；临时文件自动清理 | 代码 |
 | P1 | 管理员账户保护 | MFA、后台独立访问边界和角色变更审计尚未实际启用 | 管理员 MFA、恢复码、Cloudflare Access/VPN 和角色审计记录可验证 | 人工 |
 | P1 | CI/CD 供应链安全 | 仓库已增加 Security CI（生产依赖审计、测试、类型检查、Lint、构建、Compose 校验）；分支保护、密钥扫描、SBOM、镜像扫描和受控回滚尚未完成 | 主分支保护生效；PR 必须通过测试/扫描；生产镜像可追溯且完成一次回滚演练 | 联合 |
@@ -198,7 +200,7 @@ where singleton = true;
 ```
 
 6. 分别触发用户日限额、全局并发、全局日限额和月限额，确认 API 只返回产品错误码，不泄漏数据库异常文本；关闭熔断后确认生成恢复。
-7. 执行 `infra/supabase/migrations/0022_revision_storage_read_policy.sql`，用账户 A 验证自己的已发布调整版本可读取，再用账户 B 验证同一路径返回拒绝；通过后移除结果详情与下载接口中的 Admin Client 兼容路径。
+7. 执行 `infra/supabase/migrations/0022_revision_storage_read_policy.sql`，用账户 A 验证自己的已发布调整版本可读取，再用账户 B 验证同一路径返回拒绝；列表、摘要和详情数据库读取已经使用 Session + RLS，Admin signer 不再承担业务数据查询。
 
 阈值数字仅为安全默认示例，并非最终运营预算。未完成真实压测与费用换算前不得直接照搬到正式生产。
 

@@ -7,7 +7,9 @@ test("returns the versioned icon-style catalog", () => {
   const settings = getGenerationSettings();
   assert.equal(settings.stylePresets.length, 10);
   assert.ok(settings.stylePresets.every((preset) => preset.previewImage.startsWith("/images/icon-style-previews/hd-native/")));
+  assert.ok(settings.stylePresets.every((preset) => !("promptToken" in preset)));
   assert.equal(settings.styleAdjustments.length, 3);
+  assert.ok(settings.styleAdjustments.every((group) => group.options.every((item) => !("promptToken" in item))));
   assert.deepEqual(settings.outputSizes, [16, 32, 48, 64, 128, 256]);
   assert.deepEqual(settings.limits, { maxSubjects: 20, maxOutputSizes: 3, variantsPerSubject: 3 });
 });

@@ -6,6 +6,28 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type StoredAsset = { storage_bucket: string; storage_path: string };
 
+type PresentableAsset = StoredAsset & {
+  asset_role: string;
+  format: "png" | "svg";
+  size: number;
+};
+
+function assetsNeededForPresentation<T extends PresentableAsset>(
+  assets: T[],
+  groupBy: (asset: T) => string,
+) {
+  const groups = new Map<string, T[]>();
+  for (const asset of assets)
+    groups.set(groupBy(asset), [...(groups.get(groupBy(asset)) ?? []), asset]);
+  return [...groups.values()].flatMap((group) => {
+    const preview = group.find((asset) => asset.asset_role === "preview" && asset.format === "png")
+      ?? group.find((asset) => asset.asset_role === "source" && asset.format === "png")
+      ?? group.filter((asset) => asset.asset_role === "output" && asset.format === "png").sort((a, b) => b.size - a.size)[0];
+    const vector = group.find((asset) => asset.asset_role === "output" && asset.format === "svg");
+    return [preview, vector].filter((asset): asset is T => Boolean(asset));
+  });
+}
+
 async function signStoredAssets<T extends StoredAsset>(
   client: SupabaseClient,
   assets: T[],
@@ -41,9 +63,10 @@ export async function readGenerationJob(
   client: SupabaseClient,
   userId: string,
   jobId: string,
-  options: { includeAssets?: boolean } = {},
+  options: { includeAssets?: boolean; signer?: SupabaseClient } = {},
 ): Promise<GenerationJobV2 | null> {
   const includeAssets = options.includeAssets ?? true;
+  const signer = options.signer ?? client;
   const [jobResult, subjectResult] = await Promise.all([
     client
       .from("generation_jobs")
@@ -150,7 +173,7 @@ export async function readGenerationJob(
   if (revisionResult.error) throw revisionResult.error;
   const revisionAssets = new Map<
     string,
-    Array<(typeof assets)[number] & { previewUrl: string }>
+    Array<(typeof assets)[number] & { previewUrl?: string }>
   >();
   const parsedRevisionAssets = (revisionResult.data ?? []).flatMap((revision) =>
     Array.isArray(revision.assets)
@@ -169,10 +192,24 @@ export async function readGenerationJob(
         }))
       : [],
   );
-  const [signedRevisionAssets, assetRows] = await Promise.all([
-    signStoredAssets(client, parsedRevisionAssets),
-    signStoredAssets(client, assets ?? []),
+  const [signedRevisionPresentation, signedAssetPresentation] = await Promise.all([
+    signStoredAssets(signer, assetsNeededForPresentation(parsedRevisionAssets, (asset) => asset.revision_id)),
+    signStoredAssets(signer, assetsNeededForPresentation(assets ?? [], (asset) => asset.variant_id)),
   ]);
+  const signedUrlByPath = new Map(
+    [...signedRevisionPresentation, ...signedAssetPresentation].map((asset) => [
+      `${asset.storage_bucket}:${asset.storage_path}`,
+      asset.previewUrl,
+    ]),
+  );
+  const signedRevisionAssets = parsedRevisionAssets.map((asset) => ({
+    ...asset,
+    previewUrl: signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
+  }));
+  const assetRows = (assets ?? []).map((asset) => ({
+    ...asset,
+    previewUrl: signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
+  }));
   for (const asset of signedRevisionAssets) {
     const current = revisionAssets.get(asset.revision_id) ?? [];
     current.push(asset);

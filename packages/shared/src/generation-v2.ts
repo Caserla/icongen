@@ -273,7 +273,6 @@ const labelSchema = z.object({ en: z.string().min(1), zh: z.string().min(1) });
 const optionSchema = z.object({
   id: z.string().min(1),
   label: labelSchema,
-  promptToken: z.string().min(1),
 });
 export const generationSettingsResponseSchema = z.object({
   version: z.string().min(1),

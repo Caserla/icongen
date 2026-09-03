@@ -1,12 +1,20 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      target: web-runtime
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     restart: unless-stopped
     env_file:
       - path: .env.production
         required: false
     environment:
       LOCAL_VARIANT_WORKER_ENABLED: "false"
+      IMAGE_PROVIDER_API_KEY: ""
+      IMAGE_PROVIDER_BASE_URL: ""
     expose:
       - "3000"
     healthcheck:
@@ -26,13 +34,13 @@ services:
     cpus: 1.5
 
   worker:
-    build: .
+    build:
+      context: .
+      target: worker-runtime
     restart: unless-stopped
     env_file:
       - path: .env.production
         required: false
-    working_dir: /app/services/icon-worker
-    command: ["npm", "run", "daemon"]
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/icongen-worker-heartbeat && test $$(($$(date +%s)-$$(date -r /tmp/icongen-worker-heartbeat +%s))) -lt 60"]
       interval: 20s

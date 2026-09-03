@@ -26,6 +26,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   transpilePackages: ["@icongen/shared"],

@@ -9,13 +9,16 @@ import { VTracerVectorImageProcessor } from "./adapters/vtracer-vector-image-pro
 import type { WorkerConfig } from "./config";
 import { createImageProvider, createPromptCompiler } from "./registries";
 
-export function createDependencies(config: WorkerConfig): ProcessGenerationJobDependencies {
+export function createDependencies(
+  config: WorkerConfig,
+  workerId = process.env.WORKER_INSTANCE_ID,
+): ProcessGenerationJobDependencies {
   const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
   return {
-    repository: new SupabaseGenerationRepository(supabase),
+    repository: new SupabaseGenerationRepository(supabase, workerId),
     assetStore: new SupabaseAssetStore(supabase, config.SUPABASE_ICON_BUCKET),
     imageProvider: createImageProvider(config),
     imageProcessor: new SharpImageProcessor(),

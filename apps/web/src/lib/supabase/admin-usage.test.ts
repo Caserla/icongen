@@ -5,7 +5,6 @@ import path from "node:path";
 
 const approvedAdminConsumers = new Set([
   "src/app/api/health/ready/route.ts",
-  "src/app/(dashboard)/icons/[jobId]/page.tsx",
   "src/app/api/generation/jobs/[jobId]/downloads/route.ts",
   "src/app/api/generation/jobs/[jobId]/route.ts",
   "src/app/api/generation/jobs/[jobId]/summary/route.ts",

@@ -7,6 +7,7 @@ import { publicErrorMessage } from "./public-error-message";
 import { IncompleteGenerationJobSnapshotError } from "@icongen/backend-core";
 import { parseStoredGenerationJobSpec } from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasActiveWorkerLease, type WorkerLeaseRow } from "../worker-runtime";
 
 type JobRow = {
   id: string;
@@ -34,7 +35,25 @@ type FailedVariantRow = {
 };
 
 export class SupabaseGenerationRepository implements GenerationRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  private readonly variantJobIds = new Map<string, string>();
+
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly workerId?: string,
+  ) {}
+
+  private async assertActiveLease(jobId: string) {
+    if (!this.workerId) return;
+    const lease = await this.client
+      .from("generation_jobs")
+      .select("worker_lease_owner,worker_lease_expires_at")
+      .eq("id", jobId)
+      .maybeSingle<WorkerLeaseRow>();
+    if (lease.error) throw new Error(`Failed to verify worker lease: ${lease.error.message}`);
+    if (!hasActiveWorkerLease(lease.data, this.workerId)) {
+      throw new Error(`WORKER_LEASE_LOST:${jobId}`);
+    }
+  }
 
   async getJob(jobId: string): Promise<GenerationJobRecord | null> {
     const jobResult = await this.client
@@ -72,6 +91,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
           `Failed to load generation variants: ${variantResult.error.message}`,
         );
       variantRows.push(...((variantResult.data ?? []) as VariantRow[]));
+      for (const variant of variantRows) this.variantJobIds.set(variant.id, jobId);
     }
 
     return {
@@ -101,6 +121,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   }
 
   async markProcessing(jobId: string, execution: GenerationExecution) {
+    await this.assertActiveLease(jobId);
     const { error } = await this.client.rpc("claim_generation_job", {
       p_job_id: jobId,
       p_skill_name: execution.skillName,
@@ -113,6 +134,8 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   }
 
   async markVariantProcessing(variantId: string) {
+    const jobId = await this.jobIdForVariant(variantId);
+    await this.assertActiveLease(jobId);
     const { error } = await this.client
       .from("generation_variants")
       .update({ status: "processing", started_at: new Date().toISOString() })
@@ -127,6 +150,8 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     errorCode: string;
     errorMessage: string;
   }) {
+    const jobId = await this.jobIdForVariant(input.variantId);
+    await this.assertActiveLease(jobId);
     const { error } = await this.client
       .from("generation_variants")
       .update({
@@ -145,6 +170,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   }
 
   async saveAsset(input: {
+    jobId: string;
     variantId: string;
     assetRole: "source" | "preview" | "output";
     format: "png" | "svg";
@@ -155,6 +181,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     bucket: string;
     objectPath: string;
   }) {
+    await this.assertActiveLease(input.jobId);
     const { error } = await this.client.from("generation_assets").upsert(
       {
         variant_id: input.variantId,
@@ -182,6 +209,8 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     imageModel: string;
     providerRequestId?: string;
   }) {
+    const jobId = await this.jobIdForVariant(input.variantId);
+    await this.assertActiveLease(jobId);
     const { error } = await this.client
       .from("generation_variants")
       .update({
@@ -207,6 +236,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     completedUnits: number,
     totalUnits: number,
   ) {
+    await this.assertActiveLease(jobId);
     const progress =
       totalUnits === 0
         ? 0
@@ -223,6 +253,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   }
 
   async markCompleted(jobId: string) {
+    await this.assertActiveLease(jobId);
     const { error } = await this.client.rpc("complete_generation_job_v2", {
       p_job_id: jobId,
     });
@@ -240,6 +271,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
     errorCode: string,
     _errorMessage: string,
   ) {
+    await this.assertActiveLease(jobId);
     const subjects = await this.client
       .from("generation_subjects")
       .select("id")
@@ -315,5 +347,11 @@ export class SupabaseGenerationRepository implements GenerationRepository {
           `Failed to mark generation job partial: ${partial.error.message}`,
         );
     }
+  }
+
+  private async jobIdForVariant(variantId: string) {
+    const jobId = this.variantJobIds.get(variantId);
+    if (!jobId) throw new Error(`Generation variant ${variantId} has no owning job`);
+    return jobId;
   }
 }
