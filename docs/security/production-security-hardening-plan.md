@@ -44,7 +44,7 @@
 | --- | --- | --- | --- | --- |
 | SEC-P1-001 | 代码 | 安全响应头 | **代码完成**：CSP、HSTS、`nosniff`、`frame-ancestors`、Referrer Policy、Permissions Policy 已返回；生产域名上线后复验 | 不需要 |
 | SEC-P1-002 | 联合 | 请求来源和 CSRF 防护 | **代码完成**：API 写请求验证 Origin/Host 与 `Sec-Fetch-Site`、有请求体时强制 JSON、1 MiB 请求体上限；生产反向代理需正确传递 Host/Proto 后复验 | **需要**：提供最终生产域名和允许的回调域名 |
-| SEC-P1-003 | 代码 | Service Role 权限收缩 | 列表、摘要和普通资产预览已改用 Session + RLS；测试固定 Admin Client 允许清单，新增消费者会导致 CI 失败；细节调整版本读取待执行 `0022` 后继续收缩 | 不需要，但部署后需人工轮换旧 Service Role |
+| SEC-P1-003 | 代码 | Service Role 权限收缩 | 普通资产预览已改用 Session + RLS；列表、摘要、详情与下载因当前 Storage 批量签名策略仍保留显式用户归属校验后的 Admin 签名；测试固定允许清单，新增高权限消费者会导致 CI 失败；待执行 `0022` 并完成 Storage 回归后继续收缩 | 不需要，但部署后需人工轮换旧 Service Role |
 | SEC-P1-004 | 联合 | CD-Key 防猜测 | 兑换码随机空间提升到至少 128 bit；账户/IP 失败限流；异常尝试审计和告警 | **需要**：确定冻结阈值、客服解锁流程和告警接收人 |
 | SEC-P1-005 | 代码 | 日志脱敏 | **代码闭环完成**：Worker 与 Web/BFF 统一过滤密钥字段、Bearer 凭据、签名查询参数、邮箱、Prompt 与调整指令；已有泄漏回归测试 | 不需要 |
 | SEC-P1-006 | 联合 | 管理员安全 | 管理员账户强制 MFA；角色变更有审计；后台入口增加独立访问策略 | **需要**：指定管理员、启用 MFA、保管恢复码、配置 Cloudflare Access 或 VPN |
@@ -156,7 +156,7 @@ Next.js Web/BFF ───── Supabase Auth / PostgreSQL / Private Storage
 | P0 | 监控、告警与费用异常响应 | 缺少覆盖 5xx、Worker、队列、模型费用、主机资源、证书和备份的统一告警闭环 | 每类告警至少真实触发一次并由指定人员确认收到；具备升级和恢复流程 | 联合 |
 | P0* | 海外充值与支付闭环 | 购买入口当前计划暂缓；若公开售卖点数，则支付仍没有生产实现 | Checkout、Webhook 验签、事件幂等、到账、退款和重放测试通过 | 联合 |
 | P1 | Web/BFF 日志全量脱敏 | **代码完成**：现有错误日志已统一进入结构化脱敏器，自动测试覆盖 Prompt、Token、签名 URL、邮箱和 API Key | 接入正式错误平台后再次注入模拟敏感值，确认平台中不出现原文 | 部署验收 |
-| P1 | Service Role 最小权限 | 普通列表、摘要与资产预览已迁移到 Session + RLS，并由允许清单测试防止权限重新扩张；结果详情和下载因 revision Storage 权限缺口暂时保留 Admin | 执行 `0022` 并完成跨账户 revision 对象访问拒绝测试后，移除详情和下载的 Admin Client | 迁移 + 代码 |
+| P1 | Service Role 最小权限 | 普通资产预览已迁移到 Session + RLS，并由允许清单测试防止权限重新扩张；列表、摘要、详情和下载因 Storage 批量签名及 revision 权限缺口暂时保留 Admin，所有入口仍显式校验 `user_id` | 执行 `0022` 并完成本人/跨账户普通资产与 revision 对象测试后，再移除这些读取入口的 Admin Client | 迁移 + 代码 |
 | P1 | 大型 ZIP 异步化 | 已有数量和内存硬上限，但归档仍可能占用 Web 进程 | 大包转为 Worker 异步归档；并发压测不拖慢 Web；临时文件自动清理 | 代码 |
 | P1 | 管理员账户保护 | MFA、后台独立访问边界和角色变更审计尚未实际启用 | 管理员 MFA、恢复码、Cloudflare Access/VPN 和角色审计记录可验证 | 人工 |
 | P1 | CI/CD 供应链安全 | 仓库已增加 Security CI（生产依赖审计、测试、类型检查、Lint、构建、Compose 校验）；分支保护、密钥扫描、SBOM、镜像扫描和受控回滚尚未完成 | 主分支保护生效；PR 必须通过测试/扫描；生产镜像可追溯且完成一次回滚演练 | 联合 |

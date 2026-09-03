@@ -2,7 +2,7 @@ import { ICON_STYLE_PRESET_IDS, type IconStylePresetId } from "@icongen/shared";
 import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { readGenerationJobs, type GenerationJobStatusFilter } from "@/features/generation/server/generation-job-list-reader";
 
 const listRequestSchema = z.object({
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const effectiveStyle = stylePreset && (parsed.data.usage === "interaction" ? stylePreset === "line-icon" : stylePreset !== "line-icon")
       ? stylePreset
       : undefined;
-    const result = await readGenerationJobs(await createServerSupabaseClient(), user.id, {
+    const result = await readGenerationJobs(createAdminSupabaseClient(), user.id, {
       page: parsed.data.page,
       usageFilter: parsed.data.usage,
       stylePreset: effectiveStyle,

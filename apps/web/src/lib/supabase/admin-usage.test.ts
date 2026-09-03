@@ -8,6 +8,8 @@ const approvedAdminConsumers = new Set([
   "src/app/(dashboard)/icons/[jobId]/page.tsx",
   "src/app/api/generation/jobs/[jobId]/downloads/route.ts",
   "src/app/api/generation/jobs/[jobId]/route.ts",
+  "src/app/api/generation/jobs/[jobId]/summary/route.ts",
+  "src/app/api/generation/jobs/list/route.ts",
   "src/app/api/generation/variants/[variantId]/edits/[editId]/apply/route.ts",
   "src/app/api/generation/variants/[variantId]/edits/[editId]/route.ts",
   "src/app/api/generation/variants/[variantId]/edits/route.ts",
