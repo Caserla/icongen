@@ -129,7 +129,14 @@ function JobPreviewGroup({ urls, locale }: { urls: string[]; locale: "en" | "zh"
 }
 
 function JobCard({ job, locale }: { job: GenerationJobListItem; locale: "en" | "zh" }) {
-  return <Link href={`/icons/${job.id}`} onClick={() => { sessionStorage.setItem("icongen:icons-scroll", String(window.scrollY)); sessionStorage.setItem("icongen:icons-return", "1"); }} className="focus-ring block rounded-[20px] border border-border bg-white p-5 transition hover:border-brand">
+  return <Link href={`/icons/${job.id}`} onClick={() => {
+    sessionStorage.setItem("icongen:icons-scroll", String(window.scrollY));
+    sessionStorage.setItem("icongen:icons-return", "1");
+    sessionStorage.setItem(
+      "icongen:icons-return-href",
+      `${window.location.pathname}${window.location.search}`,
+    );
+  }} className="focus-ring block rounded-[20px] border border-border bg-white p-5 transition hover:border-brand">
     <div className="flex items-start justify-between gap-5">
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 font-black leading-snug">{job.subjects.map((subject) => subject.name).join(locale === "zh" ? "、" : ", ") || (locale === "zh" ? "未命名图标集" : "Untitled icon set")}</p>

@@ -8,6 +8,11 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
+import {
+  applyVariantPreview,
+  hasAppliedVariantPreview,
+  type AppliedVariantPreview,
+} from "@/features/generation/variant-preview-update";
 import { VariantEditDialog } from "./variant-edit-dialog";
 
 const finished = new Set(["completed", "partial", "failed"]);
@@ -33,17 +38,25 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     () => new Set(),
   );
 
-  async function refreshJob() {
+  async function refreshJob(change?: AppliedVariantPreview) {
+    if (change) {
+      setJob((current) => applyVariantPreview(current, change));
+    }
     const response = await fetch(`/api/generation/jobs/${job.id}`, {
       cache: "no-store",
     });
-    if (!response.ok)
+    if (!response.ok) {
+      if (change) return;
       throw new Error(
         locale === "zh"
           ? "无法刷新生成结果。"
           : "Could not refresh generation results.",
       );
-    setJob(await response.json());
+    }
+    const refreshed = (await response.json()) as GenerationJobV2;
+    const appliedRevisionIsVisible =
+      !change || hasAppliedVariantPreview(refreshed, change);
+    if (appliedRevisionIsVisible) setJob(refreshed);
     setLastUpdatedAt(Date.now());
   }
 
@@ -101,8 +114,9 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       (variant) => variant.status === "completed" && !variant.previewUrl,
     );
     if (!needsAssets) return;
-    requestedInitialAssets.current = true;
     const timer = window.setTimeout(async () => {
+      if (requestedInitialAssets.current) return;
+      requestedInitialAssets.current = true;
       try {
         const response = await fetch(`/api/generation/jobs/${job.id}`, {
           cache: "no-store",
@@ -293,6 +307,12 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     // and issued a fresh `/icons` request. Prefer the existing history entry;
     // Next can then restore its cached list tree and filters immediately.
     sessionStorage.setItem("icongen:refresh-job", job.id);
+    const returnHref = sessionStorage.getItem("icongen:icons-return-href");
+    if (returnHref?.startsWith("/icons")) {
+      sessionStorage.removeItem("icongen:icons-return-href");
+      router.replace(returnHref);
+      return;
+    }
     if (window.history.length > 1) {
       router.back();
       return;

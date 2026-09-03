@@ -51,7 +51,11 @@ export function VariantEditDialog({
   subjectName: string;
   locale: "zh" | "en";
   onClose: () => void;
-  onChanged: () => Promise<void>;
+  onChanged: (change?: {
+    variantId: string;
+    activeRevisionId: string;
+    previewUrl: string;
+  }) => Promise<void>;
 }) {
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState<"edit" | "save" | "restore" | null>(null);
@@ -62,6 +66,9 @@ export function VariantEditDialog({
   const [draft, setDraft] = useState<{ id: string; previewUrl: string } | null>(
     null,
   );
+  const [currentPreviewUrl, setCurrentPreviewUrl] = useState(
+    variant.previewUrl ?? "",
+  );
   const [checkingDraft, setCheckingDraft] = useState(true);
   const [selectedVersion, setSelectedVersion] = useState<"previous" | "new">(
     "new",
@@ -70,7 +77,7 @@ export function VariantEditDialog({
     () => new Set(),
   );
   const comparisonSources = draft
-    ? [variant.previewUrl, draft.previewUrl].filter(
+    ? [currentPreviewUrl, draft.previewUrl].filter(
         (source): source is string => Boolean(source),
       )
     : [];
@@ -122,6 +129,8 @@ export function VariantEditDialog({
         return response.json();
       })
       .then((body) => {
+        if (!cancelled && typeof body?.currentPreviewUrl === "string")
+          setCurrentPreviewUrl(body.currentPreviewUrl);
         if (!cancelled && body?.inProgress?.id) {
           if (typeof body.inProgress.instruction === "string")
             setInstruction(body.inProgress.instruction);
@@ -195,7 +204,11 @@ export function VariantEditDialog({
       );
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message ?? "Save failed");
-      await onChanged();
+      await onChanged({
+        variantId: variant.id,
+        activeRevisionId: body.activeRevisionId,
+        previewUrl: draft.previewUrl,
+      });
       onClose();
     } catch (cause) {
       setError(
@@ -300,10 +313,10 @@ export function VariantEditDialog({
           </div>
         ) : null}
         {!checkingDraft && !draft ? <div className="mt-5 grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
-          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#f1effb,#e5e2f5)]">
-            {variant.previewUrl ? (
+          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-2xl bg-surface-muted">
+            {currentPreviewUrl ? (
               <ImageWithSkeleton
-                src={variant.previewUrl}
+                src={currentPreviewUrl}
                 alt=""
                 className="h-full w-full"
                 showSkeleton={false}
@@ -365,7 +378,7 @@ export function VariantEditDialog({
               {[
                 {
                   id: "previous" as const,
-                  src: variant.previewUrl,
+                  src: currentPreviewUrl,
                   label:
                     locale === "zh" ? "原图" : "Original",
                 },
@@ -389,7 +402,7 @@ export function VariantEditDialog({
                         : "border-border bg-background hover:border-brand/40"
                     }`}
                   >
-                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-[linear-gradient(145deg,#f1effb,#e5e2f5)]">
+                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-surface-muted">
                       {option.src ? (
                         <ImageWithSkeleton
                           src={option.src}

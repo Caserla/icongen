@@ -25,6 +25,38 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
     const job = await client.from("generation_jobs").select("id").eq("id", subject.data.job_id).eq("user_id", user.id).maybeSingle();
     if (job.error) throw job.error;
     if (!job.data) return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon option was not found.", 404);
+    let currentBucket: string | null | undefined;
+    let currentPath: string | null | undefined;
+    if (variantData.active_revision_id) {
+      const currentRevision = await client
+          .from("generation_variant_revisions")
+          .select("preview_bucket,preview_path")
+          .eq("id", variantData.active_revision_id)
+          .eq("variant_id", variantData.id)
+          .maybeSingle();
+      if (currentRevision.error) throw currentRevision.error;
+      currentBucket = currentRevision.data?.preview_bucket;
+      currentPath = currentRevision.data?.preview_path;
+    } else {
+      const originalPreview = await client
+          .from("generation_assets")
+          .select("storage_bucket,storage_path")
+          .eq("variant_id", variantData.id)
+          .eq("asset_role", "preview")
+          .eq("format", "png")
+          .maybeSingle();
+      if (originalPreview.error) throw originalPreview.error;
+      currentBucket = originalPreview.data?.storage_bucket;
+      currentPath = originalPreview.data?.storage_path;
+    }
+    let currentPreviewUrl: string | null = null;
+    if (currentBucket && currentPath) {
+      const currentSigned = await client.storage
+        .from(currentBucket)
+        .createSignedUrl(currentPath, 3600);
+      if (currentSigned.error) throw currentSigned.error;
+      currentPreviewUrl = currentSigned.data.signedUrl;
+    }
     const activeRevision = await client.from("generation_variant_revisions")
       .select("id,status,instruction,created_at,updated_at")
       .eq("variant_id", variantData.id)
@@ -54,6 +86,8 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
           instruction: activeRevision.data.instruction,
         },
         draft: null,
+        currentPreviewUrl,
+        activeRevisionId: variantData.active_revision_id,
       });
     }
     const revisions = await client.from("generation_variant_revisions")
@@ -69,10 +103,18 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
       Boolean(revision.preview_bucket && revision.preview_path),
     );
     if (!pending?.preview_bucket || !pending.preview_path)
-      return Response.json({ draft: null });
+      return Response.json({
+        draft: null,
+        currentPreviewUrl,
+        activeRevisionId: variantData.active_revision_id,
+      });
     const signed = await client.storage.from(pending.preview_bucket).createSignedUrl(pending.preview_path, 3600);
     if (signed.error) throw signed.error;
-    return Response.json({ draft: { id: pending.id, previewUrl: signed.data.signedUrl } });
+    return Response.json({
+      draft: { id: pending.id, previewUrl: signed.data.signedUrl },
+      currentPreviewUrl,
+      activeRevisionId: variantData.active_revision_id,
+    });
   } catch (error) {
     return authErrorResponse(error) ?? apiError("VARIANT_EDIT_READ_FAILED", "The detail adjustment could not be loaded.", 500);
   }
