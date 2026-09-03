@@ -4,6 +4,7 @@ import { JobDetails } from "@/features/generation/components/job-details";
 import { readGenerationJob } from "@/features/generation/server/generation-job-reader";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { serverLogger } from "@/lib/security/server-log";
 
 export const metadata: Metadata = { title: "Icon set results" };
 
@@ -11,7 +12,7 @@ export default async function IconJobPage({ params }: { params: Promise<{ jobId:
   const [{ jobId }, user] = await Promise.all([params, requireActiveUser()]);
   const client = createAdminSupabaseClient();
   const job = await readGenerationJob(client, user.id, jobId, { includeAssets: false }).catch((error) => {
-    console.error("Failed to read generation job", { jobId, error });
+    serverLogger.error("generation_job_page_load_failed", { jobId, error });
     return null;
   });
   if (!job) notFound();

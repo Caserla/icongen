@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const paramsSchema = z.object({ assetId: z.string().uuid() });
 
@@ -10,7 +10,7 @@ export async function GET(_request: Request, context: { params: Promise<{ assetI
   if (!parsed.success) return apiError("INVALID_ASSET_ID", "The preview asset ID is invalid.", 400);
   try {
     const user = await requireActiveUser();
-    const client = createAdminSupabaseClient();
+    const client = await createServerSupabaseClient();
     const assetResult = await client.from("generation_assets").select("id,variant_id,format,storage_bucket,storage_path").eq("id", parsed.data.assetId).eq("format", "png").maybeSingle();
     if (assetResult.error) throw assetResult.error;
     if (!assetResult.data) return apiError("PREVIEW_NOT_FOUND", "The preview image was not found.", 404);

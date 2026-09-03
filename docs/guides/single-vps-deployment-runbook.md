@@ -330,6 +330,26 @@ sudo docker compose exec -T sub2api-postgres sh -lc 'pg_dump -U "$POSTGRES_USER"
 
 备份文件应加密后复制到另一存储位置，并设置保留期限。至少做一次恢复演练；没有验证恢复的备份不算完成。
 
+仓库同时提供面向任意 PostgreSQL 连接的加密备份与隔离恢复脚本。密钥文件必须位于仓库外并限制为当前运维用户读取：
+
+```bash
+export PRODUCTION_DATABASE_URL='postgresql://...'
+export BACKUP_DIRECTORY='/opt/bamboo-stack/backups/postgres'
+export BACKUP_ENCRYPTION_PASSPHRASE_FILE='/run/secrets/icongen-backup-passphrase'
+./scripts/backup-postgres-encrypted.sh
+```
+
+恢复测试具有破坏性，只能指向一次性的隔离数据库；脚本会拒绝与 `PRODUCTION_DATABASE_URL` 完全相同的地址：
+
+```bash
+export RESTORE_DATABASE_URL='postgresql://.../disposable_restore_test'
+export ENCRYPTED_BACKUP_FILE='/path/to/icongen-postgres-TIMESTAMP.dump.enc'
+export ALLOW_DESTRUCTIVE_RESTORE_TEST=yes
+./scripts/verify-postgres-restore.sh
+```
+
+恢复完成后记录备份时间、恢复耗时、抽查行数、RPO/RTO 和执行人。Supabase Storage 图片仍需使用平台备份或对象存储复制方案单独保护。
+
 ## 15. 更新、回滚和停止计费
 
 更新前先做数据库备份，然后：

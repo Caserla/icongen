@@ -67,7 +67,6 @@ export interface GenerationRepository {
   }): Promise<void>;
   markVariantCompleted(input: {
     variantId: string;
-    prompt: string;
     skillName: string;
     skillVersion: string;
     imageProvider: string;

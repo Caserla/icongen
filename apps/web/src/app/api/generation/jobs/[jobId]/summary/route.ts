@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
-import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { readGenerationJobListItem } from "@/features/generation/server/generation-job-list-reader";
 
 const paramsSchema = z.object({ jobId: z.string().uuid() });
@@ -16,7 +16,7 @@ export async function GET(
   try {
     const user = await requireActiveUser();
     const item = await readGenerationJobListItem(
-      createAdminSupabaseClient(),
+      await createServerSupabaseClient(),
       user.id,
       parsed.data.jobId,
     );

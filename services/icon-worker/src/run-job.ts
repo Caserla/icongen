@@ -2,6 +2,7 @@ import {
   IncompleteGenerationJobSnapshotError,
   processGenerationJob,
 } from "@icongen/backend-core";
+import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
 import { createDependencies } from "./dependencies";
 
@@ -10,6 +11,22 @@ if (!jobId) throw new Error("Usage: npm run process-job -- <job-id>");
 
 const config = loadConfig();
 const dependencies = createDependencies(config);
+const workerId = process.env.WORKER_INSTANCE_ID;
+const leaseSeconds = Math.min(900, Math.max(30, Number(process.env.WORKER_LEASE_SECONDS ?? 120)));
+const leaseClient = workerId
+  ? createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
+const leaseTimer = leaseClient && workerId
+  ? setInterval(() => {
+      void leaseClient.from("generation_jobs").update({
+        worker_lease_expires_at: new Date(Date.now() + leaseSeconds * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq("id", jobId).eq("worker_lease_owner", workerId).eq("status", "processing");
+    }, Math.min(20_000, Math.floor(leaseSeconds * 1000 / 3)))
+  : undefined;
+leaseTimer?.unref();
 
 const MAX_INCOMPLETE_JOB_RELOADS = 3;
 
@@ -36,4 +53,6 @@ try {
   dependencies.logger.error("Local generation job failed", { jobId, error: message });
   await dependencies.repository.markFailedAndRefund(jobId, "GENERATION_FAILED", message);
   process.exitCode = 1;
+} finally {
+  if (leaseTimer) clearInterval(leaseTimer);
 }

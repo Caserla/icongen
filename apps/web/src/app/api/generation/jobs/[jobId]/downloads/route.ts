@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { serverLogger } from "@/lib/security/server-log";
 
 const paramsSchema = z.object({ jobId: z.string().uuid() });
 const MAX_ARCHIVE_INPUT_BYTES = 64 * 1024 * 1024;
@@ -196,7 +197,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("Failed to create generation ZIP", {
+    serverLogger.error("generation_zip_create_failed", {
       jobId: params.success ? params.data.jobId : undefined,
       error,
     });

@@ -3,6 +3,8 @@ import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { startLocalGenerationJob } from "@/features/generation/server/local-generation-runner";
+import { generationRuntimeLimitError } from "@/features/generation/server/generation-create-error";
+import { serverLogger } from "@/lib/security/server-log";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
       p_idempotency_key: generationSpec.idempotencyKey,
     });
     if (error) {
-      console.error("create_generation_job_v2 failed", {
+      serverLogger.error("generation_job_create_failed", {
         code: error.code,
         message: error.message,
         details: error.details,
@@ -66,6 +68,14 @@ export async function POST(request: Request) {
           "You do not have enough credits to generate these icons.",
           402,
           { required: generationSpec.subjects.length, balance: credits.data?.balance ?? null },
+        );
+      }
+      const runtimeLimitError = generationRuntimeLimitError(error.message);
+      if (runtimeLimitError) {
+        return apiError(
+          runtimeLimitError.code,
+          runtimeLimitError.message,
+          runtimeLimitError.status,
         );
       }
       return apiError(

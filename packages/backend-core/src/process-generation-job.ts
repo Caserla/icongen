@@ -297,7 +297,6 @@ export async function processGenerationJob(
         }
         await dependencies.repository.markVariantCompleted({
           variantId: variant.id,
-          prompt: compiled.prompt,
           ...execution,
           providerRequestId: image.providerRequestId,
         });

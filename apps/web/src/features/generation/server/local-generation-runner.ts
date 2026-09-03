@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { localVariantWorkerEnabled } from "./variant-edit-lease";
+import { serverLogger } from "@/lib/security/server-log";
 
 const activeJobs = new Set<string>();
 const scheduledJobs = new Map<string, ReturnType<typeof setTimeout>>();
@@ -33,11 +34,11 @@ function spawnLocalGenerationJob(jobId: string, workspaceRoot: string) {
 
   child.once("error", (error) => {
     activeJobs.delete(jobId);
-    console.error("Failed to start local generation worker", { jobId, message: error.message });
+    serverLogger.error("local_generation_worker_start_failed", { jobId, message: error.message });
   });
   child.once("exit", (code) => {
     activeJobs.delete(jobId);
-    if (code !== 0) console.error("Local generation worker exited unsuccessfully", { jobId, code });
+    if (code !== 0) serverLogger.error("local_generation_worker_exit_failed", { jobId, code });
   });
 }
 
@@ -71,12 +72,12 @@ export function startLocalVariantEdit(editId: string) {
     },
   );
   const markDispatchFailed = async (message: string) => {
-    console.error("Failed to start local variant edit worker", { editId, message });
+    serverLogger.error("local_variant_edit_worker_start_failed", { editId, message });
     const now = new Date().toISOString();
     await createAdminSupabaseClient().from("generation_variant_revisions").update({
       status: "failed",
       error_code: "VARIANT_EDIT_DISPATCH_FAILED",
-      error_message: message.slice(0, 1000),
+      error_message: "The processing worker could not be started. Please try again.",
       completed_at: now,
       updated_at: now,
     }).eq("id", editId).in("status", ["queued", "processing"]);

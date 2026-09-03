@@ -3,6 +3,7 @@ import type {
   GenerationJobRecord,
   GenerationRepository,
 } from "@icongen/backend-core";
+import { publicErrorMessage } from "./public-error-message";
 import { IncompleteGenerationJobSnapshotError } from "@icongen/backend-core";
 import { parseStoredGenerationJobSpec } from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -131,7 +132,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
       .update({
         status: "failed",
         error_code: input.errorCode,
-        error_message: input.errorMessage.slice(0, 1000),
+        error_message: publicErrorMessage("generation"),
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -175,7 +176,6 @@ export class SupabaseGenerationRepository implements GenerationRepository {
 
   async markVariantCompleted(input: {
     variantId: string;
-    prompt: string;
     skillName: string;
     skillVersion: string;
     imageProvider: string;
@@ -187,7 +187,6 @@ export class SupabaseGenerationRepository implements GenerationRepository {
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
-        prompt: input.prompt,
         skill_name: input.skillName,
         skill_version: input.skillVersion,
         image_provider: input.imageProvider,
@@ -239,7 +238,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
   async markFailedAndRefund(
     jobId: string,
     errorCode: string,
-    errorMessage: string,
+    _errorMessage: string,
   ) {
     const subjects = await this.client
       .from("generation_subjects")
@@ -269,7 +268,7 @@ export class SupabaseGenerationRepository implements GenerationRepository {
       {
         p_job_id: jobId,
         p_error_code: errorCode,
-        p_error_message: errorMessage.slice(0, 1000),
+        p_error_message: publicErrorMessage("generation"),
       },
     );
     if (error)

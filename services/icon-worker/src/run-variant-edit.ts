@@ -2,12 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
 import { createDependencies } from "./dependencies";
 import { generateValidatedDetailEdit } from "./generate-validated-detail-edit";
+import { publicErrorMessage } from "./adapters/public-error-message";
 
 const editId = process.argv[2];
 if (!editId) throw new Error("Usage: npm run process-edit -- <edit-id>");
 
 const config = loadConfig();
 const dependencies = createDependencies(config);
+const workerId = process.env.WORKER_INSTANCE_ID;
+const leaseSeconds = Math.min(900, Math.max(30, Number(process.env.WORKER_LEASE_SECONDS ?? 120)));
 const client = createClient(
   config.SUPABASE_URL,
   config.SUPABASE_SERVICE_ROLE_KEY,
@@ -45,14 +48,14 @@ async function run() {
   const revisionResult = await client
     .from("generation_variant_revisions")
     .select(
-      "id,variant_id,parent_revision_id,revision_number,instruction,status",
+      "id,variant_id,parent_revision_id,revision_number,instruction,status,worker_lease_owner",
     )
     .eq("id", editId)
     .maybeSingle();
   if (revisionResult.error) throw revisionResult.error;
   const revision = revisionResult.data;
   if (!revision) throw new Error(`Variant edit ${editId} was not found`);
-  if (revision.status !== "queued") return;
+  if (revision.status !== "queued" && !(revision.status === "processing" && workerId && revision.worker_lease_owner === workerId)) return;
 
   const variantResult = await client
     .from("generation_variants")
@@ -74,16 +77,21 @@ async function run() {
   if (!subjectRecord)
     throw new Error(`Generation subject ${subject.id} was not found`);
 
-  const claimed = await client
+  let claimQuery = client
     .from("generation_variant_revisions")
     .update({
       status: "processing",
       started_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      worker_lease_owner: workerId ?? null,
+      worker_lease_expires_at: workerId
+        ? new Date(Date.now() + leaseSeconds * 1000).toISOString()
+        : null,
     })
     .eq("id", editId)
-    .eq("status", "queued")
-    .select("id")
+    .in("status", workerId ? ["queued", "processing"] : ["queued"]);
+  if (workerId) claimQuery = claimQuery.eq("worker_lease_owner", workerId);
+  const claimed = await claimQuery.select("id")
     .maybeSingle();
   if (claimed.error) throw claimed.error;
   if (!claimed.data) return;
@@ -92,10 +100,17 @@ async function run() {
     // PostgREST builders are lazy thenables. Awaiting the builder is required;
     // merely constructing it does not dispatch the heartbeat request.
     void (async () => {
-      const heartbeat = await client.from("generation_variant_revisions")
-        .update({ updated_at: now })
+      let heartbeatQuery = client.from("generation_variant_revisions")
+        .update({
+          updated_at: now,
+          worker_lease_expires_at: workerId
+            ? new Date(Date.now() + leaseSeconds * 1000).toISOString()
+            : null,
+        })
         .eq("id", editId)
         .eq("status", "processing");
+      if (workerId) heartbeatQuery = heartbeatQuery.eq("worker_lease_owner", workerId);
+      const heartbeat = await heartbeatQuery;
       if (heartbeat.error) {
         dependencies.logger.error("Variant detail edit heartbeat failed", {
           editId,
@@ -335,7 +350,7 @@ try {
     .update({
       status: "failed",
       error_code: "VARIANT_EDIT_FAILED",
-      error_message: message.slice(0, 1000),
+      error_message: publicErrorMessage("edit"),
       completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

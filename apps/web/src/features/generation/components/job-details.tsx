@@ -9,6 +9,8 @@ import { SkeletonBlock } from "@/components/ui/page-skeletons";
 import {
   applyVariantPreview,
   hasAppliedVariantPreview,
+  mergePolledGenerationJob,
+  shouldRevealGenerationPreview,
   type AppliedVariantPreview,
 } from "@/features/generation/variant-preview-update";
 import { VariantEditDialog } from "./variant-edit-dialog";
@@ -36,6 +38,9 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     alt: string;
   } | null>(null);
   const requestedInitialAssets = useRef(false);
+  const [revealedDuringGeneration, setRevealedDuringGeneration] = useState(
+    !finished.has(initialJob.status),
+  );
   const [settledPreviewUrls, setSettledPreviewUrls] = useState<Set<string>>(
     () => new Set(),
   );
@@ -82,7 +87,8 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
           cache: "no-store",
         });
         if (response.ok && !cancelled) {
-          setJob(await response.json());
+          const refreshed = (await response.json()) as GenerationJobV2;
+          setJob((current) => mergePolledGenerationJob(current, refreshed));
           setLastUpdatedAt(Date.now());
         }
       } catch {
@@ -215,6 +221,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     });
   }
   async function retryVariant(variantId: string) {
+    setRevealedDuringGeneration(true);
     setRetrying((current) => new Set(current).add(variantId));
     setMessage("");
     try {
@@ -468,7 +475,13 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                             src={previewUrl}
                             alt={`${subject.name} option ${variant.slot}`}
                             className="h-full w-full"
-                            reveal={resultPreviewsReady}
+                            reveal={shouldRevealGenerationPreview({
+                              revealedDuringGeneration:
+                                revealedDuringGeneration,
+                              allPreviewsReady: resultPreviewsReady,
+                              currentPreviewSettled:
+                                settledPreviewUrls.has(previewUrl),
+                            })}
                             onLoad={() => markPreviewSettled(previewUrl)}
                             onError={() => markPreviewSettled(previewUrl)}
                             failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}

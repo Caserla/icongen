@@ -13,3 +13,11 @@ test("redacts secret fields and signed query values", () => {
 test("redacts bearer credentials embedded in provider errors", () => {
   assert.equal(redactLogValue("request failed: Bearer abc.def"), "request failed: Bearer [REDACTED]");
 });
+
+test("redacts secrets embedded in provider error strings", () => {
+  const result = String(
+    redactLogValue('request failed: {"prompt":"private style contract with spaces","api_key":"sk-secret"}'),
+  );
+  assert.doesNotMatch(result, /private style contract|sk-secret/);
+  assert.match(result, /\[REDACTED\]/);
+});
