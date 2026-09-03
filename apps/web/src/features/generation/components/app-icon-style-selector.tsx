@@ -21,10 +21,11 @@ export function AppIconStyleSelector({
         <legend className="text-sm font-bold">
           {locale === "zh" ? "风格预设" : "Style preset"}
         </legend>
-        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {appIconPresets.map((preset) => {
             const selected = value.preset === preset.id;
-          const previewClass = "object-contain transition duration-300 group-hover:scale-[1.02]";
+            const previewClass =
+              "object-contain transition duration-300 group-hover:scale-[1.02]";
             return (
               <button
                 key={preset.id}
@@ -36,10 +37,10 @@ export function AppIconStyleSelector({
                     preset: preset.id as IconStyle["preset"],
                   })
                 }
-                className={`group overflow-hidden rounded-2xl border p-2 text-left transition duration-200 ${selected ? "border-brand bg-[#f2eeff] shadow-[0_3px_0_#6750E8]" : "border-border bg-background hover:-translate-y-0.5 hover:border-[#b8aaf8] hover:shadow-md"}`}
+                className={`card-polish group overflow-hidden rounded-[5px] border p-2 text-left transition duration-200 ${selected ? "border-brand bg-[#e1e6f1] shadow-[4px_4px_0_rgba(40,63,125,.22)]" : "border-border bg-[#fffaf0] hover:border-brand"}`}
               >
                 <span
-              className="relative block aspect-square overflow-hidden rounded-xl bg-surface-muted"
+                  className="relative block aspect-square overflow-hidden rounded-[3px] border border-border/50 bg-surface-muted"
                 >
                   <ImageWithSkeleton
                     src={preset.previewImage}
@@ -55,7 +56,7 @@ export function AppIconStyleSelector({
                     {selected ? (
                       <span
                         aria-hidden="true"
-                        className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-xs text-white"
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-[2px] bg-brand text-xs text-white"
                       >
                         ✓
                       </span>

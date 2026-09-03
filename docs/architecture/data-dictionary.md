@@ -1,6 +1,6 @@
 # 生成域数据字典
 
-更新时间：2026-09-01
+更新时间：2026-09-03
 
 本页描述当前生成域的核心数据对象。字段与约束的最终来源是 `infra/supabase/migrations` 和 `packages/shared/src/generation-v2.ts`。
 
@@ -40,6 +40,18 @@
 - `style`：预设、线性/面性、主体占比、线宽及兼容风格字段。
 - `sizes`：从 16、32、48、64、128、256 中选择 1–3 项。
 - `settingsVersion` 与 `idempotencyKey` 必填。
+
+## credit_accounts 与 credit_ledger
+
+- `credit_accounts.balance` 是当前余额快照，所有余额变化必须与账本写入在同一数据库事务完成。
+- `credit_ledger` 是不可变流水；类型包括购买、生成扣点、生成返还、人工调整、新用户赠送和 CD-Key 充值。
+- 流水保存变动值、变动后余额、关联任务/订单/兑换码以及幂等键，前端只返回用户需要的非敏感字段。
+
+## credit_redemption_codes
+
+- 保存 CD-Key 哈希、末四位提示、点数、到期/停用/核销状态和内部备注，不保存明文兑换码。
+- `redeemed_by + redeemed_at` 必须同时为空或同时存在；每枚兑换码至多关联一条账本记录。
+- 表启用 RLS 且不给普通用户读取策略；创建仅允许 Service Role，用户核销仅通过受控数据库函数完成。
 
 ## 后续版本编辑扩展
 

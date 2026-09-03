@@ -113,7 +113,7 @@ import {
 | --- | --- |
 | `VALIDATION_ERROR` | 定位字段并保留草稿 |
 | `SETTINGS_VERSION_EXPIRED` | 刷新核心设置并要求确认变化 |
-| `INSUFFICIENT_CREDITS` | 打开价格页并保留草稿 |
+| `INSUFFICIENT_CREDITS` | 在创建页显示所需点数与当前余额，保留全部草稿；可另行提供点数包入口 |
 | `ACTIVE_JOB_LIMIT_REACHED` | 保留草稿，打开当前活动任务 |
 | `CONTENT_POLICY_BLOCKED` | 标记具体主体并提供支持邮箱 |
 | `GENERATION_QUEUE_FAILED` | 展示安全重试，不得重复扣点 |

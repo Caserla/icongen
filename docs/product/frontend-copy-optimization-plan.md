@@ -164,7 +164,7 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 | 尺寸说明 | Choose multiple sizes, up to 3. Selected 3/3. / 支持多选，最多选择 3 种…… | Choose up to 3 output sizes. 3 of 3 selected. / 最多选择 3 种输出尺寸，当前已选 3/3。 | 更准确，并保留动态计数 |
 | 提交中 | Creating task… / 正在创建任务… | Starting generation… / 正在开始生成… | 不暴露“任务”实现概念 |
 | 提交按钮 | Generate icons / 生成图标 | Generate 3 options per icon / 为每个图标生成 3 个方案 | 点击结果更明确；需确认移动端按钮长度 |
-| 无主体错误 | Describe at least one icon subject. / 请至少填写一个图标主体的描述。 | Describe at least one icon before generating. / 请至少描述一个图标后再生成。 | 明确动作发生时机 |
+| 无主体错误 | Describe at least one icon subject. / 请至少填写一个图标主体的描述。 | Describe at least one icon before generating. / 请至少填写一个图标需求再生成。 | 明确动作发生时机 |
 | 格式错误 | Some icon subjects are incomplete. Check the entered content. / 部分图标主体格式不完整…… | Some icon descriptions are incomplete. Review each field and try again. / 部分图标描述不完整，请检查每个输入项后重试。 | 给出恢复路径 |
 | 设置加载失败 | Design settings failed to load. Refresh the page. / 设计设置加载失败，请刷新页面。 | Icon settings could not load. Refresh the page to try again. / 图标设置加载失败，请刷新页面重试。 | 主语更贴近用户界面 |
 | 尺寸上限 | Choose up to 3 reference sizes. / 参考尺寸最多选择 3 种。 | Choose up to 3 output sizes. / 最多选择 3 种输出尺寸。 | 与标题统一 |

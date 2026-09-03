@@ -23,8 +23,8 @@ const statusOptions: { id?: GenerationJobStatusFilter; label: { zh: string; en: 
 ];
 
 const usageOptions: { id: GenerationJobUsageFilter; label: { zh: string; en: string } }[] = [
-  { id: "interaction", label: { zh: "App 交互图标", en: "App UI icons" } },
-  { id: "illustration", label: { zh: "App 插画图标", en: "App illustration icons" } },
+  { id: "interaction", label: { zh: "交互图标", en: "Interaction icons" } },
+  { id: "illustration", label: { zh: "插画图标", en: "Illustration icons" } },
 ];
 const structureOptions: { id: GenerationJobStructureFilter; label: { zh: string; en: string }; description: { zh: string; en: string } }[] = [
   { id: "linear", label: { zh: "线性图标", en: "Line icons" }, description: { zh: "使用统一线条构成的清晰交互图标", en: "Clear UI icons built with consistent strokes" } },
@@ -97,11 +97,11 @@ function PageJumpInput({ page, totalPages, locale, disabled, onJump, onInvalid }
     onInvalid(messages[result.error]);
     setValue(String(page));
   }
-  if (totalPages <= 1) return <span aria-current="page" className="min-w-14 border-x border-border/70 px-3 text-center text-xs font-black tabular-nums text-foreground">1<span className="mx-1.5 font-medium text-muted">/</span>1</span>;
-  return <label className="pointer-events-auto flex h-7 items-center gap-0.5 border-x border-border/70 px-2.5 text-xs font-black tabular-nums text-foreground">
+  if (totalPages <= 1) return <span aria-current="page" className="flex h-8 min-w-14 items-center justify-center px-2 text-center text-sm font-black leading-none tabular-nums text-foreground">1<span className="mx-1.5 text-xs font-medium text-muted">/</span><span className="text-xs text-muted">1</span></span>;
+  return <label className="pointer-events-auto flex h-8 items-center gap-1 px-2 text-sm font-black leading-none tabular-nums text-foreground">
     <span className="sr-only">{locale === "zh" ? "输入页码" : "Enter page number"}</span>
-    <input key={page} type="text" inputMode="numeric" disabled={disabled} value={value} onChange={(event) => setValue(event.target.value)} onFocus={(event) => event.currentTarget.select()} onBlur={submit} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} aria-label={locale === "zh" ? `当前第 ${page} 页，输入页码跳转` : `Page ${page}; enter a page to jump`} className="h-7 w-7 rounded-md border-0 bg-transparent p-0 text-center text-xs font-black outline-none transition hover:bg-white/45 focus:bg-white/60 focus:text-brand disabled:cursor-wait disabled:opacity-50"/>
-    <span className="mx-0.5 font-medium text-muted">/</span><span className="min-w-5 text-center">{totalPages}</span>
+    <input key={page} type="text" inputMode="numeric" disabled={disabled} value={value} onChange={(event) => setValue(event.target.value)} onFocus={(event) => event.currentTarget.select()} onBlur={submit} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} aria-label={locale === "zh" ? `当前第 ${page} 页，输入页码跳转` : `Page ${page}; enter a page to jump`} className="h-7 w-7 border-0 bg-transparent p-0 text-center text-sm font-black text-brand outline-none transition-colors focus:text-brand-strong disabled:cursor-default"/>
+    <span className="mx-0.5 text-xs font-medium text-muted">/</span><span className="min-w-5 text-center text-xs font-bold text-muted">{totalPages}</span>
   </label>;
 }
 
@@ -122,7 +122,7 @@ function JobPreviewGroup({ urls, locale }: { urls: string[]; locale: "en" | "zh"
   return <div className="mt-4 grid max-w-[420px] grid-cols-3 gap-3" aria-busy={!ready} aria-label={!ready ? (locale === "zh" ? "正在加载预览图" : "Loading previews") : undefined}>
     {urls.map((src, index) => <div key={src} className="relative aspect-square overflow-hidden">
       {!ready ? <span className="absolute inset-0 z-[2]"><SkeletonBlock className="h-full w-full rounded-[inherit]" /></span> : null}
-      <div className={`h-full w-full transition-none ${ready ? "visible" : "invisible"}`}>
+      <div className={`h-full w-full ${ready ? "asset-reveal visible" : "invisible"}`}>
         <GeneratedIconPreview src={src} locale={locale} alt={locale === "zh" ? `生成方案 ${index + 1}` : `Generated option ${index + 1}`} showSkeleton={false} onSettled={() => markSettled(index)}/>
       </div>
     </div>)}
@@ -137,11 +137,12 @@ function JobCard({ job, locale, returnHref }: { job: GenerationJobListItem; loca
       "icongen:icons-return-href",
       returnHref,
     );
-  }} className="focus-ring block rounded-[20px] border border-border bg-white p-5 transition hover:border-brand">
+  }} className="card-polish focus-ring paper-panel group block rounded-[6px] border border-border p-5 transition hover:border-brand">
     <div className="flex items-start justify-between gap-5">
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 font-black leading-snug">{job.subjects.map((subject) => subject.name).join(locale === "zh" ? "、" : ", ") || (locale === "zh" ? "未命名图标集" : "Untitled icon set")}</p>
-        <p className="mt-1 text-sm text-muted">{locale === "zh" ? "创建时间：" : "Created: "}{new Date(job.createdAt).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}</p>
+        <p className="draft-label mb-2 text-accent">PROJECT / {job.id.slice(0, 8)}</p>
+        <p className="line-clamp-2 font-black leading-snug transition group-hover:text-brand">{job.subjects.map((subject) => subject.name).join(locale === "zh" ? "、" : ", ") || (locale === "zh" ? "未命名图标集" : "Untitled icon set")}</p>
+        <p className="mt-1 font-mono text-xs text-muted">{locale === "zh" ? "创建时间：" : "Created: "}{new Date(job.createdAt).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}</p>
       </div>
       <div className="shrink-0"><StatusBadge status={job.status}/></div>
     </div>
@@ -242,9 +243,8 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
     const shouldRestoreScroll = sessionStorage.getItem("icongen:icons-return") === "1" || Boolean(sessionStorage.getItem("icongen:refresh-job"));
     const scroll = Number(sessionStorage.getItem("icongen:icons-scroll"));
     sessionStorage.removeItem("icongen:icons-return");
-    pendingScrollTop.current = shouldRestoreScroll && Number.isFinite(scroll) && scroll > 0 ? scroll : 0;
+    pendingScrollTop.current = shouldRestoreScroll && Number.isFinite(scroll) && scroll > 0 ? scroll : null;
     sessionStorage.removeItem("icongen:icons-scroll");
-    requestAnimationFrame(() => window.scrollTo({ top: 0 }));
     requestAnimationFrame(() => void refreshChangedCard());
     const onPageShow = () => void refreshChangedCard();
     window.addEventListener("pageshow", onPageShow);
@@ -286,46 +286,47 @@ export function IconJobList({ selectedPage, selectedUsage, selectedStyle, select
     <div className="mt-6">
       <p className="mb-3 text-sm font-black">{locale === "zh" ? "图标类型" : "Icon type"}</p>
       <nav aria-label={locale === "zh" ? "按图标类型筛选" : "Filter by icon type"} className="flex flex-wrap gap-2">
-        {usageOptions.map((option) => <button type="button" key={option.id} onClick={() => selectUsage(option.id)} aria-current={activeUsage === option.id ? "page" : undefined} className={`focus-ring rounded-full border px-4 py-2 text-sm font-bold transition ${activeUsage === option.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{option.label[locale]}</button>)}
+        {usageOptions.map((option) => <button type="button" key={option.id} onClick={() => selectUsage(option.id)} aria-current={activeUsage === option.id ? "page" : undefined} className={`focus-ring folder-tab motion-filter border px-4 py-2 text-sm font-bold ${activeUsage === option.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{option.label[locale]}</button>)}
       </nav>
     </div>
 
     <div className="mt-5 border-t border-border pt-5">
       <p className="mb-3 text-sm font-black">{locale === "zh" ? "风格选择" : "Style"}</p>
       <nav aria-label={locale === "zh" ? "按风格筛选" : "Filter by style"} className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => activeUsage === "interaction" ? selectStructure(undefined) : selectStyle(undefined)} aria-current={activeUsage === "interaction" ? !activeStructure ? "page" : undefined : !activeStyle ? "page" : undefined} className={`focus-ring inline-flex shrink-0 items-center rounded-full border px-4 py-2 text-sm font-bold transition ${(activeUsage === "interaction" ? !activeStructure : !activeStyle) ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{locale === "zh" ? "全部风格" : "All styles"}</button>
-      {activeUsage === "interaction" ? structureOptions.map((option) => <button type="button" key={option.id} onClick={() => selectStructure(option.id)} aria-current={activeStructure === option.id ? "page" : undefined} className={`focus-ring inline-flex shrink-0 items-center rounded-full border px-4 py-2 text-sm font-bold transition ${activeStructure === option.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{option.label[locale]}</button>) : stylesForUsage(activeUsage).map((preset) => <button type="button" key={preset.id} onClick={() => selectStyle(preset.id)} aria-current={activeStyle === preset.id ? "page" : undefined} className={`focus-ring inline-flex shrink-0 items-center rounded-full border px-4 py-2 text-sm font-bold transition ${activeStyle === preset.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{preset.label[locale]}</button>)}
+      <button type="button" onClick={() => activeUsage === "interaction" ? selectStructure(undefined) : selectStyle(undefined)} aria-current={activeUsage === "interaction" ? !activeStructure ? "page" : undefined : !activeStyle ? "page" : undefined} className={`focus-ring folder-tab motion-filter inline-flex shrink-0 items-center border px-4 py-2 text-sm font-bold ${(activeUsage === "interaction" ? !activeStructure : !activeStyle) ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{locale === "zh" ? "全部风格" : "All styles"}</button>
+      {activeUsage === "interaction" ? structureOptions.map((option) => <button type="button" key={option.id} onClick={() => selectStructure(option.id)} aria-current={activeStructure === option.id ? "page" : undefined} className={`focus-ring folder-tab motion-filter inline-flex shrink-0 items-center border px-4 py-2 text-sm font-bold ${activeStructure === option.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{option.label[locale]}</button>) : stylesForUsage(activeUsage).map((preset) => <button type="button" key={preset.id} onClick={() => selectStyle(preset.id)} aria-current={activeStyle === preset.id ? "page" : undefined} className={`focus-ring folder-tab motion-filter inline-flex shrink-0 items-center border px-4 py-2 text-sm font-bold ${activeStyle === preset.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{preset.label[locale]}</button>)}
       </nav>
     </div>
 
     <div className="mt-5 border-t border-border pt-5">
       <p className="mb-3 text-sm font-black">{locale === "zh" ? "状态选择" : "Status"}</p>
       <nav aria-label={locale === "zh" ? "按状态筛选" : "Filter by status"} className="flex flex-wrap gap-2">
-        {statusOptions.map((option) => <button type="button" key={option.id ?? "all"} onClick={() => selectStatus(option.id)} aria-current={activeStatus === option.id ? "page" : undefined} className={`focus-ring rounded-full border px-4 py-2 text-sm font-bold transition ${activeStatus === option.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{option.label[locale]}</button>)}
+        {statusOptions.map((option) => <button type="button" key={option.id ?? "all"} onClick={() => selectStatus(option.id)} aria-current={activeStatus === option.id ? "page" : undefined} className={`focus-ring folder-tab motion-filter border px-4 py-2 text-sm font-bold ${activeStatus === option.id ? "border-brand bg-brand text-white" : "border-border bg-white hover:border-brand"}`}>{option.label[locale]}</button>)}
       </nav>
     </div>
 
-    {isLoading ? <div className="mt-8 grid gap-4" aria-busy="true" aria-label={locale === "zh" ? "正在加载图标" : "Loading icons"}>{[0, 1, 2].map((item) => <SkeletonBlock key={item} className="h-44 rounded-[20px]" />)}</div> : loadFailed ? <section className="mt-8 rounded-[20px] border border-dashed border-border p-8 text-center"><p className="font-bold text-muted">{locale === "zh" ? "图标加载失败，请重新选择后重试。" : "Icons failed to load. Select the filter again to retry."}</p></section> : activeResult.jobs.length === 0 ? <section className="mt-8 rounded-[20px] border border-dashed border-border p-8 text-center">
+    {isLoading ? <div className="mt-8 grid gap-4" aria-busy="true" aria-label={locale === "zh" ? "正在加载图标" : "Loading icons"}>{[0, 1, 2].map((item) => <SkeletonBlock key={item} className="h-44 rounded-[6px]" />)}</div> : loadFailed ? <section className="mt-8 rounded-[6px] border border-dashed border-border p-8 text-center"><p className="font-bold text-muted">{locale === "zh" ? "图标加载失败，请重新选择后重试。" : "Icons failed to load. Select the filter again to retry."}</p></section> : activeResult.jobs.length === 0 ? <section className="mt-8 rounded-[6px] border border-dashed border-border p-8 text-center">
       {showStatusEmptyState ? <Image src="/images/placeholders/generated-icon-no-options-v7.png" alt="" width={880} height={552} className="mx-auto h-auto w-56 object-contain opacity-90 sm:w-64" priority/> : null}
       <p className={`${showStatusEmptyState ? "mt-3 text-lg text-[#898BAF]" : ""} font-bold`}>{showStatusEmptyState || activeStyle ? (locale === "zh" ? "暂无图标" : "No icons yet") : (locale === "zh" ? "还没有图标集" : "No icon sets yet")}</p>
-      {!showStatusEmptyState ? <Link href="/create" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">{locale === "zh" ? "创建一套图标" : "Create an icon set"}</Link> : null}
-    </section> : !activeStyle && !activeStructure ? <div className="mt-8 grid gap-4">{activeResult.jobs.map((job) => <JobCard key={job.id} job={job} locale={locale} returnHref={currentListHref}/>)}</div> : <div className="mt-8 space-y-8">
+      {!showStatusEmptyState ? <Link href="/create" className="mechanical-button mt-4 inline-flex min-h-11 items-center bg-brand px-5 text-sm font-bold text-white">{locale === "zh" ? "创建一套图标" : "Create an icon set"}</Link> : null}
+    </section> : !activeStyle && !activeStructure ? <div className="stagger-grid mt-8 grid gap-4">{activeResult.jobs.map((job) => <JobCard key={job.id} job={job} locale={locale} returnHref={currentListHref}/>)}</div> : <div className="mt-8 space-y-8">
       {groups.map(({ preset, jobs }) => <section key={preset.id} aria-labelledby={`style-${preset.id}`}>
         <div className="mb-3">
           <div><h2 id={`style-${preset.id}`} className="text-xl font-black">{preset.label[locale]}</h2><p className="mt-1 text-sm text-muted">{preset.description[locale]}</p></div>
         </div>
-        <div className="grid gap-4">{jobs.map((job) => <JobCard key={job.id} job={job} locale={locale} returnHref={currentListHref}/>)}</div>
+        <div className="stagger-grid grid gap-4">{jobs.map((job) => <JobCard key={job.id} job={job} locale={locale} returnHref={currentListHref}/>)}</div>
       </section>)}
     </div>}
 
-    {activeResult.total > 0 && <nav aria-label={locale === "zh" ? "图标集分页" : "Icon set pagination"} aria-busy={isLoading} className="pointer-events-none fixed bottom-4 left-1/2 z-40 flex h-11 -translate-x-1/2 items-center rounded-full border border-white/70 bg-white/55 px-1.5 shadow-[0_10px_30px_rgba(32,27,48,.10),inset_0_1px_0_rgba(255,255,255,.85)] backdrop-blur-xl backdrop-saturate-150">
-      <span>
-        <button type="button" disabled={isLoading || activeResult.page <= 1} title={locale === "zh" ? "上一页" : "Previous"} aria-label={locale === "zh" ? (activeResult.page <= 1 ? "已是第一页" : `上一页，第 ${activeResult.page - 1} 页`) : (activeResult.page <= 1 ? "Already on the first page" : `Previous, page ${activeResult.page - 1}`)} onClick={() => selectPage(activeResult.page - 1)} className="focus-ring pointer-events-auto grid size-9 place-items-center rounded-full text-foreground transition duration-150 hover:bg-white/55 hover:text-brand disabled:cursor-not-allowed disabled:text-muted disabled:opacity-30"><svg aria-hidden="true" viewBox="0 0 24 24" className="size-[17px] fill-none stroke-current stroke-[2.2]"><path d="m14.5 6.5-5 5.5 5 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+    {activeResult.total > 0 && <nav aria-label={locale === "zh" ? "图标集分页" : "Icon set pagination"} aria-busy={isLoading} className="pagination-float pointer-events-none fixed bottom-6 left-1/2 z-[80] flex h-10 -translate-x-1/2 items-center gap-0.5 rounded-full border px-1">
+      <span className="flex items-center">
+        <button type="button" disabled={isLoading || activeResult.page <= 1} title={locale === "zh" ? "上一页" : "Previous"} aria-label={locale === "zh" ? (activeResult.page <= 1 ? "已是第一页" : `上一页，第 ${activeResult.page - 1} 页`) : (activeResult.page <= 1 ? "Already on the first page" : `Previous, page ${activeResult.page - 1}`)} onClick={() => selectPage(activeResult.page - 1)} className="focus-ring pointer-events-auto grid size-8 place-items-center rounded-full text-foreground transition-colors duration-150 hover:text-brand disabled:cursor-not-allowed disabled:text-muted disabled:opacity-30"><svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current stroke-[2.2]"><path d="m14.5 6.5-5 5.5 5 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       </span>
       <PageJumpInput key={`${activeResult.page}:${activeResult.totalPages}`} page={activeResult.page} totalPages={activeResult.totalPages} locale={locale} disabled={isLoading} onJump={selectPage} onInvalid={setPageToast}/>
-      <span>
-        <button type="button" disabled={isLoading || activeResult.page >= activeResult.totalPages} title={locale === "zh" ? "下一页" : "Next"} aria-label={locale === "zh" ? (activeResult.page >= activeResult.totalPages ? "已是最后一页" : `下一页，第 ${activeResult.page + 1} 页`) : (activeResult.page >= activeResult.totalPages ? "Already on the last page" : `Next, page ${activeResult.page + 1}`)} onClick={() => selectPage(activeResult.page + 1)} className="focus-ring pointer-events-auto grid size-9 place-items-center rounded-full text-foreground transition duration-150 hover:bg-white/55 hover:text-brand disabled:cursor-not-allowed disabled:text-muted disabled:opacity-30"><svg aria-hidden="true" viewBox="0 0 24 24" className="size-[17px] fill-none stroke-current stroke-[2.2]"><path d="m9.5 6.5 5 5.5-5 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+      <span className="flex items-center">
+        <button type="button" disabled={isLoading || activeResult.page >= activeResult.totalPages} title={locale === "zh" ? "下一页" : "Next"} aria-label={locale === "zh" ? (activeResult.page >= activeResult.totalPages ? "已是最后一页" : `下一页，第 ${activeResult.page + 1} 页`) : (activeResult.page >= activeResult.totalPages ? "Already on the last page" : `Next, page ${activeResult.page + 1}`)} onClick={() => selectPage(activeResult.page + 1)} className="focus-ring pointer-events-auto grid size-8 place-items-center rounded-full text-foreground transition-colors duration-150 hover:text-brand disabled:cursor-not-allowed disabled:text-muted disabled:opacity-30"><svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current stroke-[2.2]"><path d="m9.5 6.5 5 5.5-5 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
       </span>
+      {isLoading ? <span className="pagination-loading-bar" aria-hidden="true"/> : null}
     </nav>}
   </div>;
 }

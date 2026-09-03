@@ -59,7 +59,8 @@ function SubjectColorEditor({
                   : gradient,
               )
             }
-            className={`rounded-full border px-4 py-2 text-sm font-semibold ${value.mode === mode ? "border-foreground bg-foreground text-white" : "border-border bg-background"}`}
+            aria-pressed={value.mode === mode}
+            className="draft-option px-4 py-2 text-sm font-semibold"
           >
             {locale === "zh"
               ? mode === "solid"
@@ -72,7 +73,7 @@ function SubjectColorEditor({
         ))}
       </div>
       {value.mode === "solid" ? (
-        <label className="block rounded-xl border border-border bg-background p-3 text-sm font-semibold">
+        <label className="block rounded-[4px] border border-border bg-background p-3 text-sm font-semibold">
           <span className="mb-2 block">
             {locale === "zh" ? "颜色值" : "Color value"}
           </span>
@@ -89,12 +90,12 @@ function SubjectColorEditor({
               defaultValue={value.color.toUpperCase()}
               onBlur={(event) => updateColor(event.currentTarget.value.trim())}
               placeholder="#RRGGBB"
-              className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono font-normal uppercase"
+              className="draft-control min-w-0 flex-1 px-3 py-2 font-mono font-normal uppercase"
             />
           </span>
         </label>
       ) : (
-        <p className="rounded-xl border border-border bg-surface-muted px-4 py-3 text-sm text-muted">
+        <p className="rounded-[4px] border border-border bg-surface-muted px-4 py-3 text-sm text-muted">
           {locale === "zh"
             ? "颜色将根据图标内容与所选风格自动生成。"
             : "Colors are generated automatically from the icon content and selected style."}
@@ -139,7 +140,7 @@ function GradientEditor({
             <span className="mb-1.5 block text-xs font-semibold text-muted">
               {label}
             </span>
-            <span className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-2 py-2">
+            <span className="flex min-w-0 items-center gap-2 rounded-[4px] border border-border bg-background px-2 py-2">
               <input
                 aria-label={label}
                 type="color"
@@ -172,7 +173,7 @@ function GradientEditor({
               direction: event.target.value as GradientDirection,
             })
           }
-          className="min-h-11 w-full appearance-none rounded-xl border border-border bg-background py-2 pl-3 pr-10 text-sm"
+          className="min-h-11 w-full appearance-none rounded-[4px] border border-border bg-background py-2 pl-3 pr-10 text-sm"
         >
           {directions.map((direction) => (
             <option key={direction} value={direction}>
@@ -220,7 +221,7 @@ function SolidBackgroundEditor({
       onChange({ mode: "solid", color: color.toUpperCase() });
   }
   return (
-    <label className="flex items-center gap-2 rounded-xl border border-border bg-background px-2 py-2">
+    <label className="flex items-center gap-2 rounded-[4px] border border-border bg-background px-2 py-2">
       <input
         aria-label={label}
         type="color"
@@ -290,19 +291,19 @@ export function InteractionIconEditor(props: {
         cornerRadius={cornerRadius}
         locale={locale}
       >
-        <div className="border-b border-border pb-4 md:border-b-0 md:border-r md:pb-0 md:pr-4">
+        <div className="rounded-[5px] border border-border/70 bg-[#fffaf0]/70 p-4 sm:p-5">
           <fieldset className="mb-4">
             <legend className="text-sm font-black">
               {locale === "zh" ? "图形结构" : "Icon structure"}
             </legend>
-            <div className="mt-2 inline-flex rounded-xl border border-border bg-surface-muted p-1">
+            <div className="draft-control mt-2 inline-flex gap-1 bg-surface-muted p-1">
               {(["linear", "filled"] as const).map((structure) => (
                 <button
                   key={structure}
                   type="button"
                   aria-pressed={iconStructure === structure}
                   onClick={() => onIconStructureChange(structure)}
-                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${iconStructure === structure ? "bg-background text-brand shadow-sm" : "text-muted hover:text-foreground"}`}
+                  className="draft-option px-4 py-2 text-sm font-semibold"
                 >
                   {locale === "zh"
                     ? structure === "linear"
@@ -315,9 +316,9 @@ export function InteractionIconEditor(props: {
               ))}
             </div>
           </fieldset>
-          <div className="mb-4 grid gap-3">
+          <div className="mb-4 grid max-w-md gap-3">
             {iconStructure === "linear" ? (
-              <label className="rounded-xl border border-border bg-surface-muted px-3 py-2">
+              <label className="rounded-[4px] border border-border bg-surface-muted px-3 py-2">
                 <span className="flex items-center justify-between text-xs font-semibold">
                   <span>{locale === "zh" ? "线条粗细" : "Stroke width"}</span>
                   <output className="font-mono text-muted">{linearStrokeWidthPercent.toFixed(1)}%</output>
@@ -325,7 +326,7 @@ export function InteractionIconEditor(props: {
                 <input aria-label={locale === "zh" ? "线条粗细" : "Stroke width"} type="range" min="2" max="6" step="0.5" value={linearStrokeWidthPercent} onInput={(event) => onLinearStrokeWidthPercentChange(Number(event.currentTarget.value))} className="mt-2 w-full accent-brand" />
               </label>
             ) : null}
-            <label className="rounded-xl border border-border bg-surface-muted px-3 py-2">
+            <label className="max-w-md rounded-[4px] border border-border bg-surface-muted px-3 py-2">
               <span className="flex items-center justify-between text-xs font-semibold">
                 <span>{locale === "zh" ? "主体大小" : "Subject size"}</span>
                 <output className="font-mono text-muted">{subjectSizePercent}%</output>
@@ -342,7 +343,7 @@ export function InteractionIconEditor(props: {
             locale={locale}
           />
         </div>
-        <div className="md:pl-4">
+        <div className="rounded-[5px] border border-border/70 bg-[#fffaf0]/70 p-4 sm:p-5">
           <h3 className="text-sm font-black">
             {locale === "zh" ? "图标背景" : "Icon background"}
           </h3>
@@ -351,8 +352,9 @@ export function InteractionIconEditor(props: {
               <button
                 key={mode}
                 type="button"
+                aria-pressed={backgroundMode === mode}
                 onClick={() => onBackgroundModeChange(mode)}
-                className={`rounded-full border px-3 py-2 text-sm font-semibold ${backgroundMode === mode ? "border-foreground bg-foreground text-white" : "border-border"}`}
+                className="draft-option px-3 py-2 text-sm font-semibold"
               >
                 {locale === "zh"
                   ? (
@@ -372,12 +374,8 @@ export function InteractionIconEditor(props: {
               </button>
             ))}
           </div>
-          <div
-            aria-hidden={!backgroundEnabled}
-            inert={!backgroundEnabled}
-            className={`mt-3 min-h-40 space-y-3 transition-opacity ${backgroundEnabled ? "opacity-100" : "invisible opacity-0"}`}
-          >
-            <div className="inline-flex rounded-xl border border-border bg-surface-muted p-1">
+          {backgroundEnabled ? <div className="mt-4 space-y-3">
+            <div className="draft-control inline-flex gap-1 bg-surface-muted p-1">
               {BACKGROUND_TYPE_OPTION_IDS.map((id) => {
                 const selected = backgroundContainer === id;
                 const label =
@@ -402,7 +400,7 @@ export function InteractionIconEditor(props: {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => onBackgroundContainerChange(id)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${selected ? "bg-background text-brand shadow-sm" : "text-muted hover:text-foreground"}`}
+                    className="draft-option px-3 py-1.5 text-xs font-semibold"
                   >
                     {label}
                   </button>
@@ -410,7 +408,7 @@ export function InteractionIconEditor(props: {
               })}
             </div>
             {backgroundContainer === "rounded-square" ? (
-              <label className="flex items-center gap-3 rounded-xl border border-border bg-surface-muted px-3 py-2">
+              <label className="flex max-w-md items-center gap-3 rounded-[4px] border border-border bg-surface-muted px-3 py-2">
                 <span className="shrink-0 text-xs font-semibold">
                   {locale === "zh" ? "圆角" : "Radius"}
                 </span>
@@ -442,7 +440,11 @@ export function InteractionIconEditor(props: {
                 locale={locale}
               />
             )}
-          </div>
+          </div> : (
+            <p className="mt-4 rounded-[4px] border border-dashed border-border/70 px-4 py-3 text-sm leading-6 text-muted">
+              {locale === "zh" ? "当前使用透明背景，无需设置背景形状和颜色。" : "Transparent background is on, so there is no shape or background color to set."}
+            </p>
+          )}
         </div>
       </BackgroundPreview>
     </div>

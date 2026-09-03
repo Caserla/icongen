@@ -14,15 +14,16 @@ export function AppShell({children,viewer}:{children:ReactNode;viewer:Viewer|nul
   const pathname = usePathname();
   const createSelected = pathname === "/create";
   const iconsSelected = pathname === "/icons" || pathname.startsWith("/icons/");
-  const navClass = (selected: boolean) => `focus-ring whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold transition ${selected ? "bg-brand text-white shadow-sm" : "text-muted hover:bg-surface-muted hover:text-foreground"}`;
+  const navClass = (selected: boolean) => `nav-draft-link motion-filter focus-ring whitespace-nowrap px-3 py-2 text-sm font-bold ${selected ? "bg-brand text-white" : "text-muted hover:bg-surface-muted hover:text-foreground"}`;
 
-  return <div className="soft-spot min-h-screen p-3 sm:p-5">
-    <header className="surface-elevated relative z-30 mx-auto mb-5 flex min-h-17 max-w-7xl items-center justify-between gap-3 rounded-[20px] border border-border bg-surface/90 px-4 backdrop-blur-xl sm:px-5">
+  return <div className="soft-spot min-h-screen px-3 py-4 sm:px-6 sm:py-5">
+    <header className="workspace-header surface-elevated relative z-30 mx-auto mb-6 flex min-h-16 max-w-7xl items-center justify-between gap-3 rounded-[5px] border border-[#77736b] bg-[#fffaf0] px-4 sm:px-6">
       <Brand/>
-      <div className="ml-auto flex shrink-0 items-center gap-3"><nav className="hidden items-center gap-1 md:flex" aria-label="Workspace navigation"><Link href="/create" aria-current={createSelected ? "page" : undefined} className={navClass(createSelected)}>{t("workspace")}</Link><Link href="/icons" aria-current={iconsSelected ? "page" : undefined} className={navClass(iconsSelected)}>{t("myIcons")}</Link></nav><LanguageSwitch/>{viewer?<UserMenu viewer={viewer}/>:<Link href="/account" className="focus-ring hidden rounded-xl bg-foreground px-4 py-3 text-sm font-extrabold text-white sm:block">{t("account")}</Link>}</div>
+      <div className="ml-auto flex shrink-0 items-center gap-3"><nav className="hidden items-center gap-1 md:flex" aria-label="Workspace navigation"><Link href="/create" aria-current={createSelected ? "page" : undefined} className={navClass(createSelected)}>{t("workspace")}</Link><Link href="/icons" aria-current={iconsSelected ? "page" : undefined} className={navClass(iconsSelected)}>{t("myIcons")}</Link></nav><LanguageSwitch/>{viewer?<UserMenu viewer={viewer}/>:<Link href="/account" className="focus-ring hidden rounded-[4px] bg-foreground px-4 py-3 text-sm font-extrabold text-white sm:block">{t("account")}</Link>}</div>
     </header>
     <div className="mx-auto max-w-7xl">
-      <main className="panel-shadow relative min-w-0 overflow-hidden rounded-[30px] border border-border bg-surface p-5 sm:p-8 lg:p-12">
+      <div className="workspace-meta draft-label mb-2 flex items-center justify-between px-1 text-[#d9e2f0]/65"><span>ICON WORKSPACE / BAMBOO</span><span>DESIGN SYSTEM 02</span></div>
+      <main className="paper-panel page-paper-enter panel-shadow relative min-w-0 overflow-hidden rounded-[7px] border border-[#6e6b65] p-5 sm:p-8 lg:p-12">
         {children}
       </main>
     </div>

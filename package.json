@@ -16,6 +16,7 @@
     "start": "npm run start --workspace=@icongen/web",
     "lint": "npm run lint --workspace=@icongen/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "cd-key:create": "node scripts/create-cd-key.mjs"
   }
 }

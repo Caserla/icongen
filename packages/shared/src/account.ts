@@ -21,7 +21,7 @@ export const emailRequestSchema = z.object({ email: emailSchema });
 export const resetPasswordSchema = z.object({ password: passwordSchema });
 
 export const updateProfileSchema = z.object({
-  displayName: z.string().trim().min(1).max(40).nullable(),
+  displayName: z.string().trim().min(1).max(18).nullable(),
 });
 
 export const deleteAccountRequestSchema = z.object({
@@ -42,4 +42,3 @@ export type AccountSummary = {
   status: AccountStatus;
   createdAt: string;
 };
-

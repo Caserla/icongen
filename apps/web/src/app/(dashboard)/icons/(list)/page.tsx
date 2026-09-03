@@ -31,5 +31,5 @@ export default async function IconsPage({ searchParams }: { searchParams: Promis
   const structureFilter: GenerationJobStructureFilter | undefined = usageFilter === "interaction" && (requestedStructure === "linear" || requestedStructure === "filled") ? requestedStructure : undefined;
   const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
   const effectiveStyle = stylePreset && (usageFilter === "interaction" ? stylePreset === "line-icon" : stylePreset !== "line-icon") ? stylePreset : undefined;
-  return <IconJobList key={`${usageFilter}:${effectiveStyle ?? "all"}:${structureFilter ?? "all"}:${statusFilter ?? "all"}:${page}`} selectedPage={page} selectedUsage={usageFilter} selectedStyle={effectiveStyle} selectedStructure={structureFilter} selectedStatus={statusFilter}/>;
+  return <IconJobList key={`${usageFilter}:${effectiveStyle ?? "all"}:${structureFilter ?? "all"}:${statusFilter ?? "all"}`} selectedPage={page} selectedUsage={usageFilter} selectedStyle={effectiveStyle} selectedStructure={structureFilter} selectedStatus={statusFilter}/>;
 }

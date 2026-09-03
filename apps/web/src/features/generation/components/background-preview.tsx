@@ -28,14 +28,14 @@ export function BackgroundPreview({ container, color, subjectColor, iconStructur
     backgroundSize: "16px 16px",
   };
 
-  return <div className="rounded-3xl border border-border bg-background p-4 shadow-sm md:p-5">
+  return <div className="paper-panel surface-elevated rounded-[6px] border border-border p-4 md:p-5">
     <h3 className="mb-4 text-lg font-black">{locale === "zh" ? "图标设置与实时预览" : "Icon settings and live preview"}</h3>
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)]">
-      <div className="sticky top-2 z-10 rounded-2xl border border-border bg-surface-muted p-3 lg:top-6">
-        <div className="flex min-h-44 items-center justify-center rounded-xl p-3" style={enabled ? undefined : transparencyGrid}>
+    <div className="grid gap-5">
+      <div className="rounded-[6px] border border-border bg-surface-muted p-4">
+        <div className="flex min-h-52 items-center justify-center rounded-[4px] p-4" style={enabled ? undefined : transparencyGrid}>
           <div
             aria-label={locale === "zh" ? "背景实时预览图" : "Live background preview image"}
-            className="flex aspect-square w-40 items-center justify-center transition-all duration-200"
+            className="flex aspect-square w-44 items-center justify-center transition-all duration-200"
             style={enabled ? { ...backgroundStyle(color), borderRadius: radius } : { background: "transparent", borderRadius: 0, boxShadow: "none" }}
           >
             <svg aria-hidden="true" viewBox="0 0 64 64" className="transition-all duration-200" style={{ width: `${subjectSizePercent}%`, height: `${subjectSizePercent}%` }} fill={iconStructure === "filled" ? subjectPreviewColor : "none"} stroke={subjectPreviewColor} strokeWidth={iconStructure === "linear" ? 64 * linearStrokeWidthPercent / 100 : 0} strokeLinecap="round" strokeLinejoin="round">
@@ -53,7 +53,7 @@ export function BackgroundPreview({ container, color, subjectColor, iconStructur
           {locale === "zh" ? "预览图，非最终生成效果" : "Preview only. Final results may vary."}
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 md:gap-0">{children}</div>
+      <div className="grid items-start gap-4 md:grid-cols-2">{children}</div>
     </div>
   </div>;
 }

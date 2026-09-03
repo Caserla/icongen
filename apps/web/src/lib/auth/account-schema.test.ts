@@ -9,7 +9,7 @@ test("normalizes registration email and requires accepted terms", () => {
 });
 
 test("validates profile and deletion inputs", () => {
-  assert.equal(updateProfileSchema.safeParse({ displayName: "A".repeat(41) }).success, false);
+  assert.equal(updateProfileSchema.safeParse({ displayName: "A".repeat(18) }).success, true);
+  assert.equal(updateProfileSchema.safeParse({ displayName: "A".repeat(19) }).success, false);
   assert.equal(deleteAccountRequestSchema.safeParse({ confirmation: "delete", password: "password1", idempotencyKey: crypto.randomUUID() }).success, false);
 });
-

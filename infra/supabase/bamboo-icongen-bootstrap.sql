@@ -443,7 +443,7 @@ alter table public.generation_jobs
   add column settings_version text,
   add column pricing_version text,
   add column generation_spec jsonb,
-  add column subject_count smallint check (subject_count >= 1),
+  add column subject_count smallint check (subject_count between 1 and 20),
   add column variants_per_subject smallint not null default 3 check (variants_per_subject = 3),
   add column progress_percent smallint not null default 0 check (progress_percent between 0 and 100),
   add column progress_phase text not null default 'queued',
@@ -461,7 +461,7 @@ create table public.generation_subjects (
   client_id text not null,
   name text not null check (char_length(name) between 1 and 40),
   description text not null check (char_length(description) between 2 and 300),
-  position smallint not null check (position >= 0),
+  position smallint not null check (position between 0 and 19),
   color_override jsonb,
   status public.generation_status not null default 'queued',
   credit_refunded_at timestamptz,
@@ -503,32 +503,20 @@ create unique index generation_variants_one_primary_per_subject_idx
 create table public.generation_assets (
   id uuid primary key default gen_random_uuid(),
   variant_id uuid not null references public.generation_variants(id) on delete cascade,
-  asset_role text not null default 'output' check (asset_role in ('source', 'preview', 'output')),
-  format text not null default 'png' check (format in ('png', 'svg')),
-  mime_type text not null default 'image/png',
-  size smallint not null check (
-    (format = 'svg' and asset_role = 'output' and size > 0)
-    or (format = 'png' and asset_role in ('source', 'preview') and size > 0)
-    or
-    (
-      format = 'png' and asset_role = 'output'
-      and size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024)
-    )
-  ),
+  size smallint not null check (size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024)),
   width smallint not null check (width > 0),
   height smallint not null check (height > 0),
   has_alpha boolean not null,
   storage_bucket text not null,
   storage_path text not null,
   created_at timestamptz not null default now(),
-  unique (variant_id, asset_role, size, format),
+  unique (variant_id, size),
   unique (storage_bucket, storage_path)
 );
 
 create index generation_subjects_job_position_idx on public.generation_subjects(job_id, position);
 create index generation_variants_subject_slot_idx on public.generation_variants(subject_id, slot);
-create index generation_assets_variant_role_size_idx on public.generation_assets(variant_id, asset_role, size);
-create index generation_assets_variant_format_idx on public.generation_assets(variant_id, format, asset_role);
+create index generation_assets_variant_size_idx on public.generation_assets(variant_id, size);
 
 create trigger generation_subjects_set_updated_at
   before update on public.generation_subjects
@@ -604,7 +592,7 @@ begin
   if jsonb_typeof(p_spec->'subjects') <> 'array' then raise exception 'subjects must be an array'; end if;
 
   v_credit_cost := jsonb_array_length(p_spec->'subjects');
-  if v_credit_cost < 1 then raise exception 'at least one subject is required'; end if;
+  if v_credit_cost < 1 or v_credit_cost > 20 then raise exception 'subject count must be between 1 and 20'; end if;
 
   select generation_job_id into v_existing_job_id
   from public.credit_ledger
@@ -799,7 +787,7 @@ begin
       update public.generation_variants set
         status = 'failed', error_code = p_error_code,
         error_message = left(p_error_message, 1000), updated_at = now()
-      where subject_id = v_subject.id and status in ('queued', 'processing');
+      where subject_id = v_subject.id and status <> 'completed';
       update public.generation_subjects set
         status = case when v_completed > 0 then 'partial'::public.generation_status else 'failed'::public.generation_status end,
         credit_refunded_at = coalesce(credit_refunded_at, now()),
@@ -890,5 +878,641 @@ begin
   return new;
 end;
 $$;
+
+commit;
+
+-- ============================================================================
+-- 0008_generation_without_credit_coupling.sql
+-- ============================================================================
+
+begin;
+
+-- Generation owns design specs, execution and assets. Billing/credits are a separate module.
+alter table public.generation_jobs
+  drop constraint if exists generation_jobs_credit_cost_check;
+
+alter table public.generation_jobs
+  alter column credit_cost set default 0;
+
+alter table public.generation_jobs
+  add column if not exists idempotency_key uuid;
+
+alter table public.generation_jobs
+  drop constraint if exists generation_jobs_subject_count_check;
+
+alter table public.generation_subjects
+  drop constraint if exists generation_subjects_position_check;
+
+create unique index if not exists generation_jobs_user_idempotency_idx
+  on public.generation_jobs(user_id, idempotency_key)
+  where idempotency_key is not null;
+
+create or replace function public.create_generation_job_v2(
+  p_user_id uuid,
+  p_spec jsonb,
+  p_skill_version text,
+  p_idempotency_key uuid
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_job_id uuid;
+  v_subject jsonb;
+  v_subject_id uuid;
+  v_position integer := 0;
+  v_subject_count integer;
+begin
+  if p_user_id <> auth.uid() and auth.role() <> 'service_role' then raise exception 'not authorized'; end if;
+  if (select status from public.profiles where id = p_user_id) <> 'active' then raise exception 'account is not active'; end if;
+  if coalesce(p_spec->>'settingsVersion', '') = '' then raise exception 'settings version is required'; end if;
+  if jsonb_typeof(p_spec->'subjects') <> 'array' then raise exception 'subjects must be an array'; end if;
+
+  v_subject_count := jsonb_array_length(p_spec->'subjects');
+  if v_subject_count < 1 then raise exception 'at least one subject is required'; end if;
+
+  select id into v_job_id from public.generation_jobs
+  where user_id = p_user_id and idempotency_key = p_idempotency_key;
+  if v_job_id is not null then return v_job_id; end if;
+
+  if exists (select 1 from public.generation_jobs where user_id = p_user_id and status in ('queued', 'processing')) then
+    raise exception 'active generation exists';
+  end if;
+
+  insert into public.generation_jobs (
+    user_id, description, skill_version, credit_cost, settings_version,
+    generation_spec, subject_count, variants_per_subject, progress_phase, idempotency_key
+  ) values (
+    p_user_id, left(p_spec->'subjects'->0->>'description', 1000), p_skill_version, 0,
+    p_spec->>'settingsVersion', p_spec, v_subject_count, 3, 'queued', p_idempotency_key
+  ) returning id into v_job_id;
+
+  for v_subject in select value from jsonb_array_elements(p_spec->'subjects') loop
+    insert into public.generation_subjects (job_id, client_id, name, description, position, color_override)
+    values (v_job_id, v_subject->>'clientId', v_subject->>'name', v_subject->>'description', v_position, v_subject->'colorOverride')
+    returning id into v_subject_id;
+    insert into public.generation_variants(subject_id, slot) values (v_subject_id, 1), (v_subject_id, 2), (v_subject_id, 3);
+    v_position := v_position + 1;
+  end loop;
+  return v_job_id;
+end;
+$$;
+
+revoke all on function public.create_generation_job_v2(uuid, jsonb, text, uuid) from public, anon, authenticated;
+grant execute on function public.create_generation_job_v2(uuid, jsonb, text, uuid) to authenticated, service_role;
+
+create or replace function public.set_generation_primary_variant(p_subject_id uuid, p_variant_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (
+    select 1 from public.generation_variants v
+    join public.generation_subjects s on s.id = v.subject_id
+    join public.generation_jobs j on j.id = s.job_id
+    where v.id = p_variant_id and s.id = p_subject_id and v.status = 'completed' and j.user_id = auth.uid()
+  ) then raise exception 'variant not available'; end if;
+  update public.generation_variants set is_primary = false where subject_id = p_subject_id and is_primary;
+  update public.generation_variants set is_primary = true where id = p_variant_id and subject_id = p_subject_id;
+end;
+$$;
+
+revoke all on function public.set_generation_primary_variant(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.set_generation_primary_variant(uuid, uuid) to authenticated, service_role;
+
+commit;
+
+-- ============================================================================
+-- 0009_generation_asset_roles.sql
+-- ============================================================================
+
+begin;
+
+alter table public.generation_assets
+  add column if not exists asset_role text not null default 'output'
+  check (asset_role in ('source', 'preview', 'output'));
+
+alter table public.generation_assets
+  drop constraint if exists generation_assets_variant_id_size_key;
+
+alter table public.generation_assets
+  add constraint generation_assets_variant_role_size_key unique (variant_id, asset_role, size);
+
+drop index if exists public.generation_assets_variant_size_idx;
+create index generation_assets_variant_role_size_idx
+  on public.generation_assets(variant_id, asset_role, size);
+
+commit;
+
+-- ============================================================================
+-- 0010_generation_asset_role_size_constraint.sql
+-- ============================================================================
+
+begin;
+
+alter table public.generation_assets
+  drop constraint if exists generation_assets_size_check;
+
+alter table public.generation_assets
+  add constraint generation_assets_size_check check (
+    (asset_role in ('source', 'preview') and size > 0)
+    or
+    (
+      asset_role = 'output'
+      and size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024)
+    )
+  );
+
+commit;
+
+-- ============================================================================
+-- 0011_partial_job_status_guard.sql
+-- ============================================================================
+
+begin;
+
+begin;
+
+-- A job with at least one completed variant is partial rather than wholly failed.
+-- This guard also corrects the result of older failure-finalization functions.
+create or replace function public.guard_generation_job_partial_status()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.status = 'failed' and exists (
+    select 1
+    from public.generation_subjects s
+    join public.generation_variants v on v.subject_id = s.id
+    where s.job_id = new.id and v.status = 'completed'
+  ) then
+    new.status = 'partial';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists generation_jobs_guard_partial_status on public.generation_jobs;
+create trigger generation_jobs_guard_partial_status
+  before insert or update of status on public.generation_jobs
+  for each row execute function public.guard_generation_job_partial_status();
+
+commit;
+
+commit;
+
+-- ============================================================================
+-- 0012_svg_output_assets.sql
+-- ============================================================================
+
+begin;
+
+alter table public.generation_assets
+  add column if not exists format text not null default 'png'
+  check (format in ('png', 'svg'));
+
+alter table public.generation_assets
+  add column if not exists mime_type text not null default 'image/png';
+
+alter table public.generation_assets
+  drop constraint if exists generation_assets_variant_role_size_key;
+
+alter table public.generation_assets
+  add constraint generation_assets_variant_role_size_format_key
+  unique (variant_id, asset_role, size, format);
+
+alter table public.generation_assets
+  drop constraint if exists generation_assets_size_check;
+
+alter table public.generation_assets
+  add constraint generation_assets_size_check check (
+    (format = 'svg' and asset_role = 'output' and size > 0)
+    or
+    (format = 'png' and asset_role in ('source', 'preview') and size > 0)
+    or
+    (format = 'png' and asset_role = 'output' and size in (16, 20, 24, 32, 48, 64, 128, 256, 512, 1024))
+  );
+
+create index if not exists generation_assets_variant_format_idx
+  on public.generation_assets(variant_id, format, asset_role);
+
+commit;
+
+-- ============================================================================
+-- 0013_preserve_variant_failure_diagnostics.sql
+-- ============================================================================
+
+begin;
+
+-- Preserve per-variant quality diagnostics written by the Worker. The job-level
+-- finalizer may close variants that never started, but must not overwrite a
+-- variant that is already terminal with its own specific error.
+create or replace function public.finalize_generation_job_v2_failure(
+  p_job_id uuid,
+  p_error_code text,
+  p_error_message text
+) returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_job public.generation_jobs%rowtype;
+  v_subject record;
+  v_completed integer;
+  v_balance integer;
+  v_refunds integer := 0;
+  v_any_completed boolean := false;
+begin
+  select * into v_job from public.generation_jobs where id = p_job_id for update;
+  if not found then raise exception 'job not found'; end if;
+  if v_job.status in ('completed', 'partial', 'failed') then return; end if;
+
+  for v_subject in select id from public.generation_subjects where job_id = p_job_id order by position loop
+    select count(*) into v_completed from public.generation_variants
+    where subject_id = v_subject.id and status = 'completed';
+    if v_completed > 0 then v_any_completed := true; end if;
+    if v_completed = 3 then
+      update public.generation_subjects set status = 'completed' where id = v_subject.id;
+    else
+      update public.generation_variants set
+        status = 'failed', error_code = p_error_code,
+        error_message = left(p_error_message, 1000), updated_at = now()
+      where subject_id = v_subject.id and status in ('queued', 'processing');
+      update public.generation_subjects set
+        status = case when v_completed > 0 then 'partial'::public.generation_status else 'failed'::public.generation_status end,
+        credit_refunded_at = coalesce(credit_refunded_at, now()),
+        error_code = p_error_code, error_message = left(p_error_message, 1000)
+      where id = v_subject.id;
+
+      update public.credit_accounts set balance = balance + 1, updated_at = now()
+      where user_id = v_job.user_id
+        and not exists (
+          select 1 from public.credit_ledger
+          where user_id = v_job.user_id and idempotency_key = 'generation-subject-refund:' || v_subject.id::text
+        )
+      returning balance into v_balance;
+      if found then
+        insert into public.credit_ledger (
+          user_id, entry_type, amount, balance_after, generation_job_id, idempotency_key
+        ) values (
+          v_job.user_id, 'generation_refund', 1, v_balance, p_job_id,
+          'generation-subject-refund:' || v_subject.id::text
+        );
+        v_refunds := v_refunds + 1;
+      end if;
+    end if;
+  end loop;
+
+  update public.generation_jobs set
+    status = case when v_any_completed then 'partial'::public.generation_status else 'failed'::public.generation_status end,
+    progress_percent = 100, progress_phase = 'completed',
+    refunded_credit_count = refunded_credit_count + v_refunds,
+    failure_refunded_at = case when v_refunds > 0 then now() else failure_refunded_at end,
+    error_code = p_error_code, error_message = left(p_error_message, 1000),
+    completed_at = now(), updated_at = now()
+  where id = p_job_id;
+end;
+$$;
+
+commit;
+
+-- ============================================================================
+-- 0014_variant_detail_edits.sql
+-- ============================================================================
+
+begin;
+
+create table if not exists public.generation_variant_revisions (
+  id uuid primary key default gen_random_uuid(),
+  variant_id uuid not null references public.generation_variants(id) on delete cascade,
+  parent_revision_id uuid references public.generation_variant_revisions(id) on delete set null,
+  revision_number integer not null check (revision_number > 0),
+  instruction text not null check (char_length(trim(instruction)) between 5 and 500),
+  status text not null default 'queued' check (status in ('queued', 'processing', 'completed', 'failed')),
+  source_bucket text,
+  source_path text,
+  preview_bucket text,
+  preview_path text,
+  assets jsonb not null default '[]'::jsonb,
+  error_code text,
+  error_message text,
+  provider_request_id text,
+  created_at timestamptz not null default now(),
+  started_at timestamptz,
+  completed_at timestamptz,
+  updated_at timestamptz not null default now(),
+  unique (variant_id, revision_number)
+);
+
+alter table public.generation_variants
+  add column if not exists active_revision_id uuid
+  references public.generation_variant_revisions(id) on delete set null;
+
+create unique index if not exists generation_variant_revisions_one_active_edit
+  on public.generation_variant_revisions(variant_id)
+  where status in ('queued', 'processing');
+
+create index if not exists generation_variant_revisions_variant_created_idx
+  on public.generation_variant_revisions(variant_id, created_at desc);
+
+alter table public.generation_variant_revisions enable row level security;
+
+drop policy if exists generation_variant_revisions_select_own on public.generation_variant_revisions;
+create policy generation_variant_revisions_select_own
+  on public.generation_variant_revisions for select
+  using (
+    exists (
+      select 1
+      from public.generation_variants v
+      join public.generation_subjects s on s.id = v.subject_id
+      join public.generation_jobs j on j.id = s.job_id
+      where v.id = generation_variant_revisions.variant_id
+        and j.user_id = auth.uid()
+    )
+  );
+
+commit;
+
+-- ============================================================================
+-- 0015_generation_job_list_indexes.sql
+-- ============================================================================
+
+begin;
+
+-- Keep private icon-list pagination fast as an account accumulates jobs.
+create index if not exists generation_jobs_user_status_created_idx
+  on public.generation_jobs(user_id, status, created_at desc);
+
+create index if not exists generation_jobs_user_purpose_created_idx
+  on public.generation_jobs(user_id, (generation_spec->>'purpose'), created_at desc);
+
+create index if not exists generation_jobs_user_style_created_idx
+  on public.generation_jobs(user_id, ((generation_spec->'style')->>'preset'), created_at desc);
+
+create index if not exists generation_jobs_user_structure_created_idx
+  on public.generation_jobs(user_id, ((generation_spec->'style')->>'graphicStructure'), created_at desc);
+
+commit;
+
+-- ============================================================================
+-- 0016_cd_key_ledger_entry_type.sql
+-- ============================================================================
+
+begin;
+
+-- Keep CD-Key credits distinguishable from paid orders, signup gifts, and
+-- manual operator adjustments in the immutable ledger.
+alter type public.ledger_entry_type add value if not exists 'cd_key_redemption';
+
+commit;
+
+-- ============================================================================
+-- 0017_cd_key_redemption.sql
+-- ============================================================================
+
+begin;
+
+create table if not exists public.credit_redemption_codes (
+  id uuid primary key default gen_random_uuid(),
+  code_hash text not null unique check (char_length(code_hash) = 64),
+  code_hint text not null,
+  credits integer not null check (credits > 0),
+  expires_at timestamptz,
+  disabled_at timestamptz,
+  redeemed_by uuid references public.profiles(id) on delete restrict,
+  redeemed_at timestamptz,
+  note text,
+  created_at timestamptz not null default now(),
+  check ((redeemed_by is null) = (redeemed_at is null))
+);
+
+create index if not exists credit_redemption_codes_created_idx
+  on public.credit_redemption_codes(created_at desc);
+
+alter table public.credit_ledger
+  add column if not exists redemption_code_id uuid
+  references public.credit_redemption_codes(id) on delete restrict;
+
+create unique index if not exists credit_ledger_redemption_code_unique_idx
+  on public.credit_ledger(redemption_code_id)
+  where redemption_code_id is not null;
+
+alter table public.credit_redemption_codes enable row level security;
+
+-- Codes are deliberately not readable by authenticated users. The only
+-- public operation is the atomic redeem function below.
+revoke all on public.credit_redemption_codes from anon, authenticated;
+
+create or replace function public.create_credit_redemption_code(
+  p_credits integer,
+  p_expires_at timestamptz default null,
+  p_note text default null
+) returns table(generated_code text, granted_credits integer, expires_at timestamptz)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_code text;
+  v_normalized text;
+  v_attempt integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using message = 'CD_KEY_CREATE_FORBIDDEN';
+  end if;
+  if p_credits <= 0 then
+    raise exception using message = 'INVALID_CD_KEY_CREDITS';
+  end if;
+  if p_expires_at is not null and p_expires_at <= now() then
+    raise exception using message = 'INVALID_CD_KEY_EXPIRY';
+  end if;
+
+  loop
+    v_attempt := v_attempt + 1;
+    v_code := 'BAM-' || upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4)) || '-' ||
+      upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4)) || '-' ||
+      upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4)) || '-' ||
+      upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4));
+    v_normalized := upper(regexp_replace(v_code, '[^A-Za-z0-9]', '', 'g'));
+
+    begin
+      insert into public.credit_redemption_codes (
+        code_hash, code_hint, credits, expires_at, note
+      ) values (
+        encode(digest(v_normalized, 'sha256'), 'hex'),
+        right(v_normalized, 4),
+        p_credits,
+        p_expires_at,
+        nullif(trim(p_note), '')
+      );
+      exit;
+    exception when unique_violation then
+      if v_attempt >= 5 then raise; end if;
+    end;
+  end loop;
+
+  return query select v_code, p_credits, p_expires_at;
+end;
+$$;
+
+create or replace function public.redeem_credit_code(p_code text)
+returns table(granted_credits integer, new_balance integer)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_normalized text;
+  v_code public.credit_redemption_codes%rowtype;
+  v_balance integer;
+begin
+  if v_user_id is null then
+    raise exception using message = 'AUTH_REQUIRED';
+  end if;
+
+  v_normalized := upper(regexp_replace(coalesce(trim(p_code), ''), '[^A-Za-z0-9]', '', 'g'));
+  if v_normalized !~ '^BAM[A-Z0-9]{16}$' then
+    raise exception using message = 'INVALID_CD_KEY';
+  end if;
+
+  select * into v_code
+  from public.credit_redemption_codes
+  where code_hash = encode(digest(v_normalized, 'sha256'), 'hex')
+  for update;
+
+  if not found then raise exception using message = 'INVALID_CD_KEY'; end if;
+  if v_code.disabled_at is not null then raise exception using message = 'CD_KEY_DISABLED'; end if;
+  if v_code.redeemed_at is not null then raise exception using message = 'CD_KEY_ALREADY_REDEEMED'; end if;
+  if v_code.expires_at is not null and v_code.expires_at <= now() then
+    raise exception using message = 'CD_KEY_EXPIRED';
+  end if;
+
+  select balance into v_balance
+  from public.credit_accounts
+  where user_id = v_user_id
+  for update;
+  if not found then raise exception using message = 'CREDIT_ACCOUNT_NOT_FOUND'; end if;
+
+  update public.credit_redemption_codes
+  set redeemed_by = v_user_id, redeemed_at = now()
+  where id = v_code.id;
+
+  update public.credit_accounts
+  set balance = balance + v_code.credits, updated_at = now()
+  where user_id = v_user_id
+  returning balance into v_balance;
+
+  insert into public.credit_ledger (
+    user_id, entry_type, amount, balance_after, redemption_code_id,
+    idempotency_key, note
+  ) values (
+    v_user_id, 'cd_key_redemption', v_code.credits, v_balance, v_code.id,
+    'cd-key:' || v_code.id::text,
+    'CD-Key ending in ' || v_code.code_hint
+  );
+
+  return query select v_code.credits, v_balance;
+end;
+$$;
+
+revoke all on function public.create_credit_redemption_code(integer, timestamptz, text) from public;
+grant execute on function public.create_credit_redemption_code(integer, timestamptz, text) to service_role;
+revoke all on function public.redeem_credit_code(text) from public;
+grant execute on function public.redeem_credit_code(text) to authenticated, service_role;
+
+commit;
+
+-- ============================================================================
+-- 0018_restore_generation_credit_debit.sql
+-- ============================================================================
+
+begin;
+
+-- Reconnect generation task creation to the canonical credit account. One
+-- subject costs one credit and always creates three variants. Idempotent
+-- retries return the existing job before any balance mutation.
+create or replace function public.create_generation_job_v2(
+  p_user_id uuid,
+  p_spec jsonb,
+  p_skill_version text,
+  p_idempotency_key uuid
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_job_id uuid;
+  v_subject jsonb;
+  v_subject_id uuid;
+  v_position integer := 0;
+  v_subject_count integer;
+  v_balance integer;
+begin
+  if p_user_id <> auth.uid() and auth.role() <> 'service_role' then
+    raise exception using message = 'NOT_AUTHORIZED';
+  end if;
+  if (select status from public.profiles where id = p_user_id) <> 'active' then
+    raise exception using message = 'ACCOUNT_NOT_ACTIVE';
+  end if;
+  if coalesce(p_spec->>'settingsVersion', '') = '' then
+    raise exception using message = 'SETTINGS_VERSION_REQUIRED';
+  end if;
+  if jsonb_typeof(p_spec->'subjects') <> 'array' then
+    raise exception using message = 'SUBJECTS_MUST_BE_ARRAY';
+  end if;
+
+  v_subject_count := jsonb_array_length(p_spec->'subjects');
+  if v_subject_count < 1 or v_subject_count > 20 then
+    raise exception using message = 'SUBJECT_COUNT_OUT_OF_RANGE';
+  end if;
+
+  select id into v_job_id from public.generation_jobs
+  where user_id = p_user_id and idempotency_key = p_idempotency_key;
+  if v_job_id is not null then return v_job_id; end if;
+
+  if exists (
+    select 1 from public.generation_jobs
+    where user_id = p_user_id and status in ('queued', 'processing')
+  ) then raise exception using message = 'ACTIVE_GENERATION_EXISTS'; end if;
+
+  select balance into v_balance from public.credit_accounts
+  where user_id = p_user_id for update;
+  if not found then raise exception using message = 'CREDIT_ACCOUNT_NOT_FOUND'; end if;
+  if v_balance < v_subject_count then
+    raise exception using
+      message = 'INSUFFICIENT_CREDITS',
+      detail = jsonb_build_object('required', v_subject_count, 'balance', v_balance)::text;
+  end if;
+
+  insert into public.generation_jobs (
+    user_id, description, skill_version, credit_cost, settings_version,
+    generation_spec, subject_count, variants_per_subject, progress_phase, idempotency_key
+  ) values (
+    p_user_id, left(p_spec->'subjects'->0->>'description', 1000), p_skill_version,
+    v_subject_count, p_spec->>'settingsVersion', p_spec, v_subject_count, 3,
+    'queued', p_idempotency_key
+  ) returning id into v_job_id;
+
+  for v_subject in select value from jsonb_array_elements(p_spec->'subjects') loop
+    insert into public.generation_subjects (
+      job_id, client_id, name, description, position, color_override
+    ) values (
+      v_job_id, v_subject->>'clientId', v_subject->>'name',
+      v_subject->>'description', v_position, v_subject->'colorOverride'
+    ) returning id into v_subject_id;
+    insert into public.generation_variants(subject_id, slot)
+    values (v_subject_id, 1), (v_subject_id, 2), (v_subject_id, 3);
+    v_position := v_position + 1;
+  end loop;
+
+  update public.credit_accounts
+  set balance = balance - v_subject_count, updated_at = now()
+  where user_id = p_user_id returning balance into v_balance;
+
+  insert into public.credit_ledger (
+    user_id, entry_type, amount, balance_after, generation_job_id,
+    idempotency_key, note
+  ) values (
+    p_user_id, 'generation_debit', -v_subject_count, v_balance, v_job_id,
+    'generation-debit:' || p_idempotency_key::text,
+    v_subject_count::text || case when v_subject_count = 1 then ' icon subject' else ' icon subjects' end
+  );
+
+  return v_job_id;
+end;
+$$;
+
+revoke all on function public.create_generation_job_v2(uuid, jsonb, text, uuid)
+  from public, anon, authenticated;
+grant execute on function public.create_generation_job_v2(uuid, jsonb, text, uuid)
+  to authenticated, service_role;
 
 commit;

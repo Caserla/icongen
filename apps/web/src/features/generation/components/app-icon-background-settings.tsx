@@ -21,7 +21,7 @@ export function AppIconBackgroundSettings({
   locale: "en" | "zh";
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-background p-4">
+    <section className="rounded-[6px] border border-border bg-background p-4">
       <h3 className="text-sm font-black">
         {locale === "zh" ? "图标背景" : "Icon background"}
       </h3>
@@ -32,7 +32,7 @@ export function AppIconBackgroundSettings({
             type="button"
             aria-pressed={mode === option}
             onClick={() => onModeChange(option)}
-            className={`rounded-full border px-3 py-2 text-sm font-semibold ${mode === option ? "border-foreground bg-foreground text-white" : "border-border"}`}
+            className="draft-option px-3 py-2 text-sm font-semibold"
           >
             {locale === "zh"
               ? (
@@ -64,7 +64,7 @@ export function AppIconBackgroundSettings({
                 type="button"
                 aria-pressed={container === shape}
                 onClick={() => onContainerChange(shape)}
-                className={`rounded-xl border px-3 py-2 text-xs font-semibold ${container === shape ? "border-brand bg-[#f2eeff] text-brand" : "border-border"}`}
+                className="draft-option px-3 py-2 text-xs font-semibold"
               >
                 {locale === "zh"
                   ? ({ "rounded-square": "圆角", circle: "圆形", square: "方块" } as const)[shape]
@@ -73,7 +73,7 @@ export function AppIconBackgroundSettings({
             ))}
           </div>
           {container === "rounded-square" ? (
-            <label className="flex items-center gap-3 rounded-xl border border-border bg-surface-muted px-3 py-2">
+            <label className="draft-control flex w-full max-w-md items-center gap-3 bg-surface-muted px-3 py-2">
               <span className="shrink-0 text-xs font-semibold">
                 {locale === "zh" ? "圆角角度" : "Corner radius"}
               </span>
@@ -104,7 +104,7 @@ export function AppIconBackgroundSettings({
                       ? "圆角角度数值"
                       : "Corner radius value"
                   }
-                  className="h-8 w-14 rounded-lg border border-border bg-background px-2 text-right font-mono text-xs"
+                  className="draft-control h-8 w-14 px-2 text-right font-mono text-xs"
                 />
                 <span className="text-xs text-muted">%</span>
               </div>

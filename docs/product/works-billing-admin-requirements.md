@@ -77,6 +77,8 @@ ZIP 包含：
 
 ### BILL-001 点数包与价格 `/pricing` — P0
 
+> 以下美元套餐是早期测试基线，不能直接作为正式上线价格。当前经营测算、人民币套餐建议及定版条件见 [AI 生成成本与点数套餐策略](./ai-cost-and-pricing-strategy.md)；在真实 Image2 `usage` 样本完成校准前，价格保持待确认。
+
 首发测试点数包：
 
 | 点数包 | USD 价格 | 点数 | 可生成主体数 | 定位 |
@@ -102,10 +104,12 @@ ZIP 包含：
 - 创建页根据服务端配置显示预计消耗。
 - 服务端以 `主体数量 × 1 点` 和价格版本计算最终消耗；3 个方案是每主体的固定交付组成，不允许前端篡改方案数降低价格。
 - 提交时余额锁定、扣点、任务和账本在同一事务完成。
+- 自 `0018_restore_generation_credit_debit.sql` 起，生产入口 `create_generation_job_v2` 已按上述规则真实扣点：每个主体 1 点，同一批多个主体按主体数一次扣除。
 - 余额不足返回所需点数、当前余额和购买入口，设计草稿不得丢失。
 - 系统为同一主体自动重试或补齐缺失方案不额外收费。
 - 一个主体最终未完整交付 3 个方案时，整笔返还该主体的 1 点；可用的部分结果仍允许用户查看和下载。
-- 用户主动重新生成一组新的 3 个方案消耗 1 点；MVP 不提供按单个方案付费生成。
+- 失败方案重新生成不扣点，系统失败与质量补偿也不计费；同一方案通过幂等和活动任务锁避免重复提交。若未来增加次数上限，必须单独评审并同步价格页，不得静默扣点。
+- 每个方案分别免费赠送 3 次细节调整，方案 1、2、3 各自独立计数；成功生成新图即消耗 1 次，平台侧失败不计次数，还原已有版本不调用模型也不计次数。
 - 自动重试、扣点和返还均需要幂等业务键，不能因队列重复消费重复记账。
 - 购买点数和新用户赠送点数均永久有效；MVP 不实现点数到期、过期回收或按有效期排序扣点。
 
@@ -149,9 +153,19 @@ ZIP 包含：
 
 状态：确认中、成功、取消、失败、入账延迟。成功展示购买点数、新余额和返回创建页；入账延迟提供刷新但不重复创建订单。
 
-### BILL-005 点数账本 `/account/credits` — P1
+### BILL-005 点数账本 `/account/credits` — P0
 
-展示购买、生成扣点、失败/部分失败返还和管理员调整。每条包括类型、点数变化、余额快照、关联任务/订单、时间和状态。用户只读。
+展示全部、消耗和充值三类记录。流水覆盖购买、CD-Key 充值、新用户赠送、生成扣点、失败/部分失败返还和管理员调整；每条包括类型、点数变化、余额快照、关联任务/订单、说明和时间。用户只能读取自己的记录，分页查询使用鉴权后的 `POST`，筛选条件不作为授权依据。
+
+### BILL-005A CD-Key 充值 — P0
+
+- 已登录且邮箱已验证、账户正常的用户，可在点数记录页输入 CD-Key 兑换点数。
+- CD-Key 使用 `BAM-XXXX-XXXX-XXXX-XXXX` 展示格式，服务端忽略大小写和分隔符；前端校验只用于即时反馈，最终校验必须在数据库执行。
+- 数据库只保存标准化兑换码的 SHA-256 哈希和末四位提示，不保存可再次使用的明文；明文只在运营创建时返回一次。
+- 一枚 CD-Key 只能核销一次，可设置点数、到期时间、停用时间和内部备注。
+- 锁定兑换码、检查有效性、增加余额和写入 `cd_key_redemption` 不可变账本必须在同一个数据库事务完成，防止并发重复到账。
+- 普通用户不能读取兑换码表；运营端通过 Service Role 调用 `create_credit_redemption_code` 创建，密钥不得进入浏览器或日志。
+- 当前运营命令：`npm run cd-key:create -- <点数> <ISO 到期时间或 -> [内部备注]`。
 
 ### BILL-006 退款与争议 — P1
 
@@ -166,11 +180,12 @@ Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未�
 | `POST` | `/api/billing/checkout` | 创建 Checkout Session |
 | `GET` | `/api/billing/orders/{orderNumber}` | 使用本人业务订单号查询支付与入账状态 |
 | `POST` | `/api/webhooks/stripe` | 验签、去重并入账 |
-| `GET` | `/api/account/credits` | 分页查询账本 |
+| `POST` | `/api/account/credits/query` | 分页查询本人点数账本，支持全部/消耗/充值筛选 |
+| `POST` | `/api/account/credits/redeem` | 原子校验并兑换 CD-Key |
 
-数据：`credit_packages`、`orders`、`stripe_events`、`credit_accounts`、不可变 `credit_ledger`、`pricing_versions` 和体验赠送配置版本。现有骨架中的 `orders` 作为规范表名，后续迁移不得再另建语义重复的 `billing_orders`。
+数据：`credit_packages`、`orders`、`stripe_events`、`credit_accounts`、不可变 `credit_ledger`、`credit_redemption_codes`、`pricing_versions` 和体验赠送配置版本。现有骨架中的 `orders` 作为规范表名，后续迁移不得再另建语义重复的 `billing_orders`。
 
-错误：`PACKAGE_UNAVAILABLE`、`PRICE_VERSION_CHANGED`、`CHECKOUT_CREATE_FAILED`、`PAYMENT_PENDING`、`WEBHOOK_SIGNATURE_INVALID`、`EVENT_ALREADY_PROCESSED`。
+错误：`PACKAGE_UNAVAILABLE`、`PRICE_VERSION_CHANGED`、`CHECKOUT_CREATE_FAILED`、`PAYMENT_PENDING`、`WEBHOOK_SIGNATURE_INVALID`、`EVENT_ALREADY_PROCESSED`、`INVALID_CD_KEY`、`CD_KEY_DISABLED`、`CD_KEY_ALREADY_REDEEMED`、`CD_KEY_EXPIRED`。
 
 ### 2.3 指标与完成定义
 

@@ -5,6 +5,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { startLocalVariantEdit } from "@/features/generation/server/local-generation-runner";
 import { isVariantEditLeaseStale, type ActiveVariantEdit } from "@/features/generation/server/variant-edit-lease";
 import { latestVariantEditFailure } from "@/features/generation/server/latest-variant-edit-failure";
+import { remainingDetailEdits } from "@/features/generation/server/variant-edit-quota";
 
 const paramsSchema = z.object({ variantId: z.string().uuid() });
 const bodySchema = z.object({ instruction: z.string().trim().min(5).max(500) });
@@ -26,6 +27,12 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
     const job = await client.from("generation_jobs").select("id").eq("id", subject.data.job_id).eq("user_id", user.id).maybeSingle();
     if (job.error) throw job.error;
     if (!job.data) return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon option was not found.", 404);
+    const usedEdits = await client.from("generation_variant_revisions")
+      .select("id", { count: "exact", head: true })
+      .eq("variant_id", variantData.id)
+      .or("status.eq.completed,error_code.eq.VARIANT_EDIT_DISCARDED");
+    if (usedEdits.error) throw usedEdits.error;
+    const remainingDetailEditCount = remainingDetailEdits(usedEdits.count ?? 0);
     let currentBucket: string | null | undefined;
     let currentPath: string | null | undefined;
     if (variantData.active_revision_id) {
@@ -89,6 +96,7 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
         draft: null,
         currentPreviewUrl,
         activeRevisionId: variantData.active_revision_id,
+        remainingDetailEdits: remainingDetailEditCount,
       });
     }
     const latestRevision = await client
@@ -120,6 +128,7 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
         activeRevisionId: variantData.active_revision_id,
         lastInstruction,
         latestFailure,
+        remainingDetailEdits: remainingDetailEditCount,
       });
     const signed = await client.storage.from(pending.preview_bucket).createSignedUrl(pending.preview_path, 3600);
     if (signed.error) throw signed.error;
@@ -129,6 +138,7 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
       activeRevisionId: variantData.active_revision_id,
       lastInstruction,
       latestFailure,
+      remainingDetailEdits: remainingDetailEditCount,
     });
   } catch (error) {
     return authErrorResponse(error) ?? apiError("VARIANT_EDIT_READ_FAILED", "The detail adjustment could not be loaded.", 500);
@@ -170,6 +180,17 @@ export async function POST(request: Request, context: { params: Promise<{ varian
       }).eq("id", activeEdit.id).eq("status", activeEdit.status).eq("updated_at", activeEdit.updated_at);
       if (released.error) throw released.error;
     }
+    const usedEdits = await client.from("generation_variant_revisions")
+      .select("id", { count: "exact", head: true })
+      .eq("variant_id", variant.data.id)
+      .or("status.eq.completed,error_code.eq.VARIANT_EDIT_DISCARDED");
+    if (usedEdits.error) throw usedEdits.error;
+    if (remainingDetailEdits(usedEdits.count ?? 0) === 0)
+      return apiError(
+        "VARIANT_EDIT_LIMIT_REACHED",
+        "This option has used all 3 included detail adjustments.",
+        409,
+      );
     const revisions = await client.from("generation_variant_revisions").select("revision_number").eq("variant_id", variant.data.id).order("revision_number", { ascending: false }).limit(1);
     if (revisions.error) throw revisions.error;
     const revision = await client.from("generation_variant_revisions").insert({
@@ -185,7 +206,7 @@ export async function POST(request: Request, context: { params: Promise<{ varian
       throw revision.error;
     }
     startLocalVariantEdit(revision.data.id);
-    return Response.json(revision.data, { status: 202 });
+    return Response.json({ ...revision.data, remainingDetailEdits: remainingDetailEdits((usedEdits.count ?? 0) + 1) }, { status: 202 });
   } catch (error) {
     return authErrorResponse(error) ?? apiError("VARIANT_EDIT_CREATE_FAILED", "The detail adjustment could not start.", 500);
   }

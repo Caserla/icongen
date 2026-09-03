@@ -250,7 +250,7 @@ export function GenerationForm() {
             ? "部分图标描述不完整，请检查每个输入项后重试。"
             : "Some icon descriptions are incomplete. Review each field and try again."
           : locale === "zh"
-            ? "请至少描述一个图标后再生成。"
+            ? "请至少填写一个图标需求再生成。"
             : "Describe at least one icon before generating.",
       );
       return;
@@ -263,8 +263,18 @@ export function GenerationForm() {
         body: JSON.stringify(parsed.data),
       });
       const result = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
+        if (result.error === "INSUFFICIENT_CREDITS") {
+          const required = result.details?.required ?? subjects.length;
+          const balance = result.details?.balance;
+          throw new Error(
+            locale === "zh"
+              ? `点数不足：本次需要 ${required} 点，当前${balance === null || balance === undefined ? "余额不足" : `有 ${balance} 点`}。`
+              : `Not enough credits: this set needs ${required}, and you ${balance === null || balance === undefined ? "do not have enough" : `have ${balance}`}.`,
+          );
+        }
         throw new Error(result.message ?? "Generation request failed");
+      }
       router.push(`/icons/${result.id}`);
     } catch (error) {
       setMessage(
@@ -372,7 +382,7 @@ export function GenerationForm() {
         <button
           type="submit"
           disabled={busy || !settings}
-          className="min-h-12 rounded-xl bg-brand px-7 font-black text-white shadow-[0_4px_0_#4930c9] disabled:opacity-50"
+          className="mechanical-button min-h-12 bg-brand px-7 font-black text-white disabled:opacity-50"
         >
           {busy
             ? locale === "zh"
@@ -386,7 +396,7 @@ export function GenerationForm() {
       {message ? (
         <p
           role="alert"
-          className="rounded-xl bg-[#fff1ed] px-4 py-3 text-sm text-danger"
+          className="rounded-[4px] bg-[#fff1ed] px-4 py-3 text-sm text-danger"
         >
           {message}
         </p>

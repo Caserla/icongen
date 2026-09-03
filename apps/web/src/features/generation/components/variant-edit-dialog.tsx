@@ -1,6 +1,5 @@
 "use client";
-/* eslint-disable @next/next/no-img-element -- private generated asset URL */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { GenerationJobV2 } from "@icongen/shared";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
@@ -78,6 +77,9 @@ export function VariantEditDialog({
     variant.previewUrl ?? "",
   );
   const [checkingDraft, setCheckingDraft] = useState(true);
+  const [remainingDetailEdits, setRemainingDetailEdits] = useState<
+    number | null
+  >(null);
   const [selectedVersion, setSelectedVersion] = useState<"previous" | "new">(
     "new",
   );
@@ -92,10 +94,10 @@ export function VariantEditDialog({
   const comparisonReady =
     comparisonSources.length === 2 &&
     comparisonSources.every((source) => comparisonLoaded.has(source));
-  async function pollEdit(
+  const pollEdit = useCallback(async (
     editId: string,
     isCancelled: () => boolean = () => false,
-  ) {
+  ) => {
     for (;;) {
       await new Promise((resolve) => window.setTimeout(resolve, 1800));
       if (isCancelled()) return;
@@ -122,17 +124,24 @@ export function VariantEditDialog({
               : "The adjusted preview is not ready.",
           );
         setDraft({ id: editId, previewUrl: status.previewUrl });
+        setRemainingDetailEdits((current) =>
+          current === null ? null : Math.max(0, current - 1),
+        );
         setSelectedVersion("new");
         return;
       }
     }
-  }
+  }, [locale, variant.id]);
   useEffect(() => {
     let cancelled = false;
     const storedInstruction = sessionStorage.getItem(
       instructionStorageKey(variant.id),
     );
-    if (storedInstruction) setInstruction(storedInstruction);
+    if (storedInstruction) {
+      queueMicrotask(() => {
+        if (!cancelled) setInstruction(storedInstruction);
+      });
+    }
     void fetchWithNetworkRetry(`/api/generation/variants/${variant.id}/edits`, {
       cache: "no-store",
     })
@@ -141,6 +150,8 @@ export function VariantEditDialog({
         return response.json();
       })
       .then((body) => {
+        if (!cancelled && typeof body?.remainingDetailEdits === "number")
+          setRemainingDetailEdits(body.remainingDetailEdits);
         if (!cancelled && typeof body?.lastInstruction === "string")
           setInstruction((current) => current || body.lastInstruction);
         if (!cancelled && typeof body?.currentPreviewUrl === "string")
@@ -189,7 +200,7 @@ export function VariantEditDialog({
     return () => {
       cancelled = true;
     };
-  }, [variant.id]);
+  }, [locale, pollEdit, variant.id]);
   async function submit() {
     setBusy("edit");
     setEditStage("submitting");
@@ -205,8 +216,15 @@ export function VariantEditDialog({
         },
       );
       const body = await response.json().catch(() => null);
-      if (!response.ok)
+      if (!response.ok) {
+        if (body?.error === "VARIANT_EDIT_LIMIT_REACHED")
+          throw new Error(
+            locale === "zh"
+              ? "这个方案赠送的 3 次细节调整已用完。"
+              : "This option has used all 3 included detail adjustments.",
+          );
         throw new Error(body?.message ?? "Detail adjustment failed");
+      }
       await pollEdit(body.id);
     } catch (cause) {
       setError(
@@ -294,12 +312,12 @@ export function VariantEditDialog({
         type="button"
         disabled={busy === "save" || busy === "restore"}
         onClick={onClose}
-        className="mb-5 inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold disabled:opacity-40"
+        className="mb-5 inline-flex items-center gap-2 rounded-[4px] border border-border bg-background px-4 py-2.5 text-sm font-bold disabled:opacity-40"
       >
         <span aria-hidden="true">←</span>
         {locale === "zh" ? "返回生成结果" : "Back to results"}
       </button>
-      <div className="rounded-[20px] border border-border bg-background p-4 sm:p-5">
+      <div className="paper-panel rounded-[6px] border border-border p-4 shadow-[4px_4px_0_rgba(11,23,50,.12)] sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="variant-edit-title" className="text-xl font-black">
@@ -311,6 +329,13 @@ export function VariantEditDialog({
                 ? `方案 ${variant.slot}`
                 : `Option ${variant.slot}`}
             </p>
+            {remainingDetailEdits !== null ? (
+              <p className="mt-2 text-xs font-bold text-brand">
+                {locale === "zh"
+                  ? `本方案剩余 ${remainingDetailEdits} 次免费细节调整`
+                  : `${remainingDetailEdits} free detail edits left for this option`}
+              </p>
+            ) : null}
           </div>
         </div>
         {checkingDraft ? (
@@ -325,21 +350,21 @@ export function VariantEditDialog({
             className="mt-5"
           >
             <div className="grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
-              <SkeletonBlock className="aspect-square w-full max-w-[240px] rounded-2xl" />
+              <SkeletonBlock className="aspect-square w-full max-w-[240px] rounded-[6px]" />
               <div>
                 <SkeletonBlock className="h-5 w-28 rounded-md" />
-                <SkeletonBlock className="mt-2 h-36 w-full rounded-xl" />
+                <SkeletonBlock className="mt-2 h-36 w-full rounded-[4px]" />
                 <SkeletonBlock className="ml-auto mt-2 h-3 w-12 rounded-md" />
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <SkeletonBlock className="h-10 w-16 rounded-xl" />
-              <SkeletonBlock className="h-10 w-28 rounded-xl" />
+              <SkeletonBlock className="h-10 w-16 rounded-[4px]" />
+              <SkeletonBlock className="h-10 w-28 rounded-[4px]" />
             </div>
           </div>
         ) : null}
         {!checkingDraft && !draft ? <div className="mt-5 grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
-          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-2xl bg-surface-muted">
+          <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-[6px] bg-surface-muted">
             {currentPreviewUrl ? (
               <ImageWithSkeleton
                 src={currentPreviewUrl}
@@ -354,9 +379,9 @@ export function VariantEditDialog({
                 role="status"
                 aria-live="polite"
                 aria-busy="true"
-                className="absolute inset-0 grid place-items-center bg-background/78 p-4 backdrop-blur-[2px]"
+                className="absolute inset-0 grid place-items-center bg-[#f6edda]/94 p-4"
               >
-                <b className="rounded-full border border-border bg-background/92 px-4 py-2 text-center text-sm text-foreground shadow-sm">
+                <b className="rounded-[3px] border border-border bg-surface px-4 py-2 text-center text-sm text-foreground shadow-[3px_3px_0_rgba(11,23,50,.14)]">
                   {locale === "zh" ? "正在调整图标" : "Adjusting icon"}
                 </b>
               </div>
@@ -388,7 +413,7 @@ export function VariantEditDialog({
                   ? "例如：把星星改得更对称，其他内容保持不变"
                   : "For example: Make the star more symmetrical and keep everything else unchanged"
               }
-              className="mt-2 w-full resize-none rounded-xl border border-border bg-white p-3 text-sm outline-none focus:border-brand disabled:opacity-60"
+              className="mt-2 w-full resize-none rounded-[4px] border border-border bg-white p-3 text-sm outline-none focus:border-brand disabled:opacity-60"
             />
             <div className="mt-1 text-right text-xs text-muted">
               {instruction.trim().length}/500
@@ -403,8 +428,8 @@ export function VariantEditDialog({
             <div className="relative mt-2">
               {!comparisonReady ? (
                 <div className="absolute inset-0 z-10 grid gap-3 sm:grid-cols-2" aria-label={locale === "zh" ? "正在加载版本图片" : "Loading version images"} aria-busy="true">
-                  <SkeletonBlock className="aspect-square rounded-xl" />
-                  <SkeletonBlock className="aspect-square rounded-xl" />
+                  <SkeletonBlock className="aspect-square rounded-[4px]" />
+                  <SkeletonBlock className="aspect-square rounded-[4px]" />
                 </div>
               ) : null}
               <div className={`grid gap-3 sm:grid-cols-2 ${comparisonReady ? "visible" : "invisible"}`}>
@@ -429,13 +454,13 @@ export function VariantEditDialog({
                     aria-pressed={selected}
                     disabled={Boolean(busy)}
                     onClick={() => setSelectedVersion(option.id)}
-                    className={`overflow-hidden rounded-xl border-2 p-1.5 text-left transition-colors disabled:opacity-50 ${
+                    className={`overflow-hidden rounded-[4px] border-2 p-1.5 text-left transition-colors disabled:opacity-50 ${
                       selected
                         ? "border-brand bg-brand/5"
                         : "border-border bg-background hover:border-brand/40"
                     }`}
                   >
-                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-surface-muted">
+                    <span className="relative block aspect-square overflow-hidden rounded-[4px] bg-surface-muted">
                       {option.src ? (
                         <ImageWithSkeleton
                           src={option.src}
@@ -488,7 +513,7 @@ export function VariantEditDialog({
           <div
             aria-live="polite"
             aria-busy="true"
-            className="mt-4 rounded-2xl border border-border bg-surface p-4"
+            className="mt-4 rounded-[6px] border border-border bg-surface p-4"
           >
             <div className="flex items-center justify-between gap-3 text-sm">
               <b>
@@ -509,10 +534,10 @@ export function VariantEditDialog({
               aria-valuemin={0}
               aria-valuemax={3}
               aria-valuenow={editStage === "submitting" ? 1 : 2}
-              className="mt-3 h-2 overflow-hidden rounded-full bg-surface-muted"
+              className="draft-progress mt-3 h-2"
             >
               <span
-                className={`block h-full rounded-full bg-brand transition-[width] duration-500 ${editStage === "submitting" ? "w-1/3" : "w-2/3"}`}
+                className={`block h-full bg-brand transition-[width] duration-500 ${editStage === "submitting" ? "w-1/3" : "w-2/3"}`}
               />
             </div>
             <p className="mt-2 text-xs text-muted">
@@ -525,7 +550,7 @@ export function VariantEditDialog({
         {draft ? (
           <div
             role="status"
-            className="mx-auto mt-4 w-full max-w-[480px] rounded-2xl border border-[#b8dfc7] bg-[#effaf3] p-4 text-sm text-[#176b3a]"
+            className="mx-auto mt-4 w-full max-w-[480px] rounded-[6px] border border-[#b8dfc7] bg-[#effaf3] p-4 text-sm text-[#176b3a]"
           >
             <b>{locale === "zh" ? "调整结果已生成" : "Adjustment ready"}</b>
             <p className="mt-1">
@@ -538,7 +563,7 @@ export function VariantEditDialog({
         {error ? (
           <p
             role="alert"
-            className="mt-4 rounded-xl bg-[#fff1ed] p-3 text-sm text-danger"
+            className="mt-4 rounded-[4px] bg-[#fff1ed] p-3 text-sm text-danger"
           >
             {error}
           </p>
@@ -546,7 +571,7 @@ export function VariantEditDialog({
         {!checkingDraft && !busy && !draft && latestFailure ? (
           <div
             role="alert"
-            className="mt-4 rounded-xl border border-[#f3c3b8] bg-[#fff1ed] p-3 text-sm text-danger"
+            className="mt-4 rounded-[4px] border border-[#f3c3b8] bg-[#fff1ed] p-3 text-sm text-danger"
           >
             <b>{locale === "zh" ? "细节调整生成失败" : "Detail adjustment failed"}</b>
             <p className="mt-1">
@@ -563,7 +588,7 @@ export function VariantEditDialog({
               type="button"
               disabled={Boolean(busy)}
               onClick={() => void restore()}
-              className="mr-auto rounded-xl border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
+              className="mr-auto rounded-[4px] border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
             >
               {busy === "restore"
                 ? locale === "zh"
@@ -579,7 +604,7 @@ export function VariantEditDialog({
               type="button"
               disabled={Boolean(busy)}
               onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
+              className="rounded-[4px] border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
             >
               {locale === "zh" ? "取消" : "Cancel"}
             </button>
@@ -592,7 +617,7 @@ export function VariantEditDialog({
                 if (selectedVersion === "new") void saveDraft();
                 else void discardDraft();
               }}
-              className="rounded-xl bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+              className="mechanical-button bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
             >
               {selectedVersion === "previous"
                 ? busy === "restore"
@@ -613,9 +638,9 @@ export function VariantEditDialog({
           ) : (
             <button
               type="button"
-              disabled={Boolean(busy) || instruction.trim().length < 5}
+              disabled={Boolean(busy) || instruction.trim().length < 5 || remainingDetailEdits === 0}
               onClick={() => void submit()}
-              className="rounded-xl bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+              className="mechanical-button bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
             >
               {busy === "edit"
                 ? locale === "zh"

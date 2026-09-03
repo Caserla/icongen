@@ -53,7 +53,7 @@ export function IconSubjectEditor({
       </div>
       <div className="mt-4 space-y-3">
         {values.map((value, index) => (
-          <div key={index} className="rounded-2xl border border-border p-3">
+          <div key={index} className="card-polish rounded-[5px] border border-border bg-[#fffaf0]/75 p-3">
             <div className="flex items-center gap-3">
               <label className="min-w-0 flex-1">
                 <span className="sr-only">
@@ -64,14 +64,14 @@ export function IconSubjectEditor({
                 <input
                   value={value}
                   onChange={(event) => onChange(index, event.target.value)}
-                  className="min-h-12 w-full rounded-xl border border-border bg-background px-4"
+                  className="min-h-12 w-full rounded-[3px] border border-border bg-[#fffaf0] px-4"
                 />
               </label>
               {index > 0 ? (
                 <button
                   type="button"
                   onClick={() => onRemove(index)}
-                  className="min-h-12 rounded-xl border border-border px-4 text-sm font-bold text-muted"
+                  className="mechanical-button min-h-12 rounded-[3px] border border-border bg-[#fffaf0] px-4 text-sm font-bold text-muted"
                   aria-label={
                     locale === "zh"
                       ? `删除第 ${index + 1} 个图标`
@@ -111,7 +111,7 @@ export function IconSubjectEditor({
         type="button"
         onClick={onAdd}
         disabled={values.length >= maxSubjects}
-        className="mt-4 min-h-11 rounded-xl border border-brand px-5 text-sm font-bold text-brand disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-4 min-h-11 rounded-[4px] border border-brand px-5 text-sm font-bold text-brand disabled:cursor-not-allowed disabled:opacity-40"
       >
         + {locale === "zh" ? "再添加一个图标" : "Add another icon"}
       </button>

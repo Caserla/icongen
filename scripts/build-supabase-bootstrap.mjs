@@ -8,8 +8,8 @@ const files = (await readdir(migrationsDir))
   .filter((file) => /^\d{4}_.+\.sql$/.test(file))
   .sort();
 
-if (files.length !== 7) {
-  throw new Error(`Expected 7 migrations, found ${files.length}: ${files.join(", ")}`);
+if (files.length === 0) {
+  throw new Error("No Supabase migrations found.");
 }
 
 const sections = await Promise.all(files.map(async (file) => {

@@ -49,12 +49,25 @@ export async function POST(request: Request) {
           "Icon settings were updated. Refresh the page, review your choices, and generate again.",
           409,
         );
-      if (error.message.includes("active generation exists"))
+      if (error.message.includes("ACTIVE_GENERATION_EXISTS") || error.message.includes("active generation exists"))
         return apiError(
           "ACTIVE_JOB_LIMIT_REACHED",
           "Another icon set is still generating. Wait for it to finish before starting a new one.",
           409,
         );
+      if (error.message.includes("INSUFFICIENT_CREDITS")) {
+        const credits = await supabase
+          .from("credit_accounts")
+          .select("balance")
+          .eq("user_id", user.id)
+          .single();
+        return apiError(
+          "INSUFFICIENT_CREDITS",
+          "You do not have enough credits to generate these icons.",
+          402,
+          { required: generationSpec.subjects.length, balance: credits.data?.balance ?? null },
+        );
+      }
       return apiError(
         "GENERATION_CREATE_FAILED",
         "Generation could not start. Your settings are still on this page; try again.",
