@@ -21,6 +21,9 @@
     "test:security:rls": "node scripts/test-cross-account-isolation.mjs",
     "test:security:worker": "node scripts/test-worker-failover.mjs",
     "test:security:staging": "npm run test:security:cost && npm run test:security:rls && npm run test:security:worker",
-    "cd-key:create": "node scripts/create-cd-key.mjs"
+    "cd-key:create": "node scripts/create-cd-key.mjs",
+    "admin:grant": "node --env-file-if-exists=apps/web/.env.local scripts/set-admin-role.mjs grant",
+    "admin:revoke": "node --env-file-if-exists=apps/web/.env.local scripts/set-admin-role.mjs revoke",
+    "admin:create": "node --env-file-if-exists=apps/web/.env.local scripts/create-admin-account.mjs"
   }
 }

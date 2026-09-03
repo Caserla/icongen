@@ -3,7 +3,7 @@
 文档版本：2.0
 产品阶段：MVP
 
-本文细化六个业务模块中的“作品与下载”“点数与 Stripe 支付”“最小运营支持”。图片生成的表单、进度和结果网格见 [图片生成模块需求](./icon-generation-requirements.md)。
+本文细化六个业务模块中的“作品与下载”“点数与充值”“最小运营支持”。首期生产环境仅开放 CD-Key 充值，Stripe 保留为后续待办。图片生成的表单、进度和结果网格见 [图片生成模块需求](./icon-generation-requirements.md)。
 
 ## 1. 作品与下载模块
 
@@ -52,14 +52,14 @@ ZIP 包含：
 
 ### 1.2 API 与异常
 
-| 方法 | 路径 | 用途 |
-| --- | --- | --- |
-| `GET` | `/api/generation/jobs` | 筛选和分页查询自己的任务 |
-| `GET` | `/api/generation/jobs/{jobId}` | 查询详情、进度和结果 |
-| `POST` | `/api/generation/jobs/{jobId}/downloads` | 创建选中结果 ZIP |
-| `DELETE` | `/api/generation/jobs/{jobId}` | P1 删除作品记录 |
-| `POST` | `/api/account/data-export` | 删除宽限期内创建用户资产归档 |
-| `GET` | `/api/account/data-export/{exportId}` | 查询导出状态和短时下载链接 |
+| 方法     | 路径                                     | 用途                         |
+| -------- | ---------------------------------------- | ---------------------------- |
+| `GET`    | `/api/generation/jobs`                   | 筛选和分页查询自己的任务     |
+| `GET`    | `/api/generation/jobs/{jobId}`           | 查询详情、进度和结果         |
+| `POST`   | `/api/generation/jobs/{jobId}/downloads` | 创建选中结果 ZIP             |
+| `DELETE` | `/api/generation/jobs/{jobId}`           | P1 删除作品记录              |
+| `POST`   | `/api/account/data-export`               | 删除宽限期内创建用户资产归档 |
+| `GET`    | `/api/account/data-export/{exportId}`    | 查询导出状态和短时下载链接   |
 
 核心错误：`AUTH_REQUIRED`、`RESOURCE_FORBIDDEN`、`RESULT_NOT_READY`、`NO_RESULTS_SELECTED`、`ARCHIVE_FAILED`、`ASSET_EXPIRED`。
 
@@ -69,7 +69,7 @@ ZIP 包含：
 
 完成定义：列表、详情、选择和 ZIP 下载均接入真实私有资源；刷新与跨设备状态符合规则；越权测试通过。
 
-## 2. 点数与 Stripe 支付模块
+## 2. 点数与充值模块
 
 ### 2.1 模块目标
 
@@ -81,11 +81,11 @@ ZIP 包含：
 
 首发测试点数包：
 
-| 点数包 | USD 价格 | 点数 | 可生成主体数 | 定位 |
-| --- | ---: | ---: | ---: | --- |
-| Starter | `$2.99` | 30 | 30 | 轻量试用 |
-| Maker | `$6.49` | 75 | 75 | 默认推荐 |
-| Studio | `$12.99` | 180 | 180 | 批量生产 |
+| 点数包  | USD 价格 | 点数 | 可生成主体数 | 定位     |
+| ------- | -------: | ---: | -----------: | -------- |
+| Starter |  `$2.99` |   30 |           30 | 轻量试用 |
+| Maker   |  `$6.49` |   75 |           75 | 默认推荐 |
+| Studio  | `$12.99` |  180 |          180 | 批量生产 |
 
 页面展示 USD 价格、点数、推荐标记和按当前价格版本估算的“可生成图标主体数”。每个主体固定包含 3 个方案，整体消耗 1 点，不按单个方案拆分收费。
 
@@ -173,15 +173,15 @@ Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未�
 
 ### 2.2 API、数据与异常
 
-| 方法 | 路径 | 用途 |
-| --- | --- | --- |
-| `GET` | `/api/billing/packages` | 获取启用点数包与价格版本 |
-| `POST` | `/api/billing/quote` | 根据主体数量返回报价 |
-| `POST` | `/api/billing/checkout` | 创建 Checkout Session |
-| `GET` | `/api/billing/orders/{orderNumber}` | 使用本人业务订单号查询支付与入账状态 |
-| `POST` | `/api/webhooks/stripe` | 验签、去重并入账 |
-| `POST` | `/api/account/credits/query` | 分页查询本人点数账本，支持全部/消耗/充值筛选 |
-| `POST` | `/api/account/credits/redeem` | 原子校验并兑换 CD-Key |
+| 方法   | 路径                                | 用途                                         |
+| ------ | ----------------------------------- | -------------------------------------------- |
+| `GET`  | `/api/billing/packages`             | 获取启用点数包与价格版本                     |
+| `POST` | `/api/billing/quote`                | 根据主体数量返回报价                         |
+| `POST` | `/api/billing/checkout`             | 创建 Checkout Session                        |
+| `GET`  | `/api/billing/orders/{orderNumber}` | 使用本人业务订单号查询支付与入账状态         |
+| `POST` | `/api/webhooks/stripe`              | 验签、去重并入账                             |
+| `POST` | `/api/account/credits/query`        | 分页查询本人点数账本，支持全部/消耗/充值筛选 |
+| `POST` | `/api/account/credits/redeem`       | 原子校验并兑换 CD-Key                        |
 
 数据：`credit_packages`、`orders`、`stripe_events`、`credit_accounts`、不可变 `credit_ledger`、`credit_redemption_codes`、`pricing_versions` 和体验赠送配置版本。现有骨架中的 `orders` 作为规范表名，后续迁移不得再另建语义重复的 `billing_orders`。
 
@@ -197,7 +197,7 @@ Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未�
 
 ### 3.1 模块目标
 
-本项目不建设完整运营后台。只提供处理首版用户问题所必需的受保护工具，集中在 `/admin/operations`。
+首期建设轻量、受保护的 `/admin` 运营后台，覆盖数据总览、用户与任务只读排查、CD-Key 批次生成/停用和操作审计；不开放删除用户、直接改余额、删除账本等高风险能力。
 
 ### OPS-001 管理员保护 — P0
 
@@ -206,20 +206,21 @@ Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未�
 - 写操作必须填写原因、使用幂等键并写入不可变审计记录。
 - 页面和 API 不得返回 API Key、Stripe Secret、Supabase Service Role 或完整内部 Prompt。
 
-### OPS-002 任务查询与安全重试 — P0
+### OPS-002 用户与任务查询 — P0
 
 - 通过 job ID 或用户邮箱查询生成任务、主体、3 个 variant、进度、错误码和扣点/返还摘要。
-- 只允许重试未成功的工作单元，不重复生成成功 variant，也不重复扣点。
-- 不提供数据看板、复杂筛选、模型成本分析、灰度发布或设置管理。
+- 可按用户和任务状态查看余额、任务、进度与脱敏错误摘要。
+- 第一阶段只读，不提供后台任务重试、复杂模型成本分析、灰度发布或设置管理。
 
-### OPS-003 订单、Webhook 与人工调点 — P0
+### OPS-003 CD-Key 批次运营 — P0
 
-- 通过订单 ID、Stripe Session ID 或 Event ID 查询支付和入账状态。
-- 人工调点必须填写原因和外部工单号，不允许修改历史账本。
-- 不提供自动退款、争议工作台或完整用户管理。
+- 管理员可按批次生成 CD-Key；明文仅返回一次，数据库只保存哈希。
+- 批次可设置点数、数量、有效期、渠道和内部备注。
+- 批次泄漏时可填写原因并停用全部未兑换码；创建和停用都必须进入不可变审计日志。
+- 不提供直接修改余额、自动退款、争议工作台或完整用户管理。
 
 ### 3.2 API 与完成定义
 
-最小 API：`GET /api/admin/operations/jobs/{jobId}`、`POST /api/admin/operations/variants/{variantId}/retry`、`GET /api/admin/operations/billing/search`、`POST /api/admin/operations/credits/adjust`、`GET /api/admin/operations/audit`。
+已实现 API：`GET /api/admin/overview`、`POST /api/admin/users/query`、`POST /api/admin/jobs/query`、`POST /api/admin/audit/query`、`POST /api/admin/cd-keys/query`、`POST /api/admin/cd-keys/batches`、`POST /api/admin/cd-keys/batches/{batchId}/disable`。
 
-完成定义：管理员可以定位生成或支付问题、进行安全重试和受审计调点；普通用户不能访问；密钥和完整内部 Prompt 不会泄露。
+完成定义：管理员可以查看核心运行状态、定位用户或生成问题，并安全生成/停用 CD-Key；普通用户不能访问；兑换码明文、密钥和完整内部 Prompt 不会从后台查询接口泄露。操作手册见[管理后台与 CD-Key 运营手册](../guides/admin-console-and-cd-key-operations.md)。

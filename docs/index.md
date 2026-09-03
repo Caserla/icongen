@@ -38,6 +38,7 @@
 - [月付 VPS 测试部署指南](guides/monthly-vps-test-deployment.md)
 - [单台 4 GB VPS 合并部署操作手册](guides/single-vps-deployment-runbook.md)
 - [AI 模型与 Skill 配置说明书](guides/ai-model-and-skill-configuration.md)
+- [管理后台与 CD-Key 运营手册](guides/admin-console-and-cd-key-operations.md)
 - [登录与账户 API 前端调用手册](api/auth-account-frontend-guide.md)
 - [登录与账户 OpenAPI 3.1 规范](api/auth-account.openapi.yaml)
 - [图片生成 API v2 前端调用手册](api/generation-v2-frontend-guide.md)

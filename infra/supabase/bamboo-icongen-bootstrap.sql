@@ -1516,3 +1516,388 @@ grant execute on function public.create_generation_job_v2(uuid, jsonb, text, uui
   to authenticated, service_role;
 
 commit;
+
+-- ============================================================================
+-- 0019_remove_persisted_generation_prompts.sql
+-- ============================================================================
+
+begin;
+
+-- Compiled prompts are server-side implementation details. RLS isolates rows,
+-- not sensitive columns, so prompts must not live in user-readable tables.
+alter table public.generation_variants drop column if exists prompt;
+
+-- Remove the equivalent field from the retired v1 result table as well.
+alter table public.generation_results drop column if exists prompt;
+
+commit;
+
+-- ============================================================================
+-- 0020_worker_task_leases.sql
+-- ============================================================================
+
+begin;
+
+alter table public.generation_jobs
+  add column if not exists worker_lease_owner text,
+  add column if not exists worker_lease_expires_at timestamptz;
+
+alter table public.generation_variant_revisions
+  add column if not exists worker_lease_owner text,
+  add column if not exists worker_lease_expires_at timestamptz;
+
+create index if not exists generation_jobs_worker_claim_idx
+  on public.generation_jobs(status, worker_lease_expires_at, created_at)
+  where status in ('queued', 'processing');
+
+create index if not exists generation_variant_revisions_worker_claim_idx
+  on public.generation_variant_revisions(status, worker_lease_expires_at, created_at)
+  where status in ('queued', 'processing');
+
+create or replace function public.claim_next_worker_task(
+  p_worker_id text,
+  p_lease_seconds integer default 120
+)
+returns table(task_type text, task_id uuid)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if nullif(trim(p_worker_id), '') is null then
+    raise exception 'worker id is required';
+  end if;
+  if p_lease_seconds < 30 or p_lease_seconds > 900 then
+    raise exception 'lease seconds must be between 30 and 900';
+  end if;
+
+  select r.id into v_id
+  from public.generation_variant_revisions r
+  where r.status in ('queued', 'processing')
+    and (
+      r.worker_lease_expires_at is null and r.status = 'queued'
+      or r.worker_lease_expires_at <= now()
+      or (
+        r.worker_lease_expires_at is null
+        and r.status = 'processing'
+        and r.updated_at < now() - interval '5 minutes'
+      )
+    )
+  order by r.created_at
+  for update skip locked
+  limit 1;
+
+  if v_id is not null then
+    update public.generation_variant_revisions
+    set worker_lease_owner = p_worker_id,
+        worker_lease_expires_at = now() + make_interval(secs => p_lease_seconds),
+        updated_at = now()
+    where id = v_id;
+    return query select 'edit'::text, v_id;
+    return;
+  end if;
+
+  select j.id into v_id
+  from public.generation_jobs j
+  where j.status in ('queued', 'processing')
+    and (
+      j.worker_lease_expires_at is null and j.status = 'queued'
+      or j.worker_lease_expires_at <= now()
+      or (
+        j.worker_lease_expires_at is null
+        and j.status = 'processing'
+        and j.updated_at < now() - interval '5 minutes'
+      )
+    )
+  order by j.created_at
+  for update skip locked
+  limit 1;
+
+  if v_id is not null then
+    update public.generation_jobs
+    set worker_lease_owner = p_worker_id,
+        worker_lease_expires_at = now() + make_interval(secs => p_lease_seconds),
+        updated_at = now()
+    where id = v_id;
+    return query select 'job'::text, v_id;
+  end if;
+end;
+$$;
+
+revoke all on function public.claim_next_worker_task(text, integer)
+  from public, anon, authenticated;
+grant execute on function public.claim_next_worker_task(text, integer)
+  to service_role;
+
+commit;
+
+-- ============================================================================
+-- 0021_generation_cost_circuit_breaker.sql
+-- ============================================================================
+
+begin;
+
+create table if not exists public.generation_runtime_limits (
+  singleton boolean primary key default true check (singleton),
+  enforcement_enabled boolean not null default false,
+  max_global_active_jobs integer not null default 3 check (max_global_active_jobs > 0),
+  max_global_subjects_per_day integer not null default 300 check (max_global_subjects_per_day > 0),
+  max_global_subjects_per_month integer not null default 6000 check (max_global_subjects_per_month > 0),
+  max_user_subjects_per_day integer not null default 50 check (max_user_subjects_per_day > 0),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.generation_runtime_limits(singleton)
+values (true)
+on conflict (singleton) do nothing;
+
+alter table public.generation_runtime_limits enable row level security;
+revoke all on public.generation_runtime_limits from public, anon, authenticated;
+
+create or replace function public.enforce_generation_runtime_limits()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_limits public.generation_runtime_limits%rowtype;
+  v_subject_count integer;
+  v_global_today integer;
+  v_global_month integer;
+  v_user_today integer;
+  v_active integer;
+begin
+  select * into v_limits
+  from public.generation_runtime_limits
+  where singleton = true
+  for update;
+
+  if not found or not v_limits.enforcement_enabled then
+    return new;
+  end if;
+
+  v_subject_count := case
+    when jsonb_typeof(new.generation_spec -> 'subjects') = 'array'
+      then jsonb_array_length(new.generation_spec -> 'subjects')
+    else 1
+  end;
+
+  select count(*) into v_active
+  from public.generation_jobs
+  where status in ('queued', 'processing');
+  if v_active >= v_limits.max_global_active_jobs then
+    raise exception 'GENERATION_GLOBAL_CONCURRENCY_LIMIT';
+  end if;
+
+  select coalesce(sum(case
+    when jsonb_typeof(generation_spec -> 'subjects') = 'array'
+      then jsonb_array_length(generation_spec -> 'subjects')
+    else 1
+  end), 0)
+  into v_global_today
+  from public.generation_jobs
+  where created_at >= date_trunc('day', now());
+  if v_global_today + v_subject_count > v_limits.max_global_subjects_per_day then
+    raise exception 'GENERATION_GLOBAL_DAILY_LIMIT';
+  end if;
+
+  select coalesce(sum(case
+    when jsonb_typeof(generation_spec -> 'subjects') = 'array'
+      then jsonb_array_length(generation_spec -> 'subjects')
+    else 1
+  end), 0)
+  into v_global_month
+  from public.generation_jobs
+  where created_at >= date_trunc('month', now());
+  if v_global_month + v_subject_count > v_limits.max_global_subjects_per_month then
+    raise exception 'GENERATION_GLOBAL_MONTHLY_LIMIT';
+  end if;
+
+  select coalesce(sum(case
+    when jsonb_typeof(generation_spec -> 'subjects') = 'array'
+      then jsonb_array_length(generation_spec -> 'subjects')
+    else 1
+  end), 0)
+  into v_user_today
+  from public.generation_jobs
+  where user_id = new.user_id
+    and created_at >= date_trunc('day', now());
+  if v_user_today + v_subject_count > v_limits.max_user_subjects_per_day then
+    raise exception 'GENERATION_USER_DAILY_LIMIT';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists generation_jobs_runtime_limits on public.generation_jobs;
+create trigger generation_jobs_runtime_limits
+  before insert on public.generation_jobs
+  for each row execute function public.enforce_generation_runtime_limits();
+
+revoke all on function public.enforce_generation_runtime_limits()
+  from public, anon, authenticated;
+
+commit;
+
+-- ============================================================================
+-- 0022_revision_storage_read_policy.sql
+-- ============================================================================
+
+begin;
+
+drop policy if exists "users read own generated revision objects" on storage.objects;
+
+create policy "users read own generated revision objects"
+  on storage.objects for select
+  using (
+    bucket_id = 'generated-icons'
+    and exists (
+      select 1
+      from public.generation_variant_revisions r
+      join public.generation_variants v on v.id = r.variant_id
+      join public.generation_subjects s on s.id = v.subject_id
+      join public.generation_jobs j on j.id = s.job_id
+      cross join lateral jsonb_array_elements(
+        case when jsonb_typeof(r.assets) = 'array' then r.assets else '[]'::jsonb end
+      ) asset
+      where j.user_id = auth.uid()
+        and asset ->> 'storageBucket' = bucket_id
+        and asset ->> 'storagePath' = name
+    )
+  );
+
+commit;
+
+-- ============================================================================
+-- 0023_admin_operations_and_cd_key_batches.sql
+-- ============================================================================
+
+begin;
+
+create table if not exists public.credit_redemption_batches (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(trim(name)) between 1 and 80),
+  credits_per_code integer not null check (credits_per_code between 1 and 10000),
+  code_count integer not null check (code_count between 1 and 500),
+  expires_at timestamptz,
+  channel text check (channel is null or char_length(channel) <= 80),
+  note text check (note is null or char_length(note) <= 500),
+  created_by uuid not null references public.profiles(id) on delete restrict,
+  disabled_at timestamptz,
+  disabled_by uuid references public.profiles(id) on delete restrict,
+  disabled_reason text check (disabled_reason is null or char_length(disabled_reason) <= 500),
+  created_at timestamptz not null default now()
+);
+
+alter table public.credit_redemption_codes
+  add column if not exists batch_id uuid references public.credit_redemption_batches(id) on delete restrict,
+  add column if not exists created_by uuid references public.profiles(id) on delete restrict,
+  add column if not exists disabled_by uuid references public.profiles(id) on delete restrict,
+  add column if not exists disabled_reason text;
+
+create index if not exists credit_redemption_codes_batch_idx
+  on public.credit_redemption_codes(batch_id, created_at desc);
+
+alter table public.credit_redemption_batches enable row level security;
+revoke all on public.credit_redemption_batches from public, anon, authenticated;
+
+create or replace function public.create_credit_redemption_batch(
+  p_admin_user_id uuid,
+  p_name text,
+  p_credits integer,
+  p_code_count integer,
+  p_expires_at timestamptz default null,
+  p_channel text default null,
+  p_note text default null
+) returns table(batch_id uuid, generated_code text, code_hint text)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_batch_id uuid;
+  v_code text;
+  v_normalized text;
+  v_position integer;
+  v_attempt integer;
+begin
+  if auth.role() <> 'service_role' then raise exception using message = 'ADMIN_REQUIRED'; end if;
+  if not exists (select 1 from public.profiles where id = p_admin_user_id and status = 'active') then
+    raise exception using message = 'ADMIN_ACCOUNT_INVALID';
+  end if;
+  if char_length(trim(coalesce(p_name, ''))) not between 1 and 80 then raise exception using message = 'INVALID_BATCH_NAME'; end if;
+  if p_credits not between 1 and 10000 then raise exception using message = 'INVALID_CD_KEY_CREDITS'; end if;
+  if p_code_count not between 1 and 500 then raise exception using message = 'INVALID_CD_KEY_COUNT'; end if;
+  if p_expires_at is not null and p_expires_at <= now() then raise exception using message = 'INVALID_CD_KEY_EXPIRY'; end if;
+
+  insert into public.credit_redemption_batches(name, credits_per_code, code_count, expires_at, channel, note, created_by)
+  values (trim(p_name), p_credits, p_code_count, p_expires_at, nullif(trim(p_channel), ''), nullif(trim(p_note), ''), p_admin_user_id)
+  returning id into v_batch_id;
+
+  for v_position in 1..p_code_count loop
+    v_attempt := 0;
+    loop
+      v_attempt := v_attempt + 1;
+      v_code := 'BAM-' || upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4)) || '-' ||
+        upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4)) || '-' ||
+        upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4)) || '-' ||
+        upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 4));
+      v_normalized := upper(regexp_replace(v_code, '[^A-Za-z0-9]', '', 'g'));
+      begin
+        insert into public.credit_redemption_codes(code_hash, code_hint, credits, expires_at, note, batch_id, created_by)
+        values (encode(digest(v_normalized, 'sha256'), 'hex'), right(v_normalized, 4), p_credits, p_expires_at,
+          nullif(trim(p_note), ''), v_batch_id, p_admin_user_id);
+        exit;
+      exception when unique_violation then
+        if v_attempt >= 5 then raise; end if;
+      end;
+    end loop;
+    batch_id := v_batch_id;
+    generated_code := v_code;
+    code_hint := right(v_normalized, 4);
+    return next;
+  end loop;
+
+  insert into public.admin_audit_logs(actor_user_id, action, target_type, target_id, metadata)
+  values (p_admin_user_id, 'cd_key_batch_created', 'credit_redemption_batch', v_batch_id::text,
+    jsonb_build_object('name', trim(p_name), 'credits_per_code', p_credits, 'code_count', p_code_count,
+      'expires_at', p_expires_at, 'channel', nullif(trim(p_channel), '')));
+end;
+$$;
+
+create or replace function public.disable_credit_redemption_batch(
+  p_admin_user_id uuid,
+  p_batch_id uuid,
+  p_reason text
+) returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_count integer;
+begin
+  if auth.role() <> 'service_role' then raise exception using message = 'ADMIN_REQUIRED'; end if;
+  if char_length(trim(coalesce(p_reason, ''))) < 3 then raise exception using message = 'DISABLE_REASON_REQUIRED'; end if;
+  update public.credit_redemption_batches set disabled_at = coalesce(disabled_at, now()), disabled_by = p_admin_user_id,
+    disabled_reason = trim(p_reason) where id = p_batch_id and disabled_at is null;
+  if not found then raise exception using message = 'BATCH_NOT_AVAILABLE'; end if;
+  update public.credit_redemption_codes set disabled_at = coalesce(disabled_at, now()), disabled_by = p_admin_user_id,
+    disabled_reason = trim(p_reason) where batch_id = p_batch_id and redeemed_at is null and disabled_at is null;
+  get diagnostics v_count = row_count;
+  insert into public.admin_audit_logs(actor_user_id, action, target_type, target_id, metadata)
+  values (p_admin_user_id, 'cd_key_batch_disabled', 'credit_redemption_batch', p_batch_id::text,
+    jsonb_build_object('disabled_codes', v_count, 'reason', trim(p_reason)));
+  return v_count;
+end;
+$$;
+
+revoke all on function public.create_credit_redemption_batch(uuid, text, integer, integer, timestamptz, text, text) from public, anon, authenticated;
+revoke all on function public.disable_credit_redemption_batch(uuid, uuid, text) from public, anon, authenticated;
+grant execute on function public.create_credit_redemption_batch(uuid, text, integer, integer, timestamptz, text, text) to service_role;
+grant execute on function public.disable_credit_redemption_batch(uuid, uuid, text) to service_role;
+
+commit;
