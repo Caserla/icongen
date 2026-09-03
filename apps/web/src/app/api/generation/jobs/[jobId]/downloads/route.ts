@@ -6,6 +6,8 @@ import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const paramsSchema = z.object({ jobId: z.string().uuid() });
+const MAX_ARCHIVE_INPUT_BYTES = 64 * 1024 * 1024;
+const MAX_SINGLE_ASSET_BYTES = 16 * 1024 * 1024;
 
 export async function POST(
   request: Request,
@@ -152,6 +154,7 @@ export async function POST(
         409,
       );
     const zip = new JSZip();
+    let archiveInputBytes = 0;
     for (const variant of variants ?? []) {
       const subject = (subjects ?? []).find(
         (item) => item.id === variant.subject_id,
@@ -163,6 +166,11 @@ export async function POST(
           .from(asset.storage_bucket)
           .download(asset.storage_path);
         if (file.error) throw file.error;
+        if (file.data.size > MAX_SINGLE_ASSET_BYTES)
+          return apiError("DOWNLOAD_ASSET_TOO_LARGE", "One selected icon file is too large to package.", 413);
+        archiveInputBytes += file.data.size;
+        if (archiveInputBytes > MAX_ARCHIVE_INPUT_BYTES)
+          return apiError("DOWNLOAD_TOO_LARGE", "The selected files are too large to package together. Download fewer options.", 413);
         const suffix =
           asset.format === "svg"
             ? ""

@@ -309,7 +309,7 @@ export const markPrimaryVariantSchema = z.object({
 });
 export const createGenerationDownloadSchema = z
   .object({
-    variantIds: z.array(z.string().uuid()).min(1),
+    variantIds: z.array(z.string().uuid()).min(1).max(MAX_SUBJECTS),
     format: generationAssetFormatSchema.default("png"),
     size: outputSizeSchema.optional(),
     includeSvg: z.boolean().default(false),

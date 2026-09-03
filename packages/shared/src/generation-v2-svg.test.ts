@@ -15,3 +15,13 @@ test("PNG downloads support original output and approved resized output", () => 
   assert.equal(result.includeSvg, true);
   assert.equal(createGenerationDownloadSchema.safeParse({ variantIds, format: "png", size: 256 }).success, true);
 });
+
+test("download requests reject more variants than one maximum-size icon set", () => {
+  const variantIds = Array.from({ length: 21 }, (_, index) =>
+    `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+  );
+  assert.equal(
+    createGenerationDownloadSchema.safeParse({ variantIds, format: "png" }).success,
+    false,
+  );
+});

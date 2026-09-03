@@ -1,0 +1,13 @@
+.git
+.next
+**/.next
+node_modules
+**/node_modules
+.artifact-work
+.codex-tmp
+outputs
+work
+coverage
+*.log
+.DS_Store
+apps/web/public/images/icon-style-previews/candidates-v*

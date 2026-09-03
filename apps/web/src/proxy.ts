@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { checkMutationRequest } from "@/lib/security/mutation-request";
+import { consumeRateLimit, requestIpIdentity, requestRateLimitIdentity } from "@/lib/security/rate-limit";
 
 const protectedPrefixes = ["/create", "/icons", "/account", "/checkout", "/admin"];
 const guestOnlyPrefixes = ["/auth/sign-in", "/auth/sign-up"];
@@ -7,6 +9,31 @@ const guestOnlyPrefixes = ["/auth/sign-in", "/auth/sign-up"];
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
+  const requestCheck = checkMutationRequest({
+    pathname,
+    method: request.method,
+    headers: request.headers,
+    protocol: request.nextUrl.protocol,
+  });
+  if (!requestCheck.allowed)
+    return NextResponse.json(
+      { error: { code: requestCheck.code, message: requestCheck.message } },
+      { status: requestCheck.status },
+    );
+  if (pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method) && pathname !== "/api/webhooks/stripe") {
+    const highRisk = pathname.startsWith("/api/auth/") || pathname === "/api/account/credits/redeem";
+    const rateLimit = consumeRateLimit({
+      namespace: highRisk ? "sensitive-write" : "api-write",
+      identity: highRisk ? requestIpIdentity(request.headers) : requestRateLimitIdentity(request.headers),
+      limit: highRisk ? 10 : 60,
+      windowMs: highRisk ? 10 * 60_000 : 60_000,
+    });
+    if (!rateLimit.allowed)
+      return NextResponse.json(
+        { error: { code: "RATE_LIMITED", message: "Too many requests. Try again later." } },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds), "X-RateLimit-Limit": String(rateLimit.limit), "X-RateLimit-Remaining": "0" } },
+      );
+  }
   const isProtectedRoute = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -38,6 +65,7 @@ export async function proxy(request: NextRequest) {
   }
   return response;
 }
+
 
 function redirectToSignIn(request: NextRequest, reason?: string) {
   const loginUrl = request.nextUrl.clone();

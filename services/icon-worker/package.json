@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "process-job": "node --env-file=.env --import tsx src/run-job.ts",
-    "process-edit": "node --env-file=.env --import tsx src/run-variant-edit.ts",
+    "process-job": "node --env-file-if-exists=.env --import tsx src/run-job.ts",
+    "process-edit": "node --env-file-if-exists=.env --import tsx src/run-variant-edit.ts",
+    "daemon": "node --env-file-if-exists=.env --import tsx src/run-worker-daemon.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/*.test.ts src/**/*.test.ts"
   },
