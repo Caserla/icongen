@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { StudioRange } from "@/features/generation/components/studio-range";
 
 export function IconEditorShowcase({ locale }: { locale: "en" | "zh" }) {
   const [scale, setScale] = useState(72);
@@ -28,9 +29,9 @@ export function IconEditorShowcase({ locale }: { locale: "en" | "zh" }) {
           <span className="icon-editor-canvas__size">1024 × 1024</span>
         </div>
         <aside className="icon-editor-controls" aria-label={locale === "zh" ? "图标编辑器控件" : "Icon editor controls"}>
-          <div className="icon-editor-controls__head"><span>ICON / 01</span><i>●</i></div>
-          <Control label={locale === "zh" ? "主体大小" : "Icon size"} value={scale} onChange={setScale} />
-          <Control label={locale === "zh" ? "圆角" : "Corner radius"} value={radius} onChange={setRadius} />
+          <div className="icon-editor-controls__head"><span>{locale === "zh" ? "图标设置" : "Icon settings"}</span></div>
+          <div className="icon-editor-control"><StudioRange label={locale === "zh" ? "主体大小" : "Icon size"} min={10} max={100} suffix="%" value={scale} onChange={setScale} /></div>
+          <div className="icon-editor-control"><StudioRange label={locale === "zh" ? "圆角" : "Corner radius"} min={0} max={50} suffix="%" value={radius} onChange={setRadius} /></div>
           <div className="icon-editor-control">
             <div><span>{locale === "zh" ? "背景" : "Background"}</span><strong>{background.toUpperCase()}</strong></div>
             <div className="icon-editor-swatches">
@@ -51,14 +52,5 @@ export function IconEditorShowcase({ locale }: { locale: "en" | "zh" }) {
         <p>{locale === "zh" ? "调整主体大小、圆角与背景，在导出之前实时看到结果。" : "Tune scale, corners, and background with a live preview before you export."}</p>
       </div>
     </section>
-  );
-}
-
-function Control({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
-  return (
-    <label className="icon-editor-control">
-      <div><span>{label}</span><strong>{value}%</strong></div>
-      <input type="range" min="10" max="100" value={value} onChange={(event) => onChange(Number(event.target.value))} />
-    </label>
   );
 }
