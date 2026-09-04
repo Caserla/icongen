@@ -51,6 +51,36 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   );
 
   useEffect(() => {
+    const cacheKey = `icongen:job-previews:${initialJob.id}`;
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(cacheKey) ?? "[]") as unknown;
+      if (!Array.isArray(cached)) return;
+      const previewUrls = cached.filter(
+        (value): value is string => typeof value === "string" && value.length > 0,
+      );
+      if (!previewUrls.length) return;
+      let previewIndex = 0;
+      setJob((current) => ({
+        ...current,
+        subjects: current.subjects.map((subject) => ({
+          ...subject,
+          variants: subject.variants.map((variant) => {
+            if (
+              variant.previewUrl ||
+              variant.status !== "completed" ||
+              previewIndex >= previewUrls.length
+            )
+              return variant;
+            return { ...variant, previewUrl: previewUrls[previewIndex++] };
+          }),
+        })),
+      }));
+    } catch {
+      sessionStorage.removeItem(cacheKey);
+    }
+  }, [initialJob.id]);
+
+  useEffect(() => {
     if (!previewing) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setPreviewing(null);
@@ -233,12 +263,18 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     failed: ["生成失败", "Could not generate"],
   };
   function toggle(id: string) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const update = () => setSelected((current) => {
+        const next = new Set(current);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    const documentWithTransitions = document as Document & {
+      startViewTransition?: (callback: () => void) => void;
+    };
+    if (documentWithTransitions.startViewTransition)
+      documentWithTransitions.startViewTransition(update);
+    else update();
   }
   async function retryVariant(variantId: string) {
     setRevealedDuringGeneration(true);
@@ -370,23 +406,23 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   }
   return (
     <div className="icon-results-studio space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <button
-            type="button"
-            onClick={goBack}
-            className="mb-5 inline-flex items-center gap-2 rounded-[4px] border border-border bg-background px-4 py-2.5 text-sm font-bold transition-colors hover:border-brand hover:text-brand"
-          >
-            <span aria-hidden="true">←</span>
-            {locale === "zh" ? "返回上一页" : "Back"}
-          </button>
-          <h1 className="text-3xl font-black tracking-[-.03em] text-foreground">
-            {locale === "zh" ? "生成详情" : "Generation details"}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={goBack}
+          className="inline-flex shrink-0 items-center gap-2 rounded-[4px] border border-border bg-background px-3.5 py-2.5 text-sm font-bold transition-colors hover:border-brand hover:text-brand"
+        >
+          <span aria-hidden="true">←</span>
+          {locale === "zh" ? "返回上一页" : "Back"}
+        </button>
+        <div className="ml-auto mr-6 flex min-w-0 items-center justify-end gap-3 text-right sm:mr-10">
+          <h1 className="truncate text-2xl font-black tracking-[-.03em] text-foreground sm:text-3xl">
+            {locale === "zh" ? "图标详情" : "Icon details"}
           </h1>
+          {effectiveJobStatus !== "completed" ? (
+            <StatusBadge status={effectiveJobStatus} />
+          ) : null}
         </div>
-        {effectiveJobStatus !== "completed" ? (
-          <StatusBadge status={effectiveJobStatus} />
-        ) : null}
       </div>
       {effectiveJobStatus !== "completed" ? (
         <section
@@ -516,12 +552,14 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                   <article
                     key={variant.id}
                     data-selected={chosen || undefined}
-                    className={`studio-result-card relative p-3 transition-colors ${chosen ? "is-selected" : ""} ${effectiveStatus === "processing" ? "is-processing" : ""}`}
+                    data-status={effectiveStatus}
+                    className={`studio-result-card relative p-3 transition-colors is-${effectiveStatus} ${chosen ? "is-selected" : ""}`}
                   >
                     {chosen ? (
                       <span
                         aria-hidden="true"
                         className="studio-selection-check absolute -left-2 -top-2 z-20"
+                        style={{ viewTransitionName: "studio-selection-check" }}
                       >
                         <svg viewBox="0 0 24 24" className="block h-4 w-4 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
                           <path d="m4.5 12.5 5 5 10-10" />
@@ -731,7 +769,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
             onClick={() => setPreviewing(null)}
             className="absolute inset-0 bg-[#071126]/80 backdrop-blur-sm"
           />
-          <div className="studio-panel relative z-10 flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden p-3 sm:p-4">
+          <div className="studio-panel relative z-10 flex max-h-[78vh] w-full max-w-[680px] flex-col overflow-hidden p-3 sm:p-4">
             <button
               type="button"
               aria-label={locale === "zh" ? "关闭预览" : "Close preview"}
@@ -744,7 +782,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
               src={previewing.src}
               alt={previewing.alt}
               loading="eager"
-              className="aspect-square max-h-[calc(90vh-2rem)] w-full rounded-[5px] bg-surface-muted"
+              className="aspect-square max-h-[calc(78vh-2rem)] w-full rounded-[5px] bg-surface-muted"
               imageClassName="object-contain"
             />
           </div>

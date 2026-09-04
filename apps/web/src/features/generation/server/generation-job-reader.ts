@@ -3,6 +3,10 @@ import {
   type GenerationJobV2,
 } from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  cacheGeneratedAssetUrl,
+  readCachedGeneratedAssetUrl,
+} from "./generation-job-list-reader";
 
 type StoredAsset = { storage_bucket: string; storage_path: string };
 
@@ -50,18 +54,26 @@ async function signStoredAssets<T extends StoredAsset>(
   client: SupabaseClient,
   assets: T[],
 ): Promise<Array<T & { previewUrl: string }>> {
+  const signed = new Array<T & { previewUrl: string }>(assets.length);
   const byBucket = new Map<string, Array<{ asset: T; index: number }>>();
   assets.forEach((asset, index) => {
+    const cachedUrl = readCachedGeneratedAssetUrl(
+      asset.storage_bucket,
+      asset.storage_path,
+    );
+    if (cachedUrl) {
+      signed[index] = { ...asset, previewUrl: cachedUrl };
+      return;
+    }
     const group = byBucket.get(asset.storage_bucket) ?? [];
     group.push({ asset, index });
     byBucket.set(asset.storage_bucket, group);
   });
-  const signed = new Array<T & { previewUrl: string }>(assets.length);
   await Promise.all(
     [...byBucket.entries()].map(async ([bucket, group]) => {
       const result = await client.storage.from(bucket).createSignedUrls(
         group.map(({ asset }) => asset.storage_path),
-        3600,
+        600,
       );
       if (result.error) throw result.error;
       result.data.forEach((item, offset) => {
@@ -69,6 +81,11 @@ async function signStoredAssets<T extends StoredAsset>(
           throw new Error("Generated icon preview URL was not returned");
         const { asset, index } = group[offset];
         signed[index] = { ...asset, previewUrl: item.signedUrl };
+        cacheGeneratedAssetUrl(
+          asset.storage_bucket,
+          asset.storage_path,
+          item.signedUrl,
+        );
       });
     }),
   );
@@ -233,15 +250,19 @@ export async function readGenerationJob(
   );
   const signedRevisionAssets = parsedRevisionAssets.map((asset) => ({
     ...asset,
-    previewUrl: asset.format === "png"
-      ? appPreviewUrl(`/api/generation/variant-revisions/${asset.revision_id}/assets/${asset.id}/preview`)
-      : signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
+    previewUrl:
+      signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`) ??
+      (asset.format === "png"
+        ? appPreviewUrl(`/api/generation/variant-revisions/${asset.revision_id}/assets/${asset.id}/preview`)
+        : undefined),
   }));
   const assetRows = (assets ?? []).map((asset) => ({
     ...asset,
-    previewUrl: asset.format === "png"
-      ? appPreviewUrl(`/api/generation/assets/${asset.id}/preview`)
-      : signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
+    previewUrl:
+      signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`) ??
+      (asset.format === "png"
+        ? appPreviewUrl(`/api/generation/assets/${asset.id}/preview`)
+        : undefined),
   }));
   for (const asset of signedRevisionAssets) {
     const current = revisionAssets.get(asset.revision_id) ?? [];

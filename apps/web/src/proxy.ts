@@ -34,6 +34,9 @@ export async function proxy(request: NextRequest) {
         { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds), "X-RateLimit-Limit": String(rateLimit.limit), "X-RateLimit-Remaining": "0" } },
       );
   }
+  // API handlers perform their own authenticated authorization. Avoid a
+  // second remote Supabase `getUser()` here after origin and rate-limit checks.
+  if (pathname.startsWith("/api/")) return response;
   const isProtectedRoute = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

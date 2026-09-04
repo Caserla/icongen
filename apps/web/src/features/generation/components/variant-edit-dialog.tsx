@@ -86,6 +86,8 @@ export function VariantEditDialog({
   const [comparisonLoaded, setComparisonLoaded] = useState<Set<string>>(
     () => new Set(),
   );
+  const [comparisonPosition, setComparisonPosition] = useState(50);
+  const [exitMotion, setExitMotion] = useState<"adopt" | "restore" | null>(null);
   const comparisonSources = draft
     ? [currentPreviewUrl, draft.previewUrl].filter(
         (source): source is string => Boolean(source),
@@ -155,7 +157,7 @@ export function VariantEditDialog({
         if (!cancelled && typeof body?.lastInstruction === "string")
           setInstruction((current) => current || body.lastInstruction);
         if (!cancelled && typeof body?.currentPreviewUrl === "string")
-          setCurrentPreviewUrl(body.currentPreviewUrl);
+          setCurrentPreviewUrl((current) => current || body.currentPreviewUrl);
         if (!cancelled && body?.latestFailure?.id) {
           setLatestFailure({
             id: body.latestFailure.id,
@@ -248,6 +250,8 @@ export function VariantEditDialog({
         previewUrl: draft.previewUrl,
       });
       sessionStorage.removeItem(instructionStorageKey(variant.id));
+      setExitMotion("adopt");
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
       onClose();
     } catch (cause) {
       setError(
@@ -269,6 +273,8 @@ export function VariantEditDialog({
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message ?? "Restore failed");
       sessionStorage.removeItem(instructionStorageKey(variant.id));
+      setExitMotion("restore");
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
       onClose();
     } catch (cause) {
       setError(
@@ -295,6 +301,8 @@ export function VariantEditDialog({
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message ?? "Restore failed");
       await onChanged();
+      setExitMotion("restore");
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
       onClose();
     } catch (cause) {
       setError(
@@ -308,7 +316,7 @@ export function VariantEditDialog({
     <section
       role="region"
       aria-labelledby="variant-edit-title"
-      className="variant-edit-studio mx-auto w-full max-w-4xl"
+      className={`variant-edit-studio mx-auto w-full max-w-4xl ${exitMotion ? `is-exiting-${exitMotion}` : ""}`}
     >
       <button
         type="button"
@@ -356,7 +364,19 @@ export function VariantEditDialog({
             className="mt-5"
           >
             <div className="grid items-start gap-5 sm:grid-cols-[240px_minmax(0,1fr)]">
-              <SkeletonBlock className="aspect-square w-full max-w-[240px] rounded-[6px]" />
+              <div className="relative aspect-square w-full max-w-[240px] overflow-hidden rounded-[6px]">
+                {currentPreviewUrl ? (
+                  <ImageWithSkeleton
+                    src={currentPreviewUrl}
+                    alt=""
+                    className="h-full w-full"
+                    loading="eager"
+                    failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
+                  />
+                ) : (
+                  <SkeletonBlock className="h-full w-full rounded-[6px]" />
+                )}
+              </div>
               <div>
                 <SkeletonBlock className="h-5 w-28 rounded-md" />
                 <SkeletonBlock className="mt-2 h-36 w-full rounded-[4px]" />
@@ -376,6 +396,7 @@ export function VariantEditDialog({
                 src={currentPreviewUrl}
                 alt=""
                 className="h-full w-full"
+                loading="eager"
                 showSkeleton={false}
                 failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
               />
@@ -419,6 +440,14 @@ export function VariantEditDialog({
             <legend className="text-sm font-bold">
               {locale === "zh" ? "选择要保留的版本" : "Choose a version"}
             </legend>
+            <div className="variant-comparison mt-2" style={{ "--comparison-position": `${comparisonPosition}%` } as React.CSSProperties}>
+              {currentPreviewUrl ? <ImageWithSkeleton src={currentPreviewUrl} alt={locale === "zh" ? "原图" : "Original"} className="variant-comparison__image" showSkeleton={false} /> : null}
+              <div className="variant-comparison__new">
+                <ImageWithSkeleton src={draft.previewUrl} alt={locale === "zh" ? "新图" : "New"} className="variant-comparison__image" showSkeleton={false} />
+              </div>
+              <span className="variant-comparison__divider" aria-hidden="true" />
+              <input aria-label={locale === "zh" ? "拖动对比原图和新图" : "Drag to compare original and new"} type="range" min="0" max="100" value={comparisonPosition} onChange={(event) => setComparisonPosition(Number(event.target.value))} />
+            </div>
             <div className="relative mt-2">
               {!comparisonReady ? (
                 <div className="absolute inset-0 z-10 grid gap-3 sm:grid-cols-2" aria-label={locale === "zh" ? "正在加载版本图片" : "Loading version images"} aria-busy="true">
@@ -448,7 +477,12 @@ export function VariantEditDialog({
                     aria-pressed={selected}
                     data-selected={selected || undefined}
                     disabled={Boolean(busy)}
-                    onClick={() => setSelectedVersion(option.id)}
+                    onClick={() => {
+                      const update = () => setSelectedVersion(option.id);
+                      const documentWithTransitions = document as Document & { startViewTransition?: (callback: () => void) => void };
+                      if (documentWithTransitions.startViewTransition) documentWithTransitions.startViewTransition(update);
+                      else update();
+                    }}
                     className="variant-version-option overflow-hidden p-1.5 text-left disabled:opacity-50"
                   >
                     <span className="relative block aspect-square overflow-hidden rounded-[4px] bg-surface-muted">
@@ -482,7 +516,7 @@ export function VariantEditDialog({
                     </span>
                     <span className="mt-1.5 flex items-center justify-between gap-2 px-1 pb-0.5 text-sm font-bold">
                       {option.label}
-                      {selected ? <span aria-hidden="true" className="studio-selection-check variant-version-option__check">
+                      {selected ? <span aria-hidden="true" className="studio-selection-check variant-version-option__check" style={{ viewTransitionName: "variant-selection-check" }}>
                         <svg viewBox="0 0 24 24" className="block h-4 w-4 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"><path d="m4.5 12.5 5 5 10-10" /></svg>
                       </span> : null}
                     </span>

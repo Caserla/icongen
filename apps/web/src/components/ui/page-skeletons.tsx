@@ -65,7 +65,7 @@ export function IconsPageSkeleton() {
   );
 }
 
-export function IconResultPageSkeleton() {
+export function IconResultPageSkeleton({ previewUrls = [] }: { previewUrls?: string[] }) {
   const { locale } = useLocale();
   return (
     <div
@@ -85,7 +85,13 @@ export function IconResultPageSkeleton() {
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           {[0, 1, 2].map((item) => (
             <div key={item} className="icon-results-skeleton__card p-3">
-              <SkeletonBlock className="aspect-square w-full rounded-[4px]" />
+              {previewUrls[item] ? (
+                // Cached list-page assets make the detail transition feel immediate.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={previewUrls[item]} alt="" className="aspect-square w-full rounded-[4px] object-contain" />
+              ) : (
+                <SkeletonBlock className="aspect-square w-full rounded-[4px]" />
+              )}
               <div className="mt-3 flex items-center justify-between gap-3">
                 <SkeletonBlock className="h-5 w-16 rounded-[3px]" />
                 <SkeletonBlock className="h-6 w-14 rounded-[2px]" />
@@ -103,7 +109,6 @@ export function IconResultPageSkeleton() {
           <SkeletonBlock className="h-11 w-32 rounded-[4px]" />
         </div>
       </div>
-      <span className="sr-only">{locale === "zh" ? "正在加载生成结果…" : "Loading generation results…"}</span>
     </div>
   );
 }

@@ -211,52 +211,19 @@ function PageJumpInput({
 function JobPreviewGroup({
   urls,
   locale,
+  eager = false,
 }: {
   urls: string[];
   locale: "en" | "zh";
+  eager?: boolean;
 }) {
-  const key = urls.join("\n");
-  const [loadState, setLoadState] = useState<{
-    key: string;
-    settled: Set<number>;
-  }>(() => ({ key, settled: new Set() }));
-  const settled = loadState.key === key ? loadState.settled : new Set<number>();
-  const ready = urls.length > 0 && settled.size === urls.length;
-  const markSettled = useCallback(
-    (index: number) => {
-      setLoadState((current) => {
-        const currentSettled =
-          current.key === key ? current.settled : new Set<number>();
-        if (currentSettled.has(index)) return current;
-        const next = new Set(currentSettled);
-        next.add(index);
-        return { key, settled: next };
-      });
-    },
-    [key],
-  );
   return (
     <div
       className="icon-library-card__previews mt-4 grid grid-cols-3 gap-2"
-      aria-busy={!ready}
-      aria-label={
-        !ready
-          ? locale === "zh"
-            ? "正在加载预览图"
-            : "Loading previews"
-          : undefined
-      }
     >
       {urls.map((src, index) => (
         <div key={src} className="relative aspect-square overflow-hidden">
-          {!ready ? (
-            <span className="absolute inset-0 z-[2]">
-              <SkeletonBlock className="h-full w-full rounded-[inherit]" />
-            </span>
-          ) : null}
-          <div
-            className={`h-full w-full ${ready ? "asset-reveal visible" : "invisible"}`}
-          >
+          <div className="h-full w-full">
             <GeneratedIconPreview
               src={src}
               locale={locale}
@@ -265,8 +232,8 @@ function JobPreviewGroup({
                   ? `生成方案 ${index + 1}`
                   : `Generated option ${index + 1}`
               }
-              showSkeleton={false}
-              onSettled={() => markSettled(index)}
+              showSkeleton
+              loading={eager ? "eager" : "lazy"}
             />
           </div>
         </div>
@@ -279,10 +246,12 @@ function JobCard({
   job,
   locale,
   returnHref,
+  eagerPreviews = false,
 }: {
   job: GenerationJobListItem;
   locale: "en" | "zh";
   returnHref: string;
+  eagerPreviews?: boolean;
 }) {
   return (
     <Link
@@ -291,6 +260,10 @@ function JobCard({
         sessionStorage.setItem("icongen:icons-scroll", String(window.scrollY));
         sessionStorage.setItem("icongen:icons-return", "1");
         sessionStorage.setItem("icongen:icons-return-href", returnHref);
+        sessionStorage.setItem(
+          `icongen:job-previews:${job.id}`,
+          JSON.stringify(job.previewUrls),
+        );
       }}
       className="icon-library-card focus-ring group block"
     >
@@ -317,7 +290,7 @@ function JobCard({
         </div>
       </div>
       {job.previewUrls.length > 0 ? (
-        <JobPreviewGroup urls={job.previewUrls} locale={locale} />
+        <JobPreviewGroup urls={job.previewUrls} locale={locale} eager={eagerPreviews} />
       ) : null}
     </Link>
   );
@@ -356,6 +329,8 @@ export function IconJobList({
       },
   );
   const [isLoading, setIsLoading] = useState(!cachedInitialResult);
+  const [activePage, setActivePage] = useState(selectedPage);
+  const [showLoadingSkeleton, setShowLoadingSkeleton] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [pageToast, setPageToast] = useState<string | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -376,6 +351,14 @@ export function IconJobList({
     status: activeStatus,
   } = filters;
   const activeResult = liveResult;
+  useEffect(() => {
+    if (!isLoading) {
+      setShowLoadingSkeleton(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowLoadingSkeleton(true), 220);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
   const groups =
     activeUsage === "interaction"
       ? structureOptions
@@ -459,11 +442,11 @@ export function IconJobList({
     const frame = requestAnimationFrame(
       () =>
         void loadList(
-          selectedUsage,
-          selectedStyle,
-          selectedStatus,
-          selectedStructure,
-          selectedPage,
+          activeUsage,
+          activeStyle,
+          activeStatus,
+          activeStructure,
+          activePage,
         ),
     );
     return () => {
@@ -471,12 +454,12 @@ export function IconJobList({
       activeListRequest.current?.abort();
     };
   }, [
+    activeStatus,
+    activeStructure,
+    activeStyle,
+    activeUsage,
+    activePage,
     loadList,
-    selectedPage,
-    selectedStatus,
-    selectedStructure,
-    selectedStyle,
-    selectedUsage,
   ]);
   useEffect(() => {
     rememberIconJobFilters(
@@ -597,16 +580,19 @@ export function IconJobList({
   }
   function selectUsage(usage: GenerationJobUsageFilter) {
     prepareListTransition(usage);
+    setActivePage(1);
     dispatchFilters({ type: "select-usage", usage });
     replaceFilterUrl(usage);
   }
   function selectStyle(style?: IconStylePresetId) {
     prepareListTransition(activeUsage, style);
+    setActivePage(1);
     dispatchFilters({ type: "select-style", style });
     replaceFilterUrl(activeUsage, style);
   }
   function selectStructure(structure?: GenerationJobStructureFilter) {
     prepareListTransition(activeUsage, undefined, undefined, structure);
+    setActivePage(1);
     dispatchFilters({ type: "select-structure", structure });
     replaceFilterUrl(activeUsage, undefined, undefined, structure);
   }
@@ -617,6 +603,7 @@ export function IconJobList({
       status,
       activeStructure,
     );
+    setActivePage(1);
     dispatchFilters({ type: "select-status", status });
     replaceFilterUrl(activeUsage, activeStyle, status, activeStructure);
   }
@@ -628,6 +615,7 @@ export function IconJobList({
       activeStructure,
       page,
     );
+    setActivePage(page);
     const href = buildIconJobListHref(
       activeStyle,
       page,
@@ -749,7 +737,7 @@ export function IconJobList({
       </section>
       </div>
 
-      {isLoading ? (
+      {isLoading && showLoadingSkeleton && activeResult.jobs.length === 0 ? (
         <div
           className="icons-jobs-grid mt-6"
           aria-busy="true"
@@ -769,18 +757,19 @@ export function IconJobList({
         </section>
       ) : activeResult.jobs.length === 0 ? null : !activeStyle &&
         !activeStructure ? (
-        <div className="icons-jobs-grid stagger-grid mt-6">
-          {activeResult.jobs.map((job) => (
+        <div className={`icons-jobs-grid stagger-grid icons-list-swap mt-6 ${isLoading ? "is-updating" : ""}`}>
+          {activeResult.jobs.map((job, index) => (
             <JobCard
               key={job.id}
               job={job}
               locale={locale}
               returnHref={currentListHref}
+              eagerPreviews={index < 4}
             />
           ))}
         </div>
       ) : (
-        <div className="icons-studio__groups mt-6 space-y-10">
+        <div className={`icons-studio__groups icons-list-swap mt-6 space-y-10 ${isLoading ? "is-updating" : ""}`}>
           {groups.map(({ preset, jobs }) => (
             <section key={preset.id} aria-labelledby={`style-${preset.id}`}>
               <div className="icons-studio__group-heading mb-4">
@@ -794,12 +783,13 @@ export function IconJobList({
                 </div>
               </div>
               <div className="icons-jobs-grid stagger-grid">
-                {jobs.map((job) => (
+                {jobs.map((job, index) => (
                   <JobCard
                     key={job.id}
                     job={job}
                     locale={locale}
                     returnHref={currentListHref}
+                    eagerPreviews={index < 4}
                   />
                 ))}
               </div>

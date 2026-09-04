@@ -46,7 +46,17 @@ export function ImageWithSkeleton({ src, alt, className = "", imageClassName = "
   return <span data-image-state={failed ? "failed" : loaded && reveal ? "loaded" : "loading"} className={`relative block overflow-hidden ${className}`}>
     {showSkeleton && (!loaded || !reveal) && !failed ? <span className="absolute inset-0"><SkeletonBlock className="h-full w-full rounded-[inherit]" /></span> : null}
     {failed ? <span className="absolute inset-0 grid place-items-center bg-surface-muted px-3 text-center text-sm font-semibold text-muted">{resolvedFailureLabel}</span> : null}
-    {!failed ? <img src={resolvedSrc} alt={alt} loading={loading} decoding="async" onLoad={() => { setState({ src, loaded: true, failed: false, retry }); onLoad?.(); }} onError={() => {
+    {!failed ? <img src={resolvedSrc} alt={alt} loading={loading} decoding="async" onLoad={async (event) => {
+      const image = event.currentTarget;
+      try {
+        await image.decode();
+      } catch {
+        // A completed load is still usable when a browser rejects a redundant
+        // decode call (notably WebKit with memory-cached images).
+      }
+      setState({ src, loaded: true, failed: false, retry });
+      onLoad?.();
+    }} onError={() => {
       if (retryable && retry < 1) {
         setState({ src, loaded: false, failed: false, retry: retry + 1 });
         return;

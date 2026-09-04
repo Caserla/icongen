@@ -35,6 +35,7 @@
 - [图标生成全链路真实交互回归报告（2026-09-04）](testing/generation-flow-e2e-regression-2026-09-04.md)
 - [全产品遗漏场景补充回归报告（2026-09-04）](testing/product-functional-gap-regression-2026-09-04.md)
 - [浏览器竞态、恢复与兼容性验收（2026-09-04）](testing/browser-race-recovery-regression-2026-09-04.md)
+- [UI 与图片加载回归（2026-09-04）](testing/ui-and-asset-loading-regression-2026-09-04.md)
 - [生产安全代码底座回归测试](testing/production-security-regression.md)
 - [安全基本闭环到生产级闭环方案](security/basic-to-production-security-plan.md)
 - [基本安全闭环测试用例](testing/basic-security-closure-test-cases.md)

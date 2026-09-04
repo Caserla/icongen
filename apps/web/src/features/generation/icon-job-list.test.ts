@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { ICON_LIST_SKELETON_COUNT, buildIconJobListHref, groupGenerationJobsByStyle, validatePageJump } from "./components/icon-job-list";
-import { matchesGenerationJobStatus, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, readGenerationJobs, type GenerationJobListItem } from "./server/generation-job-list-reader";
+import { chooseListThumbnail, matchesGenerationJobStatus, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, readGenerationJobs, type GenerationJobListItem } from "./server/generation-job-list-reader";
 
 test("parses stored style presets and safely classifies legacy jobs", () => {
   assert.equal(parseStylePreset({ style: { preset: "flat-playful" } }), "flat-playful");
@@ -24,6 +24,12 @@ test("groups jobs in the shared style catalog order", () => {
   const groups = groupGenerationJobsByStyle(jobs);
   assert.deepEqual(groups.map((group) => group.preset.id), ["clay-3d", "pixel-art"]);
   assert.deepEqual(groups.map((group) => group.jobs.length), [2, 1]);
+});
+
+test("library previews prefer 256px thumbnails instead of full-size output", () => {
+  assert.equal(chooseListThumbnail([{ size: 1024 }, { size: 128 }, { size: 256 }])?.size, 256);
+  assert.equal(chooseListThumbnail([{ size: 1024 }, { size: 128 }, { size: 64 }])?.size, 128);
+  assert.equal(chooseListThumbnail([{ size: 1024 }, { size: 512 }])?.size, 512);
 });
 
 test("pagination links preserve the selected style", () => {
