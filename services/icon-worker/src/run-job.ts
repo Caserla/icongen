@@ -2,9 +2,8 @@ import {
   IncompleteGenerationJobSnapshotError,
   processGenerationJob,
 } from "@icongen/backend-core";
-import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
-import { createDependencies } from "./dependencies";
+import { createDependencies, createWorkerSupabaseClient } from "./dependencies";
 
 const jobId = process.argv[2];
 if (!jobId) throw new Error("Usage: npm run process-job -- <job-id>");
@@ -14,9 +13,7 @@ const dependencies = createDependencies(config);
 const workerId = process.env.WORKER_INSTANCE_ID;
 const leaseSeconds = Math.min(900, Math.max(30, Number(process.env.WORKER_LEASE_SECONDS ?? 120)));
 const leaseClient = workerId
-  ? createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
+  ? createWorkerSupabaseClient(config)
   : null;
 const leaseTimer = leaseClient && workerId
   ? setInterval(() => {

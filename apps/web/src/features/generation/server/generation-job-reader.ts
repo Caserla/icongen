@@ -6,6 +6,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type StoredAsset = { storage_bucket: string; storage_path: string };
 
+function appPreviewUrl(path: string) {
+  return new URL(
+    path,
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000",
+  ).toString();
+}
+
 type PresentableAsset = StoredAsset & {
   asset_role: string;
   format: "png" | "svg";
@@ -20,10 +27,21 @@ function assetsNeededForPresentation<T extends PresentableAsset>(
   for (const asset of assets)
     groups.set(groupBy(asset), [...(groups.get(groupBy(asset)) ?? []), asset]);
   return [...groups.values()].flatMap((group) => {
-    const preview = group.find((asset) => asset.asset_role === "preview" && asset.format === "png")
-      ?? group.find((asset) => asset.asset_role === "source" && asset.format === "png")
-      ?? group.filter((asset) => asset.asset_role === "output" && asset.format === "png").sort((a, b) => b.size - a.size)[0];
-    const vector = group.find((asset) => asset.asset_role === "output" && asset.format === "svg");
+    const preview =
+      group.find(
+        (asset) => asset.asset_role === "preview" && asset.format === "png",
+      ) ??
+      group.find(
+        (asset) => asset.asset_role === "source" && asset.format === "png",
+      ) ??
+      group
+        .filter(
+          (asset) => asset.asset_role === "output" && asset.format === "png",
+        )
+        .sort((a, b) => b.size - a.size)[0];
+    const vector = group.find(
+      (asset) => asset.asset_role === "output" && asset.format === "svg",
+    );
     return [preview, vector].filter((asset): asset is T => Boolean(asset));
   });
 }
@@ -41,12 +59,10 @@ async function signStoredAssets<T extends StoredAsset>(
   const signed = new Array<T & { previewUrl: string }>(assets.length);
   await Promise.all(
     [...byBucket.entries()].map(async ([bucket, group]) => {
-      const result = await client.storage
-        .from(bucket)
-        .createSignedUrls(
-          group.map(({ asset }) => asset.storage_path),
-          3600,
-        );
+      const result = await client.storage.from(bucket).createSignedUrls(
+        group.map(({ asset }) => asset.storage_path),
+        3600,
+      );
       if (result.error) throw result.error;
       result.data.forEach((item, offset) => {
         if (!item.signedUrl)
@@ -71,7 +87,7 @@ export async function readGenerationJob(
     client
       .from("generation_jobs")
       .select(
-        "id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,completed_at",
+        "id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,updated_at,completed_at",
       )
       .eq("id", jobId)
       .eq("user_id", userId)
@@ -160,9 +176,11 @@ export async function readGenerationJob(
     }
   }
 
-  const activeRevisionIds = includeAssets ? (variants ?? []).flatMap((variant) =>
-    variant.active_revision_id ? [variant.active_revision_id] : [],
-  ) : [];
+  const activeRevisionIds = includeAssets
+    ? (variants ?? []).flatMap((variant) =>
+        variant.active_revision_id ? [variant.active_revision_id] : [],
+      )
+    : [];
   const revisionResult = activeRevisionIds.length
     ? await client
         .from("generation_variant_revisions")
@@ -175,27 +193,38 @@ export async function readGenerationJob(
     string,
     Array<(typeof assets)[number] & { previewUrl?: string }>
   >();
-  const parsedRevisionAssets = (revisionResult.data ?? []).flatMap((revision) =>
-    Array.isArray(revision.assets)
-      ? revision.assets.map((asset) => ({
-          revision_id: revision.id,
-          id: String(asset.id),
-          variant_id: "",
-          asset_role: String(asset.assetRole),
-          format: asset.format as "png" | "svg",
-          size: Number(asset.size),
-          width: Number(asset.width),
-          height: Number(asset.height),
-          has_alpha: Boolean(asset.hasAlpha),
-          storage_bucket: String(asset.storageBucket),
-          storage_path: String(asset.storagePath),
-        }))
-      : [],
+  const parsedRevisionAssets = (revisionResult.data ?? []).flatMap(
+    (revision) =>
+      Array.isArray(revision.assets)
+        ? revision.assets.map((asset) => ({
+            revision_id: revision.id,
+            id: String(asset.id),
+            variant_id: "",
+            asset_role: String(asset.assetRole),
+            format: asset.format as "png" | "svg",
+            size: Number(asset.size),
+            width: Number(asset.width),
+            height: Number(asset.height),
+            has_alpha: Boolean(asset.hasAlpha),
+            storage_bucket: String(asset.storageBucket),
+            storage_path: String(asset.storagePath),
+          }))
+        : [],
   );
-  const [signedRevisionPresentation, signedAssetPresentation] = await Promise.all([
-    signStoredAssets(signer, assetsNeededForPresentation(parsedRevisionAssets, (asset) => asset.revision_id)),
-    signStoredAssets(signer, assetsNeededForPresentation(assets ?? [], (asset) => asset.variant_id)),
-  ]);
+  const [signedRevisionPresentation, signedAssetPresentation] =
+    await Promise.all([
+      signStoredAssets(
+        signer,
+        assetsNeededForPresentation(
+          parsedRevisionAssets,
+          (asset) => asset.revision_id,
+        ),
+      ),
+      signStoredAssets(
+        signer,
+        assetsNeededForPresentation(assets ?? [], (asset) => asset.variant_id),
+      ),
+    ]);
   const signedUrlByPath = new Map(
     [...signedRevisionPresentation, ...signedAssetPresentation].map((asset) => [
       `${asset.storage_bucket}:${asset.storage_path}`,
@@ -204,11 +233,15 @@ export async function readGenerationJob(
   );
   const signedRevisionAssets = parsedRevisionAssets.map((asset) => ({
     ...asset,
-    previewUrl: signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
+    previewUrl: asset.format === "png"
+      ? appPreviewUrl(`/api/generation/variant-revisions/${asset.revision_id}/assets/${asset.id}/preview`)
+      : signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
   }));
   const assetRows = (assets ?? []).map((asset) => ({
     ...asset,
-    previewUrl: signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
+    previewUrl: asset.format === "png"
+      ? appPreviewUrl(`/api/generation/assets/${asset.id}/preview`)
+      : signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`),
   }));
   for (const asset of signedRevisionAssets) {
     const current = revisionAssets.get(asset.revision_id) ?? [];
@@ -298,6 +331,7 @@ export async function readGenerationJob(
         }),
     })),
     createdAt: new Date(job.created_at).toISOString(),
+    updatedAt: new Date(job.updated_at).toISOString(),
     completedAt: job.completed_at
       ? new Date(job.completed_at).toISOString()
       : undefined,

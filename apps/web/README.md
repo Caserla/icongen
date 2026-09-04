@@ -5,13 +5,13 @@ Next.js App Router frontend and BFF for the Bamboo IconGen MVP.
 ## Routes
 
 - `/` — marketing landing page.
-- `/pricing` — Stripe credit-pack entry.
+- `/pricing` — point rules and CD-Key redemption entry; online payment is not currently offered.
 - `/auth/sign-in` — Supabase Auth entry.
 - `/create` — generation request form.
 - `/icons` and `/icons/[jobId]` — history and generation results.
 - `/account` — user profile and credit summary.
 - `/admin` — protected operations workspace.
-- `/api/*` — BFF endpoints and webhook boundary.
+- `/api/*` — authenticated BFF endpoints.
 
 ## Getting Started
 
@@ -22,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` before connecting Supabase or Stripe.
+Copy `.env.example` to `.env.local` before connecting Supabase.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

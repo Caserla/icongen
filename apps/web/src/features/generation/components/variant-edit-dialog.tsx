@@ -212,17 +212,13 @@ export function VariantEditDialog({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ instruction }),
+          body: JSON.stringify({ instruction, idempotencyKey: crypto.randomUUID() }),
         },
       );
       const body = await response.json().catch(() => null);
       if (!response.ok) {
-        if (body?.error === "VARIANT_EDIT_LIMIT_REACHED")
-          throw new Error(
-            locale === "zh"
-              ? "这个方案赠送的 3 次细节调整已用完。"
-              : "This option has used all 3 included detail adjustments.",
-          );
+        if (body?.error === "INSUFFICIENT_CREDITS")
+          throw new Error(locale === "zh" ? "点数不足：本次细节调整需要 1 点。" : "Not enough credits: this detail adjustment costs 1 credit.");
         throw new Error(body?.message ?? "Detail adjustment failed");
       }
       await pollEdit(body.id);
@@ -288,7 +284,13 @@ export function VariantEditDialog({
     try {
       const response = await fetch(
         `/api/generation/variants/${variant.id}/restore`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            expectedActiveRevisionId: variant.activeRevisionId,
+          }),
+        },
       );
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message ?? "Restore failed");
@@ -306,7 +308,7 @@ export function VariantEditDialog({
     <section
       role="region"
       aria-labelledby="variant-edit-title"
-      className="mx-auto w-full max-w-3xl"
+      className="variant-edit-studio mx-auto w-full max-w-4xl"
     >
       <button
         type="button"
@@ -317,7 +319,7 @@ export function VariantEditDialog({
         <span aria-hidden="true">←</span>
         {locale === "zh" ? "返回生成结果" : "Back to results"}
       </button>
-      <div className="paper-panel rounded-[6px] border border-border p-4 shadow-[4px_4px_0_rgba(11,23,50,.12)] sm:p-5">
+      <div className="studio-panel p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 id="variant-edit-title" className="text-xl font-black">
@@ -331,9 +333,13 @@ export function VariantEditDialog({
             </p>
             {remainingDetailEdits !== null ? (
               <p className="mt-2 text-xs font-bold text-brand">
-                {locale === "zh"
-                  ? `本方案剩余 ${remainingDetailEdits} 次免费细节调整`
-                  : `${remainingDetailEdits} free detail edits left for this option`}
+                {remainingDetailEdits === 0
+                  ? locale === "zh"
+                    ? "免费次数已用完，当前调整需消耗 1 点"
+                    : "Free edits used up. This adjustment costs 1 credit."
+                  : locale === "zh"
+                    ? `本方案剩余 ${remainingDetailEdits} 次免费细节调整`
+                    : `${remainingDetailEdits} free detail edits left for this option`}
               </p>
             ) : null}
           </div>
@@ -373,18 +379,6 @@ export function VariantEditDialog({
                 showSkeleton={false}
                 failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
               />
-            ) : null}
-            {busy === "edit" && editStage === "generating" ? (
-              <div
-                role="status"
-                aria-live="polite"
-                aria-busy="true"
-                className="absolute inset-0 grid place-items-center bg-[#f6edda]/94 p-4"
-              >
-                <b className="rounded-[3px] border border-border bg-surface px-4 py-2 text-center text-sm text-foreground shadow-[3px_3px_0_rgba(11,23,50,.14)]">
-                  {locale === "zh" ? "正在调整图标" : "Adjusting icon"}
-                </b>
-              </div>
             ) : null}
           </div>
           <div>
@@ -452,13 +446,10 @@ export function VariantEditDialog({
                     key={option.id}
                     type="button"
                     aria-pressed={selected}
+                    data-selected={selected || undefined}
                     disabled={Boolean(busy)}
                     onClick={() => setSelectedVersion(option.id)}
-                    className={`overflow-hidden rounded-[4px] border-2 p-1.5 text-left transition-colors disabled:opacity-50 ${
-                      selected
-                        ? "border-brand bg-brand/5"
-                        : "border-border bg-background hover:border-brand/40"
-                    }`}
+                    className="variant-version-option overflow-hidden p-1.5 text-left disabled:opacity-50"
                   >
                     <span className="relative block aspect-square overflow-hidden rounded-[4px] bg-surface-muted">
                       {option.src ? (
@@ -491,16 +482,9 @@ export function VariantEditDialog({
                     </span>
                     <span className="mt-1.5 flex items-center justify-between gap-2 px-1 pb-0.5 text-sm font-bold">
                       {option.label}
-                      <span
-                        aria-hidden="true"
-                        className={`grid size-5 place-items-center rounded-full border ${
-                          selected
-                            ? "border-brand bg-brand text-white"
-                            : "border-border"
-                        }`}
-                      >
-                        {selected ? "✓" : ""}
-                      </span>
+                      {selected ? <span aria-hidden="true" className="studio-selection-check variant-version-option__check">
+                        <svg viewBox="0 0 24 24" className="block h-4 w-4 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter"><path d="m4.5 12.5 5 5 10-10" /></svg>
+                      </span> : null}
                     </span>
                   </button>
                 );
@@ -547,23 +531,10 @@ export function VariantEditDialog({
             </p>
           </div>
         ) : null}
-        {draft ? (
-          <div
-            role="status"
-            className="mx-auto mt-4 w-full max-w-[480px] rounded-[6px] border border-[#b8dfc7] bg-[#effaf3] p-4 text-sm text-[#176b3a]"
-          >
-            <b>{locale === "zh" ? "调整结果已生成" : "Adjustment ready"}</b>
-            <p className="mt-1">
-              {locale === "zh"
-                ? "对比并选择要保留的版本。选择新图后更新，选择上一次的图则保留原版本。"
-                : "Compare both versions. Update to use the new image, or restore to keep the previous one."}
-            </p>
-          </div>
-        ) : null}
         {error ? (
           <p
             role="alert"
-            className="mt-4 rounded-[4px] bg-[#fff1ed] p-3 text-sm text-danger"
+            className="studio-notice studio-notice--error mt-4 p-3 text-sm"
           >
             {error}
           </p>
@@ -571,7 +542,7 @@ export function VariantEditDialog({
         {!checkingDraft && !busy && !draft && latestFailure ? (
           <div
             role="alert"
-            className="mt-4 rounded-[4px] border border-[#f3c3b8] bg-[#fff1ed] p-3 text-sm text-danger"
+            className="studio-notice studio-notice--error mt-4 p-3 text-sm"
           >
             <b>{locale === "zh" ? "细节调整生成失败" : "Detail adjustment failed"}</b>
             <p className="mt-1">
@@ -599,16 +570,6 @@ export function VariantEditDialog({
                   : "Restore previous version"}
             </button>
           ) : null}
-          {!draft ? (
-            <button
-              type="button"
-              disabled={Boolean(busy)}
-              onClick={onClose}
-              className="rounded-[4px] border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-50"
-            >
-              {locale === "zh" ? "取消" : "Cancel"}
-            </button>
-          ) : null}
           {draft ? (
             <button
               type="button"
@@ -617,7 +578,7 @@ export function VariantEditDialog({
                 if (selectedVersion === "new") void saveDraft();
                 else void discardDraft();
               }}
-              className="mechanical-button bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+              className="studio-button studio-button--primary px-4 py-2.5 text-sm font-black disabled:opacity-50"
             >
               {selectedVersion === "previous"
                 ? busy === "restore"
@@ -638,9 +599,9 @@ export function VariantEditDialog({
           ) : (
             <button
               type="button"
-              disabled={Boolean(busy) || instruction.trim().length < 5 || remainingDetailEdits === 0}
+              disabled={Boolean(busy) || instruction.trim().length < 5}
               onClick={() => void submit()}
-              className="mechanical-button bg-brand px-4 py-2.5 text-sm font-black text-white disabled:opacity-50"
+              className="studio-button studio-button--primary px-4 py-2.5 text-sm font-black disabled:opacity-50"
             >
               {busy === "edit"
                 ? locale === "zh"

@@ -57,7 +57,6 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
 ## 3. 推荐前端类型
 
 ```ts
-export type AccountStatus = "active" | "restricted" | "deletion_pending";
 
 export type AccountSummary = {
   id: string;
@@ -217,7 +216,6 @@ const account = await apiRequest<AccountSummary>("/api/account");
 
 - `active`：正常展示全部账户功能。
 - `restricted`：显示限制说明，隐藏生成和付款操作。
-- `deletion_pending`：显示删除待处理状态，禁止新的业务操作。
 
 ## 10. 修改昵称
 
@@ -235,7 +233,6 @@ const profile = await apiRequest<{
 
 该接口不能修改邮箱、点数余额或账户状态。
 
-## 11. 申请删除账户
 
 前端必须先展示影响说明，并要求用户：
 
@@ -246,8 +243,6 @@ const profile = await apiRequest<{
 ```ts
 const result = await apiRequest<{
   requestId: string;
-  status: "deletion_pending";
-}>("/api/account/delete-request", {
   method: "POST",
   body: JSON.stringify({
     confirmation: "DELETE",
@@ -265,9 +260,7 @@ const result = await apiRequest<{
 | 401 | `AUTH_REQUIRED` | 跳转登录页 |
 | 401 | `REAUTH_REQUIRED` | 提示当前密码验证失败 |
 | 409 | `ACTIVE_GENERATION_EXISTS` | 提示等待生成任务结束 |
-| 500 | `ACCOUNT_DELETION_REQUEST_FAILED` | 保留表单并允许手动重试 |
 
-成功后把账户界面切换成 `deletion_pending`，不要立即假设数据已经物理删除。
 
 ## 12. 全局认证错误处理
 
@@ -310,7 +303,6 @@ try {
 | `/auth/reset-password` | `POST /api/auth/reset-password` |
 | App Shell 退出按钮 | `POST /api/auth/sign-out` |
 | `/account` | `GET /api/account`、`PATCH /api/account/profile` |
-| `/account/delete` | `POST /api/account/delete-request` |
 
 ## 14. 前端联调前置条件
 
@@ -337,5 +329,4 @@ Supabase Auth 控制台还需要配置本地及生产 Site URL、允许的回调
 
 - 接口已经实现并通过类型检查、单元测试和生产构建。
 - 邮件限流仍依赖 Supabase 配置及后续应用层限流。
-- 账户删除接口只建立删除申请并锁定账户，不执行最终物理删除。
 - 真实邮件和认证流程必须连接实际 Supabase 测试项目后进行集成测试。

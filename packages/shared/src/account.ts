@@ -21,16 +21,16 @@ export const emailRequestSchema = z.object({ email: emailSchema });
 export const resetPasswordSchema = z.object({ password: passwordSchema });
 
 export const updateProfileSchema = z.object({
-  displayName: z.string().trim().min(1).max(18).nullable(),
+  displayName: z
+    .string()
+    .trim()
+    .min(1)
+    .max(18)
+    .regex(/^[\p{L}\p{N} ]+$/u, "Display name may contain only letters, numbers, and spaces.")
+    .nullable(),
 });
 
-export const deleteAccountRequestSchema = z.object({
-  confirmation: z.literal("DELETE"),
-  password: z.string().min(1).max(128),
-  idempotencyKey: z.string().uuid(),
-});
-
-export const accountStatusSchema = z.enum(["active", "restricted", "deletion_pending"]);
+export const accountStatusSchema = z.enum(["active", "restricted"]);
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
 
 export type AccountSummary = {

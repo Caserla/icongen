@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { buildIconJobListHref, groupGenerationJobsByStyle, validatePageJump } from "./components/icon-job-list";
+import { ICON_LIST_SKELETON_COUNT, buildIconJobListHref, groupGenerationJobsByStyle, validatePageJump } from "./components/icon-job-list";
 import { matchesGenerationJobStatus, parseGenerationJobUsage, parseGraphicStructure, parseStylePreset, readGenerationJobs, type GenerationJobListItem } from "./server/generation-job-list-reader";
 
 test("parses stored style presets and safely classifies legacy jobs", () => {
@@ -69,4 +70,20 @@ test("validates direct page input against integer and page boundaries", () => {
   assert.deepEqual(validatePageJump("abc", 4), { error: "integer" });
   assert.deepEqual(validatePageJump("0", 4), { error: "below-range" });
   assert.deepEqual(validatePageJump("5", 4), { error: "above-range" });
+});
+
+test("filter transitions use the list skeleton and do not render the removed empty-state CTA", () => {
+  const source = readFileSync(
+    new URL("./components/icon-job-list.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /function prepareListTransition/);
+  assert.match(source, /setIsLoading\(true\)/);
+  assert.match(source, /aria-busy="true"/);
+  assert.equal(ICON_LIST_SKELETON_COUNT, 4);
+  assert.match(source, /length: ICON_LIST_SKELETON_COUNT/);
+  assert.doesNotMatch(source, /暂无图标|创建一套图标/);
+  assert.doesNotMatch(source, /No icons yet|Create an icon set/);
+  assert.doesNotMatch(source, /generated-icon-no-options/);
 });

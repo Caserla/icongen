@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: Request) {
   const parsed = updateProfileSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return apiError("VALIDATION_ERROR", "Display name must be between 1 and 18 characters.", 400, parsed.error.flatten());
+  if (!parsed.success) return apiError("VALIDATION_ERROR", "Display name must be 1–18 characters and contain only letters, numbers, and spaces.", 400, parsed.error.flatten());
 
   try {
     const user = await requireActiveUser();

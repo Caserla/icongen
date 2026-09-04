@@ -1,6 +1,7 @@
 import { INTERACTION_ASSET_SPEC, SHARED_PRODUCTION_BOUNDARIES } from "../production-boundaries";
 import type { CompileIconPromptInput } from "../types";
 import { getIconGeometryContract } from "../geometry-contracts";
+import { getConfiguredBackgroundQualityContract } from "../background-contracts";
 
 const describeColor = (color: CompileIconPromptInput["color"]) => color.mode === "solid"
   ? `solid ${color.color}`
@@ -16,6 +17,31 @@ const describeBackground = (background: CompileIconPromptInput["background"]) =>
 
 export function compileInteractionPrompt(input: CompileIconPromptInput, direction: string) {
   const geometry = getIconGeometryContract(input);
+  const configuredBackground = getConfiguredBackgroundQualityContract(
+    input.style.preset,
+    input.background,
+    input.slot,
+  );
+  const promptBackground =
+    input.background.enabled && configuredBackground
+      ? {
+          ...input.background,
+          color:
+            configuredBackground.mode === "gradient"
+              ? {
+                  mode: "gradient" as const,
+                  colors: configuredBackground.colors,
+                  direction:
+                    input.background.color.mode === "gradient"
+                      ? input.background.color.direction
+                      : ("top-left-to-bottom-right" as const),
+                }
+              : {
+                  mode: "solid" as const,
+                  color: configuredBackground.color,
+                },
+        }
+      : input.background;
   const setConsistency = input.iconSetConsistency?.enabled
     ? [
         "ICON SET CONSISTENCY (MANDATORY)",
@@ -32,7 +58,10 @@ export function compileInteractionPrompt(input: CompileIconPromptInput, directio
     "USE CASE\nproduction-ui-icon",
     "TASK\nCreate exactly one original in-app interaction icon.",
     `SUBJECT\nName: ${input.name}\nMeaning: ${input.description}`,
-    `VISUAL SYSTEM\nGraphic structure: ${input.style.graphicStructure === "filled" ? "filled solid glyph with clear negative space" : "linear outline glyph with no fill"}.\nSubject color: ${describeColor(input.color)}.\nIcon background: ${describeBackground(input.background)}.\nUse consistent optical weight, balanced geometry, and crisp edges.`,
+    `VISUAL SYSTEM\nGraphic structure: ${input.style.graphicStructure === "filled" ? "filled solid glyph with clear negative space" : "linear outline glyph with no fill"}.\nSubject color: ${describeColor(input.color)}.\nSubject opacity: ${input.style.subjectOpacityPercent}% (100% means fully opaque artwork; lower values must preserve the requested visual opacity).\nIcon background: ${describeBackground(promptBackground)}.\nUse consistent optical weight, balanced geometry, and crisp edges.`,
+    !input.background.enabled && input.style.graphicStructure === "filled"
+      ? "TRANSPARENT FILLED GLYPH CONTRACT (MANDATORY)\nRender only the filled glyph as foreground artwork on a genuinely empty alpha canvas. The glyph must not be interpreted as a filled square, tile, badge, card, container, or canvas background. Preserve clear transparent space around its complete silhouette."
+      : "",
     `VARIANT\n${direction}`,
     `GEOMETRY INTEGRITY (MANDATORY)\nCategory: ${geometry.category}. ${geometry.prompt} Variant differences may change secondary construction only; they must never damage the canonical semantic skeleton or recognizability.`,
     setConsistency,

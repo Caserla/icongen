@@ -1,8 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
-import { createDependencies } from "./dependencies";
+import { createDependencies, createWorkerSupabaseClient } from "./dependencies";
 import { generateValidatedDetailEdit } from "./generate-validated-detail-edit";
 import { publicErrorMessage } from "./adapters/public-error-message";
+import { requestsTransparentBackground } from "./detail-edit-request";
+import { shouldInjectDetailEditFailure } from "./detail-edit-test-fault";
 
 const editId = process.argv[2];
 if (!editId) throw new Error("Usage: npm run process-edit -- <edit-id>");
@@ -11,13 +12,7 @@ const config = loadConfig();
 const dependencies = createDependencies(config);
 const workerId = process.env.WORKER_INSTANCE_ID;
 const leaseSeconds = Math.min(900, Math.max(30, Number(process.env.WORKER_LEASE_SECONDS ?? 120)));
-const client = createClient(
-  config.SUPABASE_URL,
-  config.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: { persistSession: false, autoRefreshToken: false },
-  },
-);
+const client = createWorkerSupabaseClient(config);
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
 type RevisionAsset = {
@@ -95,6 +90,12 @@ async function run() {
     .maybeSingle();
   if (claimed.error) throw claimed.error;
   if (!claimed.data) return;
+  if (shouldInjectDetailEditFailure({
+    editId,
+    nodeEnv: process.env.NODE_ENV,
+    enabled: process.env.E2E_INJECT_DETAIL_EDIT_FAILURE,
+    targetEditId: process.env.E2E_DETAIL_EDIT_FAILURE_ID,
+  })) throw new Error("Controlled non-production detail-edit failure");
   heartbeatTimer = setInterval(() => {
     const now = new Date().toISOString();
     // PostgREST builders are lazy thenables. Awaiting the builder is required;
@@ -168,12 +169,16 @@ async function run() {
       targetStrokeWidthPercent: job.spec.style.linearStrokeWidthPercent,
     },
   });
+  const removesBackground = requestsTransparentBackground(revision.instruction);
+  const requestedOutputBackground = removesBackground
+    ? "transparent"
+    : compiled.outputBackground;
   const image = await generateValidatedDetailEdit(
     {
       editId,
       compiledPrompt: compiled.prompt,
       instruction: revision.instruction,
-      outputBackground: compiled.outputBackground,
+      outputBackground: requestedOutputBackground,
       sourceBytes,
       purpose: job.spec.purpose,
       stylePreset: job.spec.style.preset,
@@ -181,6 +186,7 @@ async function run() {
     dependencies,
   );
   const shouldPreserveAppIconAlpha =
+    !removesBackground &&
     job.spec.purpose === "app-icon" &&
     effectiveBackground.enabled &&
     effectiveBackground.container !== "square";
@@ -356,6 +362,15 @@ try {
     })
     .eq("id", editId)
     .in("status", ["queued", "processing"]);
+  const refund = await client.rpc("refund_failed_variant_detail_edit_v2", {
+    p_revision_id: editId,
+  });
+  if (refund.error && refund.error.code !== "PGRST202") {
+    dependencies.logger.error("Paid variant detail edit refund failed", {
+      editId,
+      error: refund.error.message,
+    });
+  }
   process.exitCode = 1;
 } finally {
   if (heartbeatTimer) clearInterval(heartbeatTimer);

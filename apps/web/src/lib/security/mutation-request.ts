@@ -14,7 +14,6 @@ export function checkMutationRequest(input: {
 }): MutationRequestCheck {
   if (
     !input.pathname.startsWith("/api/") ||
-    input.pathname === "/api/webhooks/stripe" ||
     SAFE_METHODS.has(input.method)
   ) return { allowed: true };
 

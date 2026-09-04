@@ -221,7 +221,10 @@ async function hasPaintedTransparencyCheckerboard(bytes: Uint8Array) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  for (const period of [2, 4, 8, 16]) {
+  // Providers do not use one fixed transparency-grid tile size. Sampling and
+  // resize interpolation can also turn a power-of-two source grid into an odd
+  // period, so inspect every practical period instead of four exact values.
+  for (let period = 1; period <= 32; period += 1) {
     const groups: [number[], number[]] = [[], []];
     let opaquePixels = 0;
     for (let y = 0; y < info.height; y += 1) for (let x = 0; x < info.width; x += 1) {
@@ -329,7 +332,7 @@ export class SharpImageQualityGate implements ImageQualityGate {
       if (symmetryError !== null && symmetryError > input.geometryContract.maxSymmetryError)
         warnings.push({ code: "GEOMETRY_SYMMETRY_BROKEN", message: `The ${input.geometryContract.category} silhouette has ${(symmetryError * 100).toFixed(1)}% vertical mirror disagreement; allowed ${(input.geometryContract.maxSymmetryError * 100).toFixed(1)}%. Restore its canonical balanced geometry.` });
     }
-    if (await hasPaintedTransparencyCheckerboard(input.bytes)) warnings.push({ code: "FAKE_TRANSPARENCY_CHECKERBOARD", message: "The image appears to contain an opaque painted checkerboard instead of native transparency." });
+    if (input.outputBackground === "transparent" && await hasPaintedTransparencyCheckerboard(input.bytes)) warnings.push({ code: "FAKE_TRANSPARENCY_CHECKERBOARD", message: "The image appears to contain an opaque painted checkerboard instead of native transparency." });
     if (input.editSourceBytes) {
       const delta = await inspectVisibleEditDelta(input.bytes, input.editSourceBytes);
       if (delta.invalid) warnings.push({

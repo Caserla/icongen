@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createDetailEditRequest } from "./detail-edit-request";
+import { createDetailEditRequest, requestsTransparentBackground } from "./detail-edit-request";
 import { createPromptCompiler } from "./registries";
 
 test("detail editing sends only the current icon as the editable image", () => {
   const request = createDetailEditRequest({
     compiledPrompt: "Keep the approved flat-playful visual contract.",
     instruction: "Make the smile slightly wider.",
+    stylePreset: "flat-playful",
     outputBackground: "opaque",
     sourceBytes: new Uint8Array([1, 2, 3]),
   });
@@ -16,9 +17,22 @@ test("detail editing sends only the current icon as the editable image", () => {
   assert.equal(request.referenceImage, undefined);
   assert.match(request.prompt, /only editable artwork/i);
   assert.match(request.prompt, /Make the smile slightly wider/);
-  assert.match(request.prompt, /IMMUTABLE STYLE AND OUTPUT CONTRACT/);
+  assert.match(request.prompt, /IMMUTABLE FOREGROUND STYLE CONTRACT/);
+  assert.match(request.prompt, /ORIGINAL STYLE CONTINUITY — HARD REQUIREMENT/);
+  assert.match(request.prompt, /original icon uses the flat-playful style/i);
+  assert.match(
+    request.prompt,
+    /Any element added, replaced, extended or exposed/i,
+  );
+  assert.match(
+    request.prompt,
+    /shape language, palette, line weight, edge treatment, material, texture, lighting, depth, perspective and detail density/i,
+  );
   assert.match(request.prompt, /EDGE INTEGRITY — HARD REQUIREMENT/);
-  assert.match(request.prompt, /full-bleed through every canvas edge and corner/i);
+  assert.match(
+    request.prompt,
+    /full-bleed through every canvas edge and corner/i,
+  );
   assert.match(request.prompt, /white or near-white border/i);
 });
 
@@ -26,6 +40,7 @@ test("transparent detail editing forbids white matte and alpha-edge artifacts", 
   const request = createDetailEditRequest({
     compiledPrompt: "Keep the approved transparent icon contract.",
     instruction: "Make the star more symmetrical.",
+    stylePreset: "minimal-logo",
     outputBackground: "transparent",
     sourceBytes: new Uint8Array([1, 2, 3]),
   });
@@ -35,6 +50,16 @@ test("transparent detail editing forbids white matte and alpha-edge artifacts", 
   assert.match(request.prompt, /white, black, colored or checkerboard matte/i);
   assert.match(request.prompt, /all four corners/i);
   assert.doesNotMatch(request.prompt, /chroma green/i);
+  assert.match(request.prompt, /real pixel transparency/i);
+  assert.match(request.prompt, /Never draw a checkerboard/i);
+});
+
+test("recognizes explicit Chinese and English background-removal instructions", () => {
+  assert.equal(requestsTransparentBackground("去掉图标背景"), true);
+  assert.equal(requestsTransparentBackground("请把背景改为透明"), true);
+  assert.equal(requestsTransparentBackground("Remove the icon background"), true);
+  assert.equal(requestsTransparentBackground("Make the background transparent"), true);
+  assert.equal(requestsTransparentBackground("把背景颜色改成蓝色"), false);
 });
 
 test("flat-playful detail edit preserves the real style contract without resending its style board", () => {
@@ -54,6 +79,7 @@ test("flat-playful detail edit preserves the real style contract without resendi
       graphicStructure: "filled",
       subjectSizePercent: 70,
       linearStrokeWidthPercent: 3.5,
+      subjectOpacityPercent: 100,
       strokeWeight: "regular",
       cornerStyle: "balanced",
       detailLevel: "standard",
@@ -61,12 +87,16 @@ test("flat-playful detail edit preserves the real style contract without resendi
     sizes: [64, 128, 256],
     slot: 2,
   });
-  assert.ok(compiled.referenceImage, "initial generation should have a flat-playful style board");
+  assert.ok(
+    compiled.referenceImage,
+    "initial generation should have a flat-playful style board",
+  );
 
   const sourceBytes = new Uint8Array([137, 80, 78, 71]);
   const request = createDetailEditRequest({
     compiledPrompt: compiled.prompt,
     instruction: "只把圆框眼镜的镜框稍微变细，其他内容保持不变",
+    stylePreset: "flat-playful",
     outputBackground: compiled.outputBackground,
     sourceBytes,
   });

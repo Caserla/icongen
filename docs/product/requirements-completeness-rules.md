@@ -11,7 +11,6 @@
 1. 业务对象：该功能创建、读取或修改什么对象。
 2. 标识策略：内部主键是什么，是否需要用户可见编号，编号由谁生成、是否唯一、是否可预测。
 3. 状态模型：初始状态、允许转换、终态和非法转换。
-4. 幂等与并发：重复点击、刷新、队列重投、Webhook 重放和并发请求如何处理。
 5. 权限边界：谁可以读、写、重试、下载或导出，越权时返回什么。
 6. 异常边界：校验失败、第三方失败、超时、部分成功、资源过期和恢复路径。
 7. 数据生命周期：创建时间、保留期限、软删除/硬删除、匿名化和清理任务。
@@ -23,19 +22,15 @@
 
 | 模块 | 核心对象与标识 | 关键状态 | 幂等/并发 | 生命周期与导出 |
 | --- | --- | --- | --- | --- |
-| 用户、登录与账户 | `user_id` UUID；邮箱是登录标识但不是业务主键；删除请求和导出任务各有 UUID | unverified、active、deletion_pending、deleted；导出 queued/processing/ready/failed/expired | 注册初始化和 6 点赠送只执行一次；删除申请和导出创建可重复调用 | 删除宽限 30 天；导出 ZIP 24 小时；导出资料、订单、账本、摘要和有效 PNG |
-| 图标设计与生成 | job、subject、variant、asset 均使用 UUID；创建任务使用 idempotency key | queued、processing、completed、partial、failed；variant 独立状态 | 同用户最多一个活动任务；队列重投跳过已完成 variant；扣点与建任务同事务 | 图片 30 天；任务保留脱敏引用；生成设置和版本写 manifest |
+| 图标设计与生成 | job、subject、variant、asset 均使用 UUID；创建任务使用 idempotency key | queued、processing、completed、partial、failed；variant 独立状态 | 同用户最多一个活动任务；队列重投跳过已完成 variant；扣点与建任务同事务 | 当前不设置 30 天清理；任务保留脱敏引用；生成设置和版本写 manifest |
 | 作品、预览与下载 | job/variant/asset UUID；下载归档 archive UUID；选择集形成稳定归档键 | ready、expired、failed；资产 available/expired | 单图 URL 短时有效；相同选择和尺寸可复用 24 小时归档 | 到期删除 PNG/预览/临时 ZIP；仅本人可下载；有效作品进入个人数据导出 |
-| 点数与商业化 | order UUID + 后端业务订单号；ledger UUID；Stripe Event ID | pending、paid、canceled、expired、failed、refunded | `(user_id,idempotency_key)` 防重复下单；Event ID 去重；订单行锁后原子入账 | 订单和账本进入个人数据导出；卡数据和密钥永不保存或导出 |
 | 最小运营支持 | 管理操作 audit ID；目标对象使用原始 UUID/业务订单号 | requested、succeeded、failed（记录结果，不伪造业务状态） | 重试和人工调点必须有业务键；相同操作不得重复执行 | 审计日志按合规策略保留；不进入用户个人数据导出 |
 | 平台、工程与上线 | 配置版本、Skill 版本、模型名、部署版本和外部 request ID | environment/deployment/health 状态 | 配置发布可回滚；Worker 和定时任务可重入 | 密钥仅在服务端密钥管理；日志不得记录完整 Prompt、支付信息或密钥 |
 
 ## 4. 本轮补全结论
 
-- 订单：补充内部 UUID 与业务订单号双标识、后端生成规则、价格快照、状态机和下单/Webhook 幂等。
 - 生成：明确 job/subject/variant/asset 四级标识、活动任务并发限制和 variant 级恢复。
-- 下载：明确单图与归档标识、选择集幂等、24 小时归档有效期和 30 天资产边界。
-- 账户删除：明确删除请求与数据导出不是同一对象，分别拥有状态和幂等键。
+- 下载：明确单图与归档标识、选择集幂等和临时归档有效期；作品清理期限暂不纳入本期。
 - 点数：明确余额是快照、账本是权威变更记录，任何扣点、返还、购买和人工调整都有唯一业务键。
 - 运营：明确管理员查看与修改权限分离，所有人工变更必须记录操作人、原因、目标和结果。
 

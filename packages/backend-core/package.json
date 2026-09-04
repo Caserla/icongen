@@ -7,12 +7,14 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "test": "node --import tsx --test src/**/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@icongen/shared": "*"
   },
   "devDependencies": {
+    "tsx": "^4.20.5",
     "typescript": "^5"
   }
 }

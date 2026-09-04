@@ -1,15 +1,13 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
-import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
 import { logger } from "./adapters/logger";
+import { createWorkerSupabaseClient } from "./dependencies";
 import { normalizeWorkerDuration, parseClaimedTask } from "./worker-runtime";
 
 const config = loadConfig();
-const client = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const client = createWorkerSupabaseClient(config);
 const pollMs = normalizeWorkerDuration(process.env.WORKER_POLL_INTERVAL_MS, 2000, 500, 60_000);
 const heartbeatPath = process.env.WORKER_HEARTBEAT_PATH ?? "/tmp/icongen-worker-heartbeat";
 const workerId = process.env.WORKER_INSTANCE_ID ?? randomUUID();

@@ -6,6 +6,7 @@ import {
 
 export const VARIANTS_PER_SUBJECT = 3 as const;
 export const MAX_SUBJECTS = 20 as const;
+export const MAX_SUBJECT_DESCRIPTION_LENGTH = 200 as const;
 export const OUTPUT_SIZES = [16, 32, 48, 64, 128, 256] as const;
 export const DEFAULT_SUBJECT_SIZE_PERCENT = 70 as const;
 export const DEFAULT_LINEAR_STROKE_WIDTH_PERCENT = 3.5 as const;
@@ -36,8 +37,18 @@ export const colorSettingSchema = z.discriminatedUnion("mode", [
 export const iconStyleSchema = z.object({
   preset: z.enum(ICON_STYLE_PRESET_IDS),
   graphicStructure: z.enum(["linear", "filled"]).optional(),
-  subjectSizePercent: z.number().int().min(50).max(85).default(DEFAULT_SUBJECT_SIZE_PERCENT),
-  linearStrokeWidthPercent: z.number().min(2).max(6).default(DEFAULT_LINEAR_STROKE_WIDTH_PERCENT),
+  subjectSizePercent: z
+    .number()
+    .int()
+    .min(50)
+    .max(85)
+    .default(DEFAULT_SUBJECT_SIZE_PERCENT),
+  linearStrokeWidthPercent: z
+    .number()
+    .min(2)
+    .max(6)
+    .default(DEFAULT_LINEAR_STROKE_WIDTH_PERCENT),
+  subjectOpacityPercent: z.number().int().min(0).max(100).default(100),
   strokeWeight: z.enum(["light", "regular", "bold"]),
   cornerStyle: z.enum(["soft", "balanced", "sharp"]),
   detailLevel: z.enum(["minimal", "standard", "detailed"]),
@@ -55,7 +66,7 @@ const backgroundSettingSchema = z.discriminatedUnion("enabled", [
 export const generationSubjectInputSchema = z.object({
   clientId: z.string().trim().min(1).max(64),
   name: z.string().trim().min(1).max(40),
-  description: z.string().trim().min(1).max(300),
+  description: z.string().trim().min(1).max(MAX_SUBJECT_DESCRIPTION_LENGTH),
   colorOverride: colorSettingSchema.optional(),
   backgroundOverride: backgroundSettingSchema.optional(),
 });
@@ -176,6 +187,7 @@ export function parseStoredGenerationJobSpec(
           : legacy.coreSettings.detailLevel,
       subjectSizePercent: DEFAULT_SUBJECT_SIZE_PERCENT,
       linearStrokeWidthPercent: DEFAULT_LINEAR_STROKE_WIDTH_PERCENT,
+      subjectOpacityPercent: 100,
     },
     // Legacy jobs retain their stored sizes even when those sizes are no longer offered by the current UI.
     sizes: legacy.sizes as CreateGenerationJobInput["sizes"],
@@ -265,6 +277,7 @@ export const generationJobResponseSchema = z.object({
   }),
   subjects: z.array(generationSubjectSchema),
   createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().optional(),
   completedAt: z.string().datetime().optional(),
 });
 export type GenerationJobV2 = z.infer<typeof generationJobResponseSchema>;

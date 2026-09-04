@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BACKGROUND_TYPE_OPTION_IDS,
   createGenerationJobSchema,
   DEFAULT_LINEAR_STROKE_WIDTH_PERCENT,
   DEFAULT_SUBJECT_SIZE_PERCENT,
@@ -42,30 +41,31 @@ const defaultStyle: IconStyle = {
   preset: defaultAppIconPreset,
   subjectSizePercent: DEFAULT_SUBJECT_SIZE_PERCENT,
   linearStrokeWidthPercent: DEFAULT_LINEAR_STROKE_WIDTH_PERCENT,
+  subjectOpacityPercent: 100,
   strokeWeight: "regular",
   cornerStyle: "balanced",
   detailLevel: "standard",
 };
-const defaultBackgroundType = BACKGROUND_TYPE_OPTION_IDS[0];
-
-function automaticAppBackground(
+function automaticSubjectBackground(
   mode: BackgroundMode,
   container: BackgroundContainer,
   cornerRadius = 22,
+  color?: ColorSetting,
+  autoColor = true,
 ): CreateGenerationJobInput["background"] {
   if (mode === "transparent") return { enabled: false };
   return {
     enabled: true,
     container,
-    color:
-      mode === "gradient"
+    color: color ??
+      (mode === "gradient"
         ? {
             mode: "gradient",
             colors: ["#FFFFFF", "#FFFFFF"],
             direction: "top-left-to-bottom-right",
           }
-        : { mode: "solid", color: "#FFFFFF" },
-    autoColor: true,
+        : { mode: "solid", color: "#FFFFFF" }),
+    autoColor,
     cornerRadius: container === "rounded-square" ? cornerRadius : undefined,
   };
 }
@@ -83,17 +83,6 @@ export function GenerationForm() {
     mode: "solid",
     color: "#61666E",
   });
-  const [backgroundMode, setBackgroundMode] =
-    useState<BackgroundMode>("transparent");
-  const [backgroundColor, setBackgroundColor] = useState<ColorSetting>({
-    mode: "gradient",
-    colors: ["#FFFFFF", "#FFFFFF"],
-    direction: "top-left-to-bottom-right",
-  });
-  const [backgroundCornerRadius, setBackgroundCornerRadius] = useState(22);
-  const [backgroundContainer, setBackgroundContainer] = useState<
-    (typeof BACKGROUND_TYPE_OPTION_IDS)[number]
-  >(defaultBackgroundType);
   const [style, setStyle] = useState<IconStyle>(defaultStyle);
   const [sizes, setSizes] = useState<number[]>([64, 128, 256]);
   const [settings, setSettings] = useState<GenerationSettingsResponse | null>(
@@ -131,15 +120,13 @@ export function GenerationForm() {
         parseSubjectRows([draft.input]).map((subject) => ({
           ...subject,
           clientId: `subject-${index + 1}`,
-          ...(iconPurpose === "app-icon"
-            ? {
-                backgroundOverride: automaticAppBackground(
-                  draft.backgroundMode,
-                  draft.backgroundContainer,
-                  draft.backgroundCornerRadius ?? 22,
-                ),
-              }
-            : {}),
+          backgroundOverride: automaticSubjectBackground(
+            draft.backgroundMode,
+            draft.backgroundContainer,
+            draft.backgroundCornerRadius ?? 22,
+            iconPurpose === "interaction" ? draft.backgroundColor : undefined,
+            iconPurpose !== "interaction",
+          ),
         })),
       ),
     [iconPurpose, subjectDrafts],
@@ -180,21 +167,30 @@ export function GenerationForm() {
     setSizes((current) => [...current, size].sort((a, b) => a - b));
     setMessage("");
   }
-  function selectBackgroundMode(mode: BackgroundMode) {
-    setBackgroundMode(mode);
-    if (mode === "solid" && backgroundColor.mode === "gradient")
-      setBackgroundColor({ mode: "solid", color: "#FFFFFF" });
-    if (mode === "gradient" && backgroundColor.mode === "solid")
-      setBackgroundColor({
-        mode: "gradient",
-        colors: ["#FFFFFF", "#FFFFFF"],
-        direction: "top-left-to-bottom-right",
+  function selectSubjectBackgroundMode(index: number, mode: BackgroundMode) {
+    dispatchSubjectDraft({ type: "set-background-mode", index, value: mode });
+    const current = subjectDrafts[index]?.backgroundColor;
+    if (mode === "solid" && current?.mode === "gradient")
+      dispatchSubjectDraft({
+        type: "set-background-color",
+        index,
+        value: { mode: "solid", color: current.colors[0] },
+      });
+    if (mode === "gradient" && current?.mode === "solid")
+      dispatchSubjectDraft({
+        type: "set-background-color",
+        index,
+        value: {
+          mode: "gradient",
+          colors: [current.color, "#A78BFA"],
+          direction: "top-left-to-bottom-right",
+        },
       });
   }
-  function selectAppBackgroundMode(index: number, mode: BackgroundMode) {
-    dispatchSubjectDraft({ type: "set-background-mode", index, value: mode });
+  function selectSubjectBackgroundColor(index: number, value: ColorSetting) {
+    dispatchSubjectDraft({ type: "set-background-color", index, value });
   }
-  function selectAppBackgroundContainer(
+  function selectSubjectBackgroundContainer(
     index: number,
     container: BackgroundContainer,
   ) {
@@ -204,7 +200,7 @@ export function GenerationForm() {
       value: container,
     });
   }
-  function selectAppBackgroundCornerRadius(index: number, value: number) {
+  function selectSubjectBackgroundCornerRadius(index: number, value: number) {
     dispatchSubjectDraft({
       type: "set-background-corner-radius",
       index,
@@ -214,24 +210,17 @@ export function GenerationForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
-    const background =
-      iconPurpose === "app-icon"
-        ? automaticAppBackground(
-            subjectDrafts[0]?.backgroundMode ?? "solid",
-            subjectDrafts[0]?.backgroundContainer ?? "rounded-square",
-            subjectDrafts[0]?.backgroundCornerRadius ?? 22,
-          )
-        : backgroundMode !== "transparent"
-          ? {
-              enabled: true as const,
-              container: backgroundContainer,
-              color: backgroundColor,
-              cornerRadius:
-                backgroundContainer === "rounded-square"
-                  ? backgroundCornerRadius
-                  : undefined,
-            }
-          : { enabled: false as const };
+    // Kept as the job-level fallback for old readers. Every current subject also
+    // carries its own backgroundOverride, which is what the worker prioritizes.
+    const background = automaticSubjectBackground(
+      subjectDrafts[0]?.backgroundMode ?? "solid",
+      subjectDrafts[0]?.backgroundContainer ?? "rounded-square",
+      subjectDrafts[0]?.backgroundCornerRadius ?? 22,
+      iconPurpose === "interaction"
+        ? subjectDrafts[0]?.backgroundColor
+        : undefined,
+      iconPurpose !== "interaction",
+    );
     const parsed = createGenerationJobSchema.safeParse({
       idempotencyKey: crypto.randomUUID(),
       settingsVersion: DESIGN_SETTINGS_VERSION,
@@ -291,112 +280,87 @@ export function GenerationForm() {
   if (settingsLoading) return <CreatePageSkeleton includeHeader={false} />;
 
   return (
-    <form onSubmit={submit} className="space-y-8">
+    <form onSubmit={submit} className="generation-studio-form space-y-8">
       {toast ? <Toast message={toast.message} variant={toast.variant} /> : null}
-      <section>
-        <h2 className="text-xl font-black">
-          1. {locale === "zh" ? "图标用途" : "Icon purpose"}
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          {locale === "zh"
-            ? "选择图标的使用场景，页面将显示对应设置。"
-            : "Choose where the icons will be used. We will show the settings that apply."}
-        </p>
-        <IconPurposeSelector
-          value={iconPurpose}
-          onChange={selectIconPurpose}
-          locale={locale}
-        />
-        {iconPurpose === "interaction" ? (
-          <InteractionIconEditor
-            locale={locale}
-            iconStructure={iconStructure}
-            onIconStructureChange={setIconStructure}
-            subjectSizePercent={style.subjectSizePercent}
-            onSubjectSizePercentChange={(subjectSizePercent) => setStyle((current) => ({ ...current, subjectSizePercent }))}
-            linearStrokeWidthPercent={style.linearStrokeWidthPercent}
-            onLinearStrokeWidthPercentChange={(linearStrokeWidthPercent) => setStyle((current) => ({ ...current, linearStrokeWidthPercent }))}
-            subjectColor={subjectColor}
-            onSubjectColorChange={setSubjectColor}
-            backgroundMode={backgroundMode}
-            onBackgroundModeChange={selectBackgroundMode}
-            backgroundColor={backgroundColor}
-            onBackgroundColorChange={setBackgroundColor}
-            backgroundContainer={backgroundContainer}
-            onBackgroundContainerChange={setBackgroundContainer}
-            cornerRadius={backgroundCornerRadius}
-            onCornerRadiusChange={setBackgroundCornerRadius}
-          />
-        ) : (
-          <AppIconStyleSelector
-            presets={settings?.stylePresets ?? []}
-            value={style}
-            onChange={selectAppStyle}
-            loading={!settings}
+      <section className="creation-config-section">
+        <div className="creation-workspace">
+          <IconPurposeSelector
+            value={iconPurpose}
+            onChange={selectIconPurpose}
             locale={locale}
           />
-        )}
+          <div className="creation-workspace__editor">
+            {iconPurpose === "interaction" ? (
+              <InteractionIconEditor
+                locale={locale}
+                iconStructure={iconStructure}
+                onIconStructureChange={setIconStructure}
+                subjectSizePercent={style.subjectSizePercent}
+                onSubjectSizePercentChange={(subjectSizePercent) => setStyle((current) => ({ ...current, subjectSizePercent }))}
+                linearStrokeWidthPercent={style.linearStrokeWidthPercent}
+                onLinearStrokeWidthPercentChange={(linearStrokeWidthPercent) => setStyle((current) => ({ ...current, linearStrokeWidthPercent }))}
+                subjectOpacityPercent={style.subjectOpacityPercent}
+                onSubjectOpacityPercentChange={(subjectOpacityPercent) => setStyle((current) => ({ ...current, subjectOpacityPercent }))}
+                subjectColor={subjectColor}
+                onSubjectColorChange={setSubjectColor}
+                backgroundMode={subjectDrafts[0]?.backgroundMode ?? "solid"}
+                backgroundContainer={subjectDrafts[0]?.backgroundContainer ?? "rounded-square"}
+                cornerRadius={subjectDrafts[0]?.backgroundCornerRadius ?? 22}
+                backgroundColor={subjectDrafts[0]?.backgroundColor ?? { mode: "solid", color: "#FFFFFF" }}
+              />
+            ) : (
+              <AppIconStyleSelector
+                presets={settings?.stylePresets ?? []}
+                value={style}
+                onChange={selectAppStyle}
+                loading={!settings}
+                locale={locale}
+              />
+            )}
+          </div>
+          <div className="creation-workspace__side">
+            <IconSubjectEditor
+              values={subjectDrafts.map((draft) => draft.input)}
+              onChange={updateSubject}
+              onAdd={addSubject}
+              onRemove={removeSubject}
+              maxSubjects={MAX_SUBJECTS}
+              locale={locale}
+              backgroundModes={subjectDrafts.map((draft) => draft.backgroundMode)}
+              onBackgroundModeChange={selectSubjectBackgroundMode}
+              backgroundContainers={subjectDrafts.map((draft) => draft.backgroundContainer)}
+              onBackgroundContainerChange={selectSubjectBackgroundContainer}
+              backgroundCornerRadii={subjectDrafts.map((draft) => draft.backgroundCornerRadius ?? 22)}
+              onBackgroundCornerRadiusChange={selectSubjectBackgroundCornerRadius}
+              backgroundColors={iconPurpose === "interaction" ? subjectDrafts.map((draft) => draft.backgroundColor) : undefined}
+              onBackgroundColorChange={iconPurpose === "interaction" ? selectSubjectBackgroundColor : undefined}
+            />
+            <ReferenceSizeSelector
+              options={OUTPUT_SIZES}
+              selected={sizes}
+              onToggle={toggleSize}
+              locale={locale}
+            />
+            <button
+              type="submit"
+              disabled={busy || !settings}
+              className="studio-button studio-button--primary creation-side-submit min-h-12 px-7 font-black disabled:opacity-50"
+            >
+              {busy
+                ? locale === "zh"
+                  ? "正在开始生成…"
+                  : "Starting generation…"
+                : locale === "zh"
+                  ? "生成图标"
+                  : "Generate icons"}
+            </button>
+          </div>
+        </div>
       </section>
-      <IconSubjectEditor
-        values={subjectDrafts.map((draft) => draft.input)}
-        onChange={updateSubject}
-        onAdd={addSubject}
-        onRemove={removeSubject}
-        maxSubjects={MAX_SUBJECTS}
-        locale={locale}
-        backgroundModes={
-          iconPurpose === "app-icon"
-            ? subjectDrafts.map((draft) => draft.backgroundMode)
-            : undefined
-        }
-        onBackgroundModeChange={
-          iconPurpose === "app-icon" ? selectAppBackgroundMode : undefined
-        }
-        backgroundContainers={
-          iconPurpose === "app-icon"
-            ? subjectDrafts.map((draft) => draft.backgroundContainer)
-            : undefined
-        }
-        onBackgroundContainerChange={
-          iconPurpose === "app-icon" ? selectAppBackgroundContainer : undefined
-        }
-        backgroundCornerRadii={
-          iconPurpose === "app-icon"
-            ? subjectDrafts.map((draft) => draft.backgroundCornerRadius)
-                .map((value) => value ?? 22)
-            : undefined
-        }
-        onBackgroundCornerRadiusChange={
-          iconPurpose === "app-icon"
-            ? selectAppBackgroundCornerRadius
-            : undefined
-        }
-      />
-      <ReferenceSizeSelector
-        options={OUTPUT_SIZES}
-        selected={sizes}
-        onToggle={toggleSize}
-        locale={locale}
-      />
-      <div className="sticky bottom-4 z-10 flex justify-end">
-        <button
-          type="submit"
-          disabled={busy || !settings}
-          className="mechanical-button min-h-12 bg-brand px-7 font-black text-white disabled:opacity-50"
-        >
-          {busy
-            ? locale === "zh"
-              ? "正在开始生成…"
-              : "Starting generation…"
-            : locale === "zh"
-              ? "生成图标"
-              : "Generate icons"}
-        </button>
-      </div>
       {message ? (
         <p
           role="alert"
-          className="rounded-[4px] bg-[#fff1ed] px-4 py-3 text-sm text-danger"
+          className="studio-notice studio-notice--error px-4 py-3 text-sm"
         >
           {message}
         </p>

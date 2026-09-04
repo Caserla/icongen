@@ -88,18 +88,14 @@ async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClien
     const current = selectedByJobId.get(asset.jobId) ?? [];
     if (current.length < 3) selectedByJobId.set(asset.jobId, [...current, asset]);
   }
-  const signedUrlByAssetId = new Map<string, string>();
-  const assetsByBucket = new Map<string, typeof selected>();
-  for (const asset of [...selectedByJobId.values()].flat())
-    assetsByBucket.set(asset.storage_bucket, [...(assetsByBucket.get(asset.storage_bucket) ?? []), asset]);
-  await Promise.all([...assetsByBucket.entries()].map(async ([bucket, bucketAssets]) => {
-    const { data, error } = await signer.storage.from(bucket).createSignedUrls(bucketAssets.map((asset) => asset.storage_path), 3600);
-    if (error) return;
-    data.forEach((signed, index) => {
-      if (signed.signedUrl) signedUrlByAssetId.set(bucketAssets[index].id, signed.signedUrl);
-    });
-  }));
-  return new Map([...selectedByJobId.entries()].map(([jobId, jobAssets]) => [jobId, jobAssets.map((asset) => signedUrlByAssetId.get(asset.id)).filter((url): url is string => Boolean(url))]));
+  void signer;
+  return new Map([...selectedByJobId.entries()].map(([jobId, jobAssets]) => [
+    jobId,
+    jobAssets.map((asset) => new URL(
+      `/api/generation/assets/${asset.id}/preview`,
+      process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000",
+    ).toString()),
+  ]));
 }
 
 export async function readGenerationJobListItem(

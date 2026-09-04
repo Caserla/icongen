@@ -15,17 +15,24 @@ export function AppIconStyleSelector({
   locale: "en" | "zh";
 }) {
   const appIconPresets = presets.filter((preset) => preset.id !== "line-icon");
+  const selectedPreset = appIconPresets.find((preset) => preset.id === value.preset) ?? appIconPresets[0];
   return (
-    <div className="mt-6">
-      <fieldset className="mt-4">
-        <legend className="text-sm font-bold">
+    <div className="illustration-editor mt-6">
+      <div className="illustration-editor__canvas">
+        <div className="creation-editor__toolbar"><span>STYLE PREVIEW</span><span>1024 × 1024</span></div>
+        <div className="illustration-editor__stage">
+          {selectedPreset ? <ImageWithSkeleton src={selectedPreset.previewImage} alt={`${selectedPreset.label[locale]} ${locale === "zh" ? "风格预览" : "style preview"}`} className="illustration-editor__preview" imageClassName="h-full w-full object-cover" failureLabel={locale === "zh" ? "预览加载失败" : "Preview failed to load"} /> : null}
+        </div>
+      </div>
+      <fieldset className="illustration-editor__controls">
+        <legend className="sr-only">
           {locale === "zh" ? "风格预设" : "Style preset"}
         </legend>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="creation-editor__controls-head"><span>{locale === "zh" ? "风格预设" : "STYLE PRESET"}</span></div>
+        <div className="illustration-editor__options">
           {appIconPresets.map((preset) => {
             const selected = value.preset === preset.id;
-            const previewClass =
-              "object-contain transition duration-300 group-hover:scale-[1.02]";
+            const previewClass = "object-contain";
             return (
               <button
                 key={preset.id}
@@ -37,10 +44,10 @@ export function AppIconStyleSelector({
                     preset: preset.id as IconStyle["preset"],
                   })
                 }
-                className={`card-polish group overflow-hidden rounded-[5px] border p-2 text-left transition duration-200 ${selected ? "border-brand bg-[#e1e6f1] shadow-[4px_4px_0_rgba(40,63,125,.22)]" : "border-border bg-[#fffaf0] hover:border-brand"}`}
+                className={`illustration-editor__option group text-left ${selected ? "is-selected" : ""}`}
               >
                 <span
-                  className="relative block aspect-square overflow-hidden rounded-[3px] border border-border/50 bg-surface-muted"
+                  className="relative block aspect-square overflow-hidden rounded-[10px] bg-transparent"
                 >
                   <ImageWithSkeleton
                     src={preset.previewImage}
@@ -56,14 +63,13 @@ export function AppIconStyleSelector({
                     {selected ? (
                       <span
                         aria-hidden="true"
-                        className="grid h-6 w-6 shrink-0 place-items-center rounded-[2px] bg-brand text-xs text-white"
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f5f5f5] text-[#171717]"
                       >
-                        ✓
+                        <svg viewBox="0 0 24 24" className="block h-5 w-5 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
+                          <path d="m4.5 12.5 5 5 10-10" />
+                        </svg>
                       </span>
                     ) : null}
-                  </span>
-                  <span className="mt-1.5 block text-sm font-normal leading-5 text-muted">
-                    {preset.description[locale]}
                   </span>
                 </span>
               </button>

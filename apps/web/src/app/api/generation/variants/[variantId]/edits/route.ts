@@ -8,7 +8,10 @@ import { latestVariantEditFailure } from "@/features/generation/server/latest-va
 import { remainingDetailEdits } from "@/features/generation/server/variant-edit-quota";
 
 const paramsSchema = z.object({ variantId: z.string().uuid() });
-const bodySchema = z.object({ instruction: z.string().trim().min(5).max(500) });
+const bodySchema = z.object({
+  instruction: z.string().trim().min(5).max(500),
+  idempotencyKey: z.string().uuid(),
+});
 
 export async function GET(_request: Request, context: { params: Promise<{ variantId: string }> }) {
   const params = paramsSchema.safeParse(await context.params);
@@ -86,6 +89,8 @@ export async function GET(_request: Request, context: { params: Promise<{ varian
         updated_at: now,
       }).eq("id", stale.id).eq("status", stale.status).eq("updated_at", stale.updated_at);
       if (released.error) throw released.error;
+      const refund = await client.rpc("refund_failed_variant_detail_edit_v2", { p_revision_id: stale.id });
+      if (refund.error && refund.error.code !== "PGRST202") throw refund.error;
     } else if (activeRevision.data) {
       return Response.json({
         inProgress: {
@@ -179,34 +184,29 @@ export async function POST(request: Request, context: { params: Promise<{ varian
         updated_at: now,
       }).eq("id", activeEdit.id).eq("status", activeEdit.status).eq("updated_at", activeEdit.updated_at);
       if (released.error) throw released.error;
+      const refund = await client.rpc("refund_failed_variant_detail_edit_v2", { p_revision_id: activeEdit.id });
+      if (refund.error && refund.error.code !== "PGRST202") throw refund.error;
     }
-    const usedEdits = await client.from("generation_variant_revisions")
-      .select("id", { count: "exact", head: true })
-      .eq("variant_id", variant.data.id)
-      .or("status.eq.completed,error_code.eq.VARIANT_EDIT_DISCARDED");
-    if (usedEdits.error) throw usedEdits.error;
-    if (remainingDetailEdits(usedEdits.count ?? 0) === 0)
-      return apiError(
-        "VARIANT_EDIT_LIMIT_REACHED",
-        "This option has used all 3 included detail adjustments.",
-        409,
-      );
-    const revisions = await client.from("generation_variant_revisions").select("revision_number").eq("variant_id", variant.data.id).order("revision_number", { ascending: false }).limit(1);
-    if (revisions.error) throw revisions.error;
-    const revision = await client.from("generation_variant_revisions").insert({
-      variant_id: variant.data.id,
-      parent_revision_id: variant.data.active_revision_id,
-      revision_number: (revisions.data?.[0]?.revision_number ?? 0) + 1,
-      instruction: body.data.instruction,
-      status: "queued",
-    }).select("id,revision_number,status").single();
-    if (revision.error) {
-      if (revision.error.code === "23505")
+    const created = await client.rpc("create_variant_detail_edit_v2", {
+      p_user_id: user.id,
+      p_variant_id: variant.data.id,
+      p_instruction: body.data.instruction,
+      p_idempotency_key: body.data.idempotencyKey,
+    });
+    if (created.error) {
+      if (created.error.message.includes("INSUFFICIENT_CREDITS")) {
+        const account = await client.from("credit_accounts").select("balance").eq("user_id", user.id).single();
+        return apiError("INSUFFICIENT_CREDITS", "You need 1 credit for this detail adjustment.", 402, { required: 1, balance: account.data?.balance ?? null });
+      }
+      if (created.error.message.includes("VARIANT_EDIT_IN_PROGRESS"))
         return apiError("VARIANT_EDIT_IN_PROGRESS", "This option is already being adjusted.", 409);
-      throw revision.error;
+      if (created.error.code === "PGRST202" || created.error.message.includes("create_variant_detail_edit_v2"))
+        return apiError("VARIANT_EDIT_DATABASE_MIGRATION_REQUIRED", "Paid detail adjustments are temporarily unavailable.", 503);
+      throw created.error;
     }
-    startLocalVariantEdit(revision.data.id);
-    return Response.json({ ...revision.data, remainingDetailEdits: remainingDetailEdits((usedEdits.count ?? 0) + 1) }, { status: 202 });
+    const revision = created.data as { id: string; revisionNumber: number; status: string; remainingDetailEdits: number; chargedCredits: number };
+    startLocalVariantEdit(revision.id);
+    return Response.json(revision, { status: 202 });
   } catch (error) {
     return authErrorResponse(error) ?? apiError("VARIANT_EDIT_CREATE_FAILED", "The detail adjustment could not start.", 500);
   }

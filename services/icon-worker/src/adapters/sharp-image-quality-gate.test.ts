@@ -108,7 +108,7 @@ test("rejects a painted transparency checkerboard", async () => {
     }))
     .png()
     .toBuffer();
-  const warnings = await new SharpImageQualityGate().inspect({ bytes: source, purpose: "app-icon" });
+  const warnings = await new SharpImageQualityGate().inspect({ bytes: source, purpose: "app-icon", outputBackground: "transparent" });
   assert.ok(warnings.some((warning) => warning.code === "FAKE_TRANSPARENCY_CHECKERBOARD"));
 });
 

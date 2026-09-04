@@ -146,9 +146,18 @@ export async function processGenerationJob(
                     : (effectiveBackground.cornerRadius ?? 22),
               })
             : null;
-        const sourceBytes = maskedAppIcon?.bytes ?? image.bytes;
-        const sourceMetadata =
-          maskedAppIcon ??
+        const opacityAdjusted =
+          job.spec.purpose === "interaction" &&
+          compiled.outputBackground === "transparent" &&
+          job.spec.style.subjectOpacityPercent < 100 &&
+          dependencies.imageProcessor.applyOpacity
+            ? await dependencies.imageProcessor.applyOpacity({
+                bytes: maskedAppIcon?.bytes ?? image.bytes,
+                opacityPercent: job.spec.style.subjectOpacityPercent,
+              })
+            : null;
+        const sourceBytes = opacityAdjusted?.bytes ?? maskedAppIcon?.bytes ?? image.bytes;
+        const sourceMetadata = opacityAdjusted ?? maskedAppIcon ??
           (await dependencies.imageProcessor.inspect({ bytes: sourceBytes }));
         for (const warning of qualityWarnings)
           dependencies.logger.info("Generated image quality warning", {

@@ -25,6 +25,7 @@ const spec: GenerationJobRecord["spec"] = {
     preset: "clay-3d",
     subjectSizePercent: 70,
     linearStrokeWidthPercent: 3.5,
+    subjectOpacityPercent: 100,
     strokeWeight: "regular",
     cornerStyle: "balanced",
     detailLevel: "standard",

@@ -37,7 +37,6 @@
 | SEC-P0-002 | 代码 | ZIP 下载资源保护 | **安全闭环完成** | 已限制单次最多 20 个方案、单资源 16 MiB、归档输入总量 64 MiB，超限直接拒绝；大包异步生成属于后续性能优化，不再阻断安全上线 | 不需要 |
 | SEC-P0-003 | 联合 | 生产 Worker 常驻执行器 | 代码底座、写入前租约校验及 staging 故障验收包完成，待真实演练 | 迁移 `0020` 使用 `FOR UPDATE SKIP LOCKED` 原子领取任务，提供租约续期和过期回收；Repository 写入前校验 owner/expiry，旧 Worker 失权后不能发布数据库结果；`test:security:worker` 覆盖并发领取、过期接管和旧 owner 续租拒绝 | **需要**：在 staging 执行 `0020` 和验收包；云服务器至少启动两个 Worker，并补做进程强杀演练 |
 | SEC-P0-004 | 联合 | 生产容器与网络隔离 | 仓库模板加固完成 | Web/Worker 使用不同镜像 target；Web standalone 镜像不含 Prompt 包；`.env*` 不进入构建上下文；容器使用非 root、只读根文件系统、临时写目录、移除 capabilities、PID/CPU/内存限制；仅 Caddy 暴露 80/443 | **需要**：配置真实安全组、SSH、私有网络并执行公网端口扫描和资源限制验收 |
-| SEC-P0-005 | 联合 | Stripe Checkout 与 Webhook | 占位，返回 501 | 服务端套餐白名单、原始请求体验签、Event ID 幂等、支付入账、退款与重放测试通过 | **需要**：开通 Stripe、完成企业/KYC 信息、创建 Product/Price、配置生产 Webhook 和密钥 |
 | SEC-P0-006 | 联合 | 生产密钥管理 | 本地 `.env` 方案 | 密钥不进入镜像、Git、日志和客户端包；按服务拆分；有轮换和吊销流程 | **需要**：在云密钥服务或 Docker secrets 写入真实密钥并完成首次轮换演练 |
 
 ## 4. 高优先级加固
@@ -61,7 +60,6 @@
 | OPS-003 | 人工 | Supabase 生产配置 | Site URL、Redirect URL、SMTP、RLS、私有 Bucket、数据库备份和区域选择完成 | **需要** |
 | OPS-004 | 联合 | 备份与恢复 | 已提供 PostgreSQL AES-256 加密备份、校验和及隔离库恢复验证脚本；仍需启用 Supabase PITR/Storage 备份并完成真实恢复演练 | **需要**：选择备份位置、密钥和保留期限，参与恢复演练 |
 | OPS-005 | 联合 | 监控与告警 | 已增加 Token 保护的数据库 readiness 接口；仍需覆盖 5xx、登录失败、CD-Key 猜测、队列积压、模型费用、CPU、内存、磁盘、OOM、证书和备份失败 | **需要**：设置独立 `HEALTHCHECK_TOKEN`，指定告警接收人和升级路径 |
-| OPS-006 | 联合 | 数据保留与删除 | 图标、临时归档、调整版本、应用日志和账户删除都有自动清理策略 | **需要**：确认正式保留期限和隐私政策承诺 |
 | OPS-007 | 人工 | 海外隐私与条款 | 隐私政策、服务条款、退款规则、供应商清单、跨境数据说明和联系渠道上线 | **需要**：运营/法律审核 |
 | OPS-008 | 联合 | CI/CD 供应链安全 | 分支保护、强制 Review、测试、依赖审计、密钥扫描、SBOM、镜像扫描和受控发布 | **需要**：配置 GitHub 仓库规则和生产部署凭据 |
 
@@ -101,8 +99,6 @@ Next.js Web/BFF ───── Supabase Auth / PostgreSQL / Private Storage
 2. 配置 SSH 密钥、管理员来源限制、UFW/Tailscale 和系统自动安全更新。
 3. 购买或确定正式域名，配置 Cloudflare DNS、WAF、限流与回源策略。
 4. 创建生产 Supabase 项目或确认现有项目可用于生产，配置区域、Auth URL、SMTP、备份和 Storage。
-5. 开通 Stripe，完成 KYC，创建 Product/Price，配置 Webhook 和退款规则。
-6. 将 Service Role、Stripe、模型、SMTP 和网关密钥写入生产密钥系统，并建立轮换日程。
 7. 指定管理员账户并启用 MFA，保存恢复码。
 8. 确定模型日/月预算、用户异常阈值、自动暂停和人工解封流程。
 9. 确定数据保留期限、隐私政策、服务条款、退款规则和支持邮箱。
@@ -128,7 +124,6 @@ Next.js Web/BFF ───── Supabase Auth / PostgreSQL / Private Storage
 
 ### 阶段 C：商业上线能力
 
-- SEC-P0-005 Stripe
 - SEC-P1-006 管理员安全
 - SEC-P1-007 模型预算保护
 - OPS-006～OPS-008 数据治理、法律文本和 CI/CD
@@ -139,7 +134,6 @@ Next.js Web/BFF ───── Supabase Auth / PostgreSQL / Private Storage
 
 - 所有 `SEC-P0` 项完成。
 - 不存在公网 Redis、PostgreSQL、Sub2API 或管理端口。
-- Service Role、模型 Key 和 Stripe Secret 未进入客户端包、镜像层、Git 和日志。
 - 真实完成一次支付重放测试、失败退款测试、Worker 重启恢复测试和数据库恢复测试。
 - 限流、费用阈值和监控告警已由指定人员实际接收并确认。
 - 隐私政策、服务条款、退款规则和支持渠道已经公开可访问。
@@ -156,7 +150,6 @@ Next.js Web/BFF ───── Supabase Auth / PostgreSQL / Private Storage
 | P0 | 生产密钥托管与轮换 | 仍以环境变量文件为主，尚未完成服务拆分、托管、首次轮换和吊销演练 | Git/镜像/客户端/日志扫描无密钥；Web 与 Worker 密钥隔离；轮换后服务不中断 | 联合 |
 | P0 | 数据库、Storage 备份恢复 | 尚无真实恢复演练和确认后的 RPO/RTO | 从备份恢复用户、点数账本、任务和图片；形成恢复记录及时间指标 | 联合 |
 | P0 | 监控、告警与费用异常响应 | 缺少覆盖 5xx、Worker、队列、模型费用、主机资源、证书和备份的统一告警闭环 | 每类告警至少真实触发一次并由指定人员确认收到；具备升级和恢复流程 | 联合 |
-| P0* | 海外充值与支付闭环 | 购买入口当前计划暂缓；若公开售卖点数，则支付仍没有生产实现 | Checkout、Webhook 验签、事件幂等、到账、退款和重放测试通过 | 联合 |
 | P1 | Web/BFF 日志全量脱敏 | **代码完成**：现有错误日志已统一进入结构化脱敏器，自动测试覆盖 Prompt、Token、签名 URL、邮箱和 API Key | 接入正式错误平台后再次注入模拟敏感值，确认平台中不出现原文 | 部署验收 |
 | P1 | Service Role 最小权限 | 普通资产预览、列表、摘要和详情数据查询已迁移到 Session + RLS，并由允许清单测试防止权限重新扩张；Admin 仅负责已验证路径的 Storage 签名，下载和写操作仍显式校验 `user_id` | 完成本人/跨账户普通资产与 revision 对象测试；验证后轮换旧 Service Role | 部署验收 |
 | P1 | 大型 ZIP 异步化 | 已有数量和内存硬上限，但归档仍可能占用 Web 进程 | 大包转为 Worker 异步归档；并发压测不拖慢 Web；临时文件自动清理 | 代码 |

@@ -101,15 +101,6 @@ const words: Record<string, Record<Locale, string>> = {
     zh: "查看你的账户保护状态。",
   },
   lastUpdated: { en: "Last updated 24 days ago", zh: "24 天前更新" },
-  deleteTitle: {
-    en: "Delete Bamboo IconGen account",
-    zh: "删除 Bamboo IconGen 账户",
-  },
-  deleteCopy: {
-    en: "This starts a reviewed deletion process for your account and generated work.",
-    zh: "提交后将进入账户与生成作品的审核删除流程。",
-  },
-  deleteAction: { en: "Request deletion", zh: "申请删除" },
   saved: { en: "Personal information saved", zh: "个人信息已保存" },
   signingIn: { en: "Signing in…", zh: "正在登录…" },
   invalidLogin: {
@@ -180,37 +171,9 @@ const words: Record<string, Record<Locale, string>> = {
     zh: "1 点可为 1 个图标主体生成 3 个方案。",
   },
   verificationPending: { en: "Email verification pending", zh: "邮箱待验证" },
-  backAccount: { en: "Back to account", zh: "返回账户" },
-  dangerZone: { en: "Danger zone", zh: "危险操作" },
-  deleteAccount: { en: "Delete your account", zh: "删除你的账户" },
-  deleteGrace: {
-    en: "Schedule account deletion with a 30-day grace period. You can cancel before the deletion date. Download your data first; any active icon generation must finish before deletion can be scheduled.",
-    zh: "提交后账户将在 30 天宽限期结束时删除；删除日期前可随时取消。请先下载数据，进行中的图标生成也需要先完成。",
-  },
-  downloadData: { en: "Download my data", zh: "下载我的数据" },
-  cancelDeletion: { en: "Cancel deletion", zh: "取消删除账户" },
-  typeDelete: { en: "Type DELETE to confirm", zh: "输入 DELETE 以确认" },
-  confirmPasswordAction: { en: "Enter your password", zh: "输入账户密码" },
-  scheduleDeletion: { en: "Schedule account deletion", zh: "安排删除账户" },
-  deletionScheduled: {
-    en: "Account deletion scheduled.",
-    zh: "账户删除申请已提交。",
-  },
-  deletionCancelled: {
-    en: "Account deletion cancelled.",
-    zh: "账户删除申请已取消。",
-  },
   requestFailed: {
     en: "Request failed. Please try again.",
     zh: "操作失败，请重试。",
-  },
-  loadingDeletion: { en: "Loading deletion status…", zh: "正在读取删除状态…" },
-  deletionPending: { en: "Deletion scheduled", zh: "账户等待删除" },
-  daysRemaining: { en: "days remaining", zh: "天后删除" },
-  scheduledFor: { en: "Scheduled deletion date:", zh: "计划删除日期：" },
-  staySignedInDeletion: {
-    en: "You remain signed in during the grace period. You can cancel deletion here before the countdown ends.",
-    zh: "宽限期内会保留登录状态。在倒计时结束前，你可以随时在此取消删除。",
   },
   generationJob: { en: "Icon set", zh: "图标集" },
   iconSubjects: { en: "icon subjects", zh: "个图标主体" },

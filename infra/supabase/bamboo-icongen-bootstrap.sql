@@ -1901,3 +1901,365 @@ grant execute on function public.create_credit_redemption_batch(uuid, text, inte
 grant execute on function public.disable_credit_redemption_batch(uuid, uuid, text) to service_role;
 
 commit;
+
+-- ============================================================================
+-- 0024_partial_generation_billing_settlement.sql
+-- ============================================================================
+
+begin;
+
+-- A subject costs one credit and promises three variants. A partially delivered
+-- subject keeps its original charge while failed variants remain free to retry.
+-- Only a subject with zero usable variants receives an automatic refund.
+create or replace function public.finalize_generation_job_v2_failure(
+  p_job_id uuid,
+  p_error_code text,
+  p_error_message text
+) returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_job public.generation_jobs%rowtype;
+  v_subject record;
+  v_completed integer;
+  v_balance integer;
+  v_refunds integer := 0;
+  v_any_completed boolean := false;
+begin
+  select * into v_job from public.generation_jobs where id = p_job_id for update;
+  if not found then raise exception 'job not found'; end if;
+  if v_job.status in ('completed', 'partial', 'failed') then return; end if;
+
+  for v_subject in
+    select id from public.generation_subjects where job_id = p_job_id order by position
+  loop
+    select count(*) into v_completed
+    from public.generation_variants
+    where subject_id = v_subject.id and status = 'completed';
+
+    if v_completed > 0 then v_any_completed := true; end if;
+    if v_completed = 3 then
+      update public.generation_subjects
+      set status = 'completed', error_code = null, error_message = null
+      where id = v_subject.id;
+    else
+      update public.generation_variants
+      set status = 'failed', error_code = p_error_code,
+          error_message = left(p_error_message, 1000), updated_at = now()
+      where subject_id = v_subject.id and status in ('queued', 'processing');
+
+      update public.generation_subjects
+      set status = case
+            when v_completed > 0 then 'partial'::public.generation_status
+            else 'failed'::public.generation_status
+          end,
+          error_code = p_error_code,
+          error_message = left(p_error_message, 1000),
+          -- A partial result retains the original charge. A fully failed
+          -- subject is refunded once and may still use the free retry path.
+          credit_refunded_at = case
+            when v_completed = 0 then coalesce(credit_refunded_at, now())
+            else credit_refunded_at
+          end
+      where id = v_subject.id;
+
+      if v_completed = 0 then
+        update public.credit_accounts
+        set balance = balance + 1, updated_at = now()
+        where user_id = v_job.user_id
+          and not exists (
+            select 1 from public.credit_ledger
+            where user_id = v_job.user_id
+              and idempotency_key = 'generation-subject-refund:' || v_subject.id::text
+          )
+        returning balance into v_balance;
+
+        if found then
+          insert into public.credit_ledger (
+            user_id, entry_type, amount, balance_after, generation_job_id,
+            idempotency_key
+          ) values (
+            v_job.user_id, 'generation_refund', 1, v_balance, p_job_id,
+            'generation-subject-refund:' || v_subject.id::text
+          );
+          v_refunds := v_refunds + 1;
+        end if;
+      end if;
+    end if;
+  end loop;
+
+  update public.generation_jobs
+  set status = case
+        when v_any_completed then 'partial'::public.generation_status
+        else 'failed'::public.generation_status
+      end,
+      progress_percent = 100,
+      progress_phase = 'completed',
+      refunded_credit_count = refunded_credit_count + v_refunds,
+      failure_refunded_at = case
+        when v_refunds > 0 then now()
+        else failure_refunded_at
+      end,
+      error_code = p_error_code,
+      error_message = left(p_error_message, 1000),
+      completed_at = now(),
+      updated_at = now()
+  where id = p_job_id;
+end;
+$$;
+
+-- Restarting a failed variant must be one atomic state transition. This avoids
+-- a queued variant being paired with a terminal subject or job if one of the
+-- former three independent updates fails halfway through.
+create or replace function public.retry_generation_variant_v2(
+  p_user_id uuid,
+  p_variant_id uuid
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_variant public.generation_variants%rowtype;
+  v_subject public.generation_subjects%rowtype;
+  v_job public.generation_jobs%rowtype;
+begin
+  if p_user_id <> auth.uid() and auth.role() <> 'service_role' then
+    raise exception using message = 'NOT_AUTHORIZED';
+  end if;
+
+  select * into v_variant
+  from public.generation_variants
+  where id = p_variant_id
+  for update;
+  if not found then raise exception using message = 'GENERATION_VARIANT_NOT_FOUND'; end if;
+
+  select * into v_subject
+  from public.generation_subjects
+  where id = v_variant.subject_id
+  for update;
+
+  select * into v_job
+  from public.generation_jobs
+  where id = v_subject.job_id
+  for update;
+
+  if v_job.user_id <> p_user_id then
+    raise exception using message = 'GENERATION_VARIANT_NOT_FOUND';
+  end if;
+  if v_variant.status <> 'failed' then
+    raise exception using message = 'VARIANT_NOT_FAILED';
+  end if;
+
+  update public.generation_variants
+  set status = 'queued', started_at = null, completed_at = null,
+      error_code = null, error_message = null, updated_at = now()
+  where id = p_variant_id;
+
+  update public.generation_subjects
+  set status = 'processing', error_code = null, error_message = null,
+      updated_at = now()
+  where id = v_subject.id;
+
+  update public.generation_jobs
+  set status = 'queued', progress_phase = 'queued', completed_at = null,
+      error_code = null, error_message = null, updated_at = now()
+  where id = v_job.id;
+
+  return v_job.id;
+end;
+$$;
+
+revoke all on function public.retry_generation_variant_v2(uuid, uuid)
+  from public, anon, authenticated;
+grant execute on function public.retry_generation_variant_v2(uuid, uuid)
+  to service_role;
+
+commit;
+
+-- ============================================================================
+-- 0025_paid_variant_detail_edits.sql
+-- ============================================================================
+
+begin;
+
+-- Each variant includes three successful detail edits. Later edits cost one
+-- credit. Creation, charging, and ledger insertion are one transaction;
+-- provider failures are refunded exactly once by the settlement function.
+alter table public.generation_variant_revisions
+  add column if not exists idempotency_key uuid,
+  add column if not exists credit_charged_at timestamptz,
+  add column if not exists credit_refunded_at timestamptz;
+
+create unique index if not exists generation_variant_revisions_idempotency_idx
+  on public.generation_variant_revisions(variant_id, idempotency_key)
+  where idempotency_key is not null;
+
+create or replace function public.create_variant_detail_edit_v2(
+  p_user_id uuid,
+  p_variant_id uuid,
+  p_instruction text,
+  p_idempotency_key uuid
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_variant public.generation_variants%rowtype;
+  v_job_id uuid;
+  v_owner_id uuid;
+  v_revision_id uuid;
+  v_revision_number integer;
+  v_used integer;
+  v_balance integer;
+  v_charge integer;
+begin
+  if p_user_id <> auth.uid() and auth.role() <> 'service_role' then
+    raise exception using message = 'NOT_AUTHORIZED';
+  end if;
+  if char_length(trim(p_instruction)) < 5 or char_length(trim(p_instruction)) > 500 then
+    raise exception using message = 'INVALID_VARIANT_EDIT';
+  end if;
+
+  select * into v_variant from public.generation_variants
+  where id = p_variant_id for update;
+  if not found or v_variant.status <> 'completed' then
+    raise exception using message = 'VARIANT_NOT_EDITABLE';
+  end if;
+
+  select j.id, j.user_id into v_job_id, v_owner_id
+  from public.generation_subjects s
+  join public.generation_jobs j on j.id = s.job_id
+  where s.id = v_variant.subject_id;
+  if v_owner_id <> p_user_id then
+    raise exception using message = 'GENERATION_VARIANT_NOT_FOUND';
+  end if;
+
+  select id into v_revision_id from public.generation_variant_revisions
+  where variant_id = p_variant_id and idempotency_key = p_idempotency_key;
+  if v_revision_id is not null then
+    select revision_number into v_revision_number
+    from public.generation_variant_revisions where id = v_revision_id;
+    select count(*) into v_used from public.generation_variant_revisions
+    where variant_id = p_variant_id
+      and (status = 'completed' or error_code = 'VARIANT_EDIT_DISCARDED');
+    return jsonb_build_object(
+      'id', v_revision_id,
+      'revisionNumber', v_revision_number,
+      'status', (select status from public.generation_variant_revisions where id = v_revision_id),
+      'remainingDetailEdits', greatest(0, 3 - v_used),
+      'chargedCredits', case when (select credit_charged_at from public.generation_variant_revisions where id = v_revision_id) is null then 0 else 1 end
+    );
+  end if;
+
+  if exists (select 1 from public.generation_variant_revisions
+    where variant_id = p_variant_id and status in ('queued', 'processing')) then
+    raise exception using message = 'VARIANT_EDIT_IN_PROGRESS';
+  end if;
+
+  select count(*) into v_used from public.generation_variant_revisions
+  where variant_id = p_variant_id
+    and (status = 'completed' or error_code = 'VARIANT_EDIT_DISCARDED');
+  v_charge := case when v_used >= 3 then 1 else 0 end;
+
+  if v_charge = 1 then
+    select balance into v_balance from public.credit_accounts
+    where user_id = p_user_id for update;
+    if not found then raise exception using message = 'CREDIT_ACCOUNT_NOT_FOUND'; end if;
+    if v_balance < 1 then
+      raise exception using message = 'INSUFFICIENT_CREDITS', detail = jsonb_build_object('required', 1, 'balance', v_balance)::text;
+    end if;
+  end if;
+
+  select coalesce(max(revision_number), 0) + 1 into v_revision_number
+  from public.generation_variant_revisions where variant_id = p_variant_id;
+  insert into public.generation_variant_revisions (
+    variant_id, parent_revision_id, revision_number, instruction, status,
+    idempotency_key, credit_charged_at
+  ) values (
+    p_variant_id, v_variant.active_revision_id, v_revision_number,
+    trim(p_instruction), 'queued', p_idempotency_key,
+    case when v_charge = 1 then now() else null end
+  ) returning id into v_revision_id;
+
+  if v_charge = 1 then
+    update public.credit_accounts set balance = balance - 1, updated_at = now()
+    where user_id = p_user_id returning balance into v_balance;
+    insert into public.credit_ledger (
+      user_id, entry_type, amount, balance_after, generation_job_id,
+      idempotency_key, note
+    ) values (
+      p_user_id, 'generation_debit', -1, v_balance, v_job_id,
+      'variant-edit-debit:' || v_revision_id::text,
+      'Paid detail adjustment for variant ' || p_variant_id::text
+    );
+  end if;
+
+  return jsonb_build_object(
+    'id', v_revision_id, 'revisionNumber', v_revision_number,
+    'status', 'queued', 'remainingDetailEdits', greatest(0, 2 - v_used),
+    'chargedCredits', v_charge
+  );
+end;
+$$;
+
+create or replace function public.refund_failed_variant_detail_edit_v2(
+  p_revision_id uuid
+) returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  v_revision public.generation_variant_revisions%rowtype;
+  v_user_id uuid;
+  v_job_id uuid;
+  v_balance integer;
+begin
+  if auth.role() <> 'service_role' then raise exception using message = 'NOT_AUTHORIZED'; end if;
+  select * into v_revision from public.generation_variant_revisions
+  where id = p_revision_id for update;
+  if not found or v_revision.credit_charged_at is null or v_revision.credit_refunded_at is not null then
+    return false;
+  end if;
+  if v_revision.status <> 'failed' then return false; end if;
+
+  select j.user_id, j.id into v_user_id, v_job_id
+  from public.generation_variants v
+  join public.generation_subjects s on s.id = v.subject_id
+  join public.generation_jobs j on j.id = s.job_id
+  where v.id = v_revision.variant_id;
+  update public.credit_accounts set balance = balance + 1, updated_at = now()
+  where user_id = v_user_id returning balance into v_balance;
+  insert into public.credit_ledger (
+    user_id, entry_type, amount, balance_after, generation_job_id,
+    idempotency_key, note
+  ) values (
+    v_user_id, 'generation_refund', 1, v_balance, v_job_id,
+    'variant-edit-refund:' || p_revision_id::text,
+    'Refund for failed paid detail adjustment'
+  );
+  update public.generation_variant_revisions set credit_refunded_at = now(), updated_at = now()
+  where id = p_revision_id and credit_refunded_at is null;
+  return true;
+end;
+$$;
+
+revoke all on function public.create_variant_detail_edit_v2(uuid, uuid, text, uuid) from public, anon, authenticated;
+grant execute on function public.create_variant_detail_edit_v2(uuid, uuid, text, uuid) to service_role;
+revoke all on function public.refund_failed_variant_detail_edit_v2(uuid) from public, anon, authenticated;
+grant execute on function public.refund_failed_variant_detail_edit_v2(uuid) to service_role;
+
+commit;
+
+-- ============================================================================
+-- 0026_remove_account_deletion.sql
+-- ============================================================================
+
+begin;
+
+-- Account deletion is no longer part of the product. Existing pending states
+-- are safely returned to active before the obsolete workflow is removed.
+update public.profiles set status = 'active' where status = 'deletion_pending';
+
+drop function if exists public.request_account_deletion(uuid);
+drop function if exists public.cancel_account_deletion();
+drop table if exists public.account_deletion_requests;
+drop type if exists public.deletion_request_status;
+
+alter table public.profiles alter column status drop default;
+create type public.account_status_current as enum ('active', 'restricted');
+alter table public.profiles alter column status type public.account_status_current
+  using status::text::public.account_status_current;
+drop type public.account_status;
+alter type public.account_status_current rename to account_status;
+alter table public.profiles alter column status set default 'active';
+
+commit;

@@ -22,7 +22,6 @@ test("rejects oversized and non-JSON mutation bodies", () => {
   assert.equal(wrongType.allowed ? 0 : wrongType.status, 415);
 });
 
-test("does not apply browser-origin checks to reads or the signed webhook", () => {
+test("does not apply browser-origin checks to read requests", () => {
   assert.deepEqual(check({}, "GET"), { allowed: true });
-  assert.deepEqual(check({}, "POST", "/api/webhooks/stripe"), { allowed: true });
 });

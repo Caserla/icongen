@@ -30,8 +30,11 @@ test("defaults and validates interaction geometry controls", () => {
   const parsed = createGenerationJobSchema.parse({ ...base, purpose: "interaction", background: { enabled: false } });
   assert.equal(parsed.style.subjectSizePercent, 70);
   assert.equal(parsed.style.linearStrokeWidthPercent, 3.5);
+  assert.equal(parsed.style.subjectOpacityPercent, 100);
+  assert.equal(createGenerationJobSchema.parse({ ...base, purpose: "interaction", background: { enabled: false }, style: { ...base.style, subjectOpacityPercent: 45 } }).style.subjectOpacityPercent, 45);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, background: { enabled: false }, style: { ...base.style, subjectSizePercent: 49 } }).success, false);
   assert.equal(createGenerationJobSchema.safeParse({ ...base, background: { enabled: false }, style: { ...base.style, linearStrokeWidthPercent: 6.5 } }).success, false);
+  assert.equal(createGenerationJobSchema.safeParse({ ...base, background: { enabled: false }, style: { ...base.style, subjectOpacityPercent: 101 } }).success, false);
 });
 
 test("rejects unsupported style, duplicate subjects, and more than three sizes", () => {
@@ -46,5 +49,5 @@ test("maps an existing queued legacy job to an equivalent icon design style", ()
     ...base, settingsVersion: "core-settings-2026-08-20.1", background: { enabled: false },
     coreSettings: { graphicStructure: "filled", visualTone: "rounded", strokeWeight: "medium", colorMode: "monochrome", backgroundContainer: "none", detailLevel: "auto" },
   });
-  assert.deepEqual(result.style, { preset: "minimal-logo", strokeWeight: "regular", cornerStyle: "soft", detailLevel: "standard", subjectSizePercent: 70, linearStrokeWidthPercent: 3.5 });
+  assert.deepEqual(result.style, { preset: "minimal-logo", strokeWeight: "regular", cornerStyle: "soft", detailLevel: "standard", subjectSizePercent: 70, linearStrokeWidthPercent: 3.5, subjectOpacityPercent: 100 });
 });

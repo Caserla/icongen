@@ -20,6 +20,7 @@
 - [批量 UI 图标生成范围决策](decisions/0002-batch-ui-icon-generation.md)
 - [UI 图标生成设置精简决策](decisions/0003-simplified-ui-icon-controls.md)
 - [月付 VPS 测试部署基线决策](decisions/0004-monthly-vps-test-deployment.md)
+- [当前充值与账户范围决策](decisions/0005-credit-topup-and-account-scope.md)
 
 ## 技术
 
@@ -31,6 +32,9 @@
 - [环境配置与测试索引](guides/environment-and-testing.md)
 - [CD-Key 充值真实交互测试用例](testing/cd-key-redemption-e2e.md)
 - [图标生成真实扣点测试用例](testing/generation-credit-debit-e2e.md)
+- [图标生成全链路真实交互回归报告（2026-09-04）](testing/generation-flow-e2e-regression-2026-09-04.md)
+- [全产品遗漏场景补充回归报告（2026-09-04）](testing/product-functional-gap-regression-2026-09-04.md)
+- [浏览器竞态、恢复与兼容性验收（2026-09-04）](testing/browser-race-recovery-regression-2026-09-04.md)
 - [生产安全代码底座回归测试](testing/production-security-regression.md)
 - [安全基本闭环到生产级闭环方案](security/basic-to-production-security-plan.md)
 - [基本安全闭环测试用例](testing/basic-security-closure-test-cases.md)
@@ -53,6 +57,8 @@
 - [用户信息、登录与账户开发任务](project/user-auth-account-development-tasks.md)
 - [待确认事项](project/open-questions.md)
 - [MVP 需求一致性审计](project/requirements-consistency-audit.md)
+- [产品功能与生产闭环总表](project/functional-closure-audit-2026-09-04.md)
+- [前后端代码与 UI 架构审计](project/code-and-ui-architecture-audit-2026-09-04.md)
 
 ## 维护约定
 

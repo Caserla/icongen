@@ -2,7 +2,6 @@
 
 ## 1. 目标与范围
 
-后端支持 Bamboo IconGen MVP 的完整业务闭环：登录用户提交多个 UI 图标主体与结构化设计设置，系统扣除点数、为每个主体异步生成 3 个 PNG 方案、派生所选尺寸，并为交互图标和极简标志派生 SVG，私有保存结果和打包 ZIP，同时支持 Stripe 点数包入账及失败退款。
 
 ## 2. 总体架构
 
@@ -11,9 +10,6 @@ flowchart LR
   Browser[Web browser] --> BFF[Next.js Web / BFF]
   BFF --> Auth[Supabase Auth]
   BFF --> DB[(Supabase PostgreSQL)]
-  BFF --> Stripe[Stripe Checkout]
-  Stripe --> Webhook[Signed webhook]
-  Webhook --> DB
   BFF --> Worker[本地 Worker 启动器]
   DB --> Worker[读取/更新任务]
   Worker --> Skill[icon-skill]
@@ -25,7 +21,6 @@ flowchart LR
 
 ## 3. 代码模块
 
-- `apps/web`：浏览器页面与 BFF。负责会话校验、任务创建、查询、签名下载 URL、Stripe Checkout 和 Webhook。
 - `packages/shared`：前后端共用输入校验、任务状态和生成协议。
 - `packages/backend-core`：不依赖供应商 SDK 的领域接口与生成任务用例。
 - `packages/icon-skill`：以 imagegen 式结构化流程把版本化 `GenerationSpec` 编译为用途模板、风格规范、共享生产边界和 3 个差异化方案，并记录 Skill 与核心设置版本。
@@ -52,29 +47,22 @@ flowchart LR
 5. 临时错误只重试未成功工作单元；最终失败按版本化规则原子返还点数。
 6. 用户提交选中的 variant 后，服务端校验所有权并打包每个方案的原图与全部交付尺寸；支持 SVG 的风格可通过复选框选择是否追加 SVG。
 
-### Stripe 入账
 
-1. BFF 使用用户幂等键创建待支付订单，由后端生成 `ICO-YYYYMMDD-XXXXXXXXXX` 业务订单号并固化套餐、价格版本、金额、币种和点数快照，再创建 Stripe Checkout Session。
 2. 浏览器跳转成功页只展示状态，不直接增加点数。
-3. Webhook 验证 Stripe 签名，并核对 metadata 中的内部订单 UUID、金额和币种后调用 `credit_paid_order`。
-4. `stripe_events` 以 Stripe Event ID 去重，订单行加锁；订单更新、点数增加与账本记录在同一事务完成。
 
-### 作品清理与账户数据导出
+### 作品保留与账户数据导出
 
-1. 作品从生成完成时间起保留 30 天，定时清理任务删除母版、派生 PNG、预览文件和关联临时归档。
-2. 用户提交账户删除后进入 30 天 `deletion_pending` 宽限期，只允许账户、历史、导出和撤销删除相关操作。
+1. 当前阶段不实现作品 30 天自动清理；作品保留期限与清理任务待后续重新立项。
 3. 数据导出任务读取账户资料、订单、完整点数账本并计算账单摘要，同时查询请求时仍有效的作品资产，生成包含结构化 JSON/CSV、PNG 和 `manifest.json` 的私有 ZIP。
 4. 导出 ZIP 保存 24 小时并通过短时签名 URL 下载；过期后可在账户宽限期内重新申请。
-5. 账户正式删除前等待进行中的导出完成或达到超时；导出不会延长任何作品的原始保留期限。
-6. 清理、导出和账户删除均使用幂等键，并记录不包含敏感内容的审计事件。
+5. 账户删除与数据导出均不在当前产品范围；相关数据生命周期规则后续另行确定。
 
 ## 5. 数据与安全
 
 - 所有用户数据表开启 RLS，用户仅能读取自己的资料、余额、订单、任务和结果。
-- 浏览器不得持有 OpenAI、Stripe Secret 或 Supabase Service Role 凭据。
 - Worker 仅使用服务端密钥；生成文件桶不公开，下载使用短期签名 URL。
-- 个人数据导出桶保持私有；订单只导出非敏感支付引用和金额状态，不得包含模型 API Key、完整内部 Prompt、支付卡数据、Stripe 密钥、管理员备注或管理审计详情。
 - `credit_ledger` 是不可变账本，余额是高效读取的账户快照。
+- 生成按主体扣费：主体已有 1～2 个可用方案时保留首次费用并允许失败方案免费补齐；只有 0/3、完全没有可用结果的主体自动退款。方案重试通过数据库原子函数统一恢复 variant、subject 与 job 状态。
 - `create_generation_job_v2` 锁定点数账户后，按主体数创建任务并写入 `generation_debit`，所有操作在同一事务完成；幂等重放先返回已有任务，不会重复扣点。最终未完整交付的主体仍由失败结算函数逐点返还，方案重试和细节调整不重复扣点。
 - CD-Key 仅以标准化值的 SHA-256 哈希保存于 `credit_redemption_codes`。核销函数锁定兑换码和点数账户，在一个事务内完成状态更新、余额增加与 `cd_key_redemption` 账本写入；普通用户无权直接读取兑换码表。
 - 管理操作写入 `admin_audit_logs`；管理权限后续通过 JWT Claim/RBAC 扩展。
@@ -99,7 +87,6 @@ flowchart LR
 
 ## 8. 后端环境变量
 
-Worker 变量见 `services/icon-worker/.env.example`。本地默认使用 `IMAGE_PROVIDER=mock`，不需要模型 API Key；真实生成切换为 `IMAGE_PROVIDER=openai`，并配置指向 Sub2API `/v1` 的 `IMAGE_PROVIDER_BASE_URL` 及 Bamboo 专用网关 API Key。`IMAGE_QUALITY` 默认设为 `high`，`IMAGE_SIZE` 默认设为 `2048x2048`，OpenAI-compatible Provider 会将二者作为接口参数显式传入。Web BFF 需要 Supabase URL/Anon Key/Service Role 和 Stripe Secret/Webhook Secret；所有生产密钥只保存在服务端安全环境变量中。
 
 ## 9. 当前实现边界
 

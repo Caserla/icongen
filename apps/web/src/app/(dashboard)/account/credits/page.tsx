@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
 import type { CreditHistoryKind, CreditHistoryResponse, CreditLedgerEntryType } from "@/lib/credits";
@@ -21,8 +21,10 @@ export default function CreditHistoryPage() {
   const [redeeming, setRedeeming] = useState(false);
   const [redeemError, setRedeemError] = useState("");
   const [redeemMessage, setRedeemMessage] = useState("");
+  const requestSequence = useRef(0);
 
   const loadHistory = useCallback(async (nextKind: CreditHistoryKind, nextPage: number) => {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     setLoadError(false);
     const response = await fetch("/api/account/credits/query", {
@@ -30,6 +32,7 @@ export default function CreditHistoryPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind: nextKind, page: nextPage }),
     }).catch(() => null);
+    if (sequence !== requestSequence.current) return;
     if (!response?.ok) {
       setLoadError(true);
       setLoading(false);
@@ -41,25 +44,9 @@ export default function CreditHistoryPage() {
   }, []);
 
   useEffect(() => {
-    let active = true;
-    fetch("/api/account/credits/query", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "all", page: 1 }),
-    }).then(async (response) => {
-      if (!response.ok) throw new Error("load failed");
-      return await response.json() as CreditHistoryResponse;
-    }).then((data) => {
-      if (!active) return;
-      setHistory(data);
-      setLoading(false);
-    }).catch(() => {
-      if (!active) return;
-      setLoadError(true);
-      setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
+    const timer = window.setTimeout(() => void loadHistory("all", 1), 0);
+    return () => { window.clearTimeout(timer); requestSequence.current += 1; };
+  }, [loadHistory]);
 
   function switchKind(nextKind: CreditHistoryKind) {
     setKind(nextKind);
@@ -121,13 +108,13 @@ export default function CreditHistoryPage() {
         <h1 className="display-serif mt-4 text-4xl font-medium tracking-[-.045em] sm:text-5xl">{zh ? "点数记录" : "Credit history"}</h1>
         <p className="mt-2 text-sm text-muted">{zh ? "查看点数去向，或使用 CD-Key 充值。" : "See where your credits went, or redeem a CD-Key."}</p>
       </div>
-      <div className="rounded-[6px] border border-brand bg-[#eef1fb] px-5 py-3 text-right">
+      <div className="studio-panel px-5 py-3 text-right">
         <p className="text-xs font-black uppercase tracking-[.1em] text-muted">{zh ? "当前余额" : "Balance"}</p>
         <strong className="mt-1 block text-3xl tracking-[-.04em] text-brand">{history?.balance ?? "—"}</strong>
       </div>
     </header>
 
-    <section className="paper-panel surface-elevated mt-8 rounded-[7px] border border-border p-5 sm:p-7">
+    <section className="studio-panel mt-8 p-5 sm:p-7">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <form onSubmit={redeem}>
           <label htmlFor="credit-code" className="text-sm font-black">{zh ? "CD-Key 充值" : "Redeem a CD-Key"}</label>
@@ -137,7 +124,7 @@ export default function CreditHistoryPage() {
               onChange={(event) => setCode(normalizeCreditCode(event.target.value))}
               placeholder="BAM-XXXX-XXXX-XXXX-XXXX"
               className="draft-control focus-ring min-h-12 min-w-0 flex-1 px-4 font-mono text-sm uppercase tracking-[.08em]" />
-            <button disabled={redeeming || !code} className="mechanical-button focus-ring min-h-12 shrink-0 bg-brand px-6 font-black text-white hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50">
+            <button disabled={redeeming || !code} className="studio-button studio-button--primary focus-ring min-h-12 shrink-0 px-6 font-black disabled:cursor-not-allowed disabled:opacity-50">
               {redeeming ? (zh ? "兑换中…" : "Redeeming…") : (zh ? "立即兑换" : "Redeem")}
             </button>
           </div>

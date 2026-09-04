@@ -3,7 +3,6 @@
 文档版本：2.0
 产品阶段：MVP
 
-本文细化六个业务模块中的“作品与下载”“点数与充值”“最小运营支持”。首期生产环境仅开放 CD-Key 充值，Stripe 保留为后续待办。图片生成的表单、进度和结果网格见 [图片生成模块需求](./icon-generation-requirements.md)。
 
 ## 1. 作品与下载模块
 
@@ -44,11 +43,10 @@ ZIP 包含：
 
 ### WORK-005 删除与保留 — P0
 
-用户作品自生成完成起保留 30 天。历史列表和任务详情必须显示到期时间；到期后删除母版、派生 PNG、预览文件和关联下载归档，保留必要的脱敏任务与财务引用。
+当前阶段不实现作品 30 天自动清理，也不要求历史列表和任务详情展示 30 天到期时间。作品保留期限与后续清理策略待产品重新立项后确定。
 
-用户提交删除账户后进入 30 天宽限期，可通过账户删除状态页创建“下载我的数据”归档。归档包含用户资料、订单、点数账本、账单摘要，以及请求时仍未过期的作品资产与清单；已过期作品不能恢复。数据导出 ZIP 保存 24 小时，过期后可在账户宽限期内重新申请。
 
-用户主动删除单个任务时，MVP 可先隐藏展示并等待统一清理；订单、账本和审计不随作品直接删除，其保留与匿名化规则另行确认。
+用户主动删除单个任务不在当前范围；账本和审计数据的保留与匿名化规则另行确认。
 
 ### 1.2 API 与异常
 
@@ -73,7 +71,6 @@ ZIP 包含：
 
 ### 2.1 模块目标
 
-使用预付点数包建立简单、可追溯的海外付款闭环。Stripe Webhook 是付款入账唯一可信来源，前端返回参数不能直接增加点数。
 
 ### BILL-001 点数包与价格 `/pricing` — P0
 
@@ -89,13 +86,11 @@ ZIP 包含：
 
 页面展示 USD 价格、点数、推荐标记和按当前价格版本估算的“可生成图标主体数”。每个主体固定包含 3 个方案，整体消耗 1 点，不按单个方案拆分收费。
 
-点数包字段：`id`、中英文名称、Stripe Price ID、价格、币种、点数、排序、启用状态和价格版本。停用套餐不能新建 Checkout，但历史订单仍可查询。
 
 ### BILL-001A 新用户体验点数 — P0
 
 - 新用户获得一次 6 点体验点数，可生成 6 个主体、共 18 个方案。
 - 新用户赠送点数永久有效，MVP 不设置领取后到期时间。
-- 体验点数不经过 Stripe，不建立支付订单，但必须写入不可变账本，类型为 `signup_bonus`。
 - 发放必须与账户初始化事务一致并使用稳定业务键保证幂等。
 - 后台可查询发放记录和执行失败补偿，但不能再次手工触发同一业务键。
 
@@ -111,24 +106,19 @@ ZIP 包含：
 - 失败方案重新生成不扣点，系统失败与质量补偿也不计费；同一方案通过幂等和活动任务锁避免重复提交。若未来增加次数上限，必须单独评审并同步价格页，不得静默扣点。
 - 每个方案分别免费赠送 3 次细节调整，方案 1、2、3 各自独立计数；成功生成新图即消耗 1 次，平台侧失败不计次数，还原已有版本不调用模型也不计次数。
 - 自动重试、扣点和返还均需要幂等业务键，不能因队列重复消费重复记账。
+- 每个方案包含 3 次免费细节调整；第 4 次起每次消耗 1 点。付费调整通过 `create_variant_detail_edit_v2` 原子创建任务并扣点，失败通过 `refund_failed_variant_detail_edit_v2` 幂等返还；成功生成但未采用不退款。
 - 购买点数和新用户赠送点数均永久有效；MVP 不实现点数到期、过期回收或按有效期排序扣点。
 
 ### BILL-002A 促销与优惠 — P1
 
 - MVP 不向用户开放促销码输入框。
-- Stripe Checkout 集成保留 `allow_promotion_codes` 或指定 Coupon 的扩展边界，但生产默认关闭。
 - 首发活动优先使用额外赠点，账本类型为 `promotion_bonus`，不直接修改已发布点数包价格。
 - 促销赠点可以配置有效期；购买点数默认不失效。
 - 后台赠点必须记录活动 ID、原因、操作人和幂等键。
 
-### BILL-003 Stripe Checkout — P0
 
 1. 登录且已验证用户选择点数包。
 2. 前端提交 `packageId` 和幂等键。
-3. 服务端先创建内部待支付订单并生成业务订单号，再从版本化套餐读取 Stripe Price ID 创建 Checkout Session。
-4. 浏览器跳转 Stripe 托管页面。
-5. Stripe 返回 `/billing/result?session_id=...`。
-6. 返回页轮询服务端订单状态；只在签名 Webhook 完成后刷新余额。
 
 同一个支付 Session 或 Event ID 只能入账一次。
 
@@ -136,12 +126,6 @@ ZIP 包含：
 
 - 数据库 UUID `id` 是内部主键；另外由后端生成唯一、不可预测且适合客服沟通的 `order_number`，格式为 `ICO-YYYYMMDD-XXXXXXXXXX`。前端和导出文件展示业务订单号，不自行拼接或生成。
 - `order_number` 使用安全随机字符并建立唯一索引；发生极低概率冲突时由后端重试。不得使用连续自增号码暴露订单量。
-- 创建订单必须以 `(user_id, idempotency_key)` 唯一约束保证幂等。重复请求返回原订单和原 Checkout Session，不得新增订单或重复收费。
-- 下单时固化套餐 ID、套餐名称、价格版本、Stripe Price ID、币种、最小货币单位金额和点数；之后套餐改价不得改变历史订单。
-- Stripe Checkout Session 的 metadata 同时写入内部订单 UUID 和业务订单号；Webhook 仍以数据库 UUID 定位并加行锁处理。
-- 订单状态至少支持 `pending / paid / canceled / expired / failed / refunded`；只有通过签名验证的 Webhook 能把订单改为 `paid` 并增加点数。
-- Checkout 创建失败时保留可追踪的失败订单和错误码，不保存敏感错误正文；安全重试使用同一个幂等键。
-- `orders.csv` 使用业务订单号作为主要展示标识，同时保留内部 UUID 和可公开的 Stripe Session/PaymentIntent 引用。
 
 #### 账单摘要生成规则
 
@@ -169,7 +153,6 @@ ZIP 包含：
 
 ### BILL-006 退款与争议 — P1
 
-Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未消费点数；不足时进入人工处理，不制造未经审计的负余额。
 
 ### 2.2 API、数据与异常
 
@@ -177,19 +160,14 @@ Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未�
 | ------ | ----------------------------------- | -------------------------------------------- |
 | `GET`  | `/api/billing/packages`             | 获取启用点数包与价格版本                     |
 | `POST` | `/api/billing/quote`                | 根据主体数量返回报价                         |
-| `POST` | `/api/billing/checkout`             | 创建 Checkout Session                        |
 | `GET`  | `/api/billing/orders/{orderNumber}` | 使用本人业务订单号查询支付与入账状态         |
-| `POST` | `/api/webhooks/stripe`              | 验签、去重并入账                             |
 | `POST` | `/api/account/credits/query`        | 分页查询本人点数账本，支持全部/消耗/充值筛选 |
 | `POST` | `/api/account/credits/redeem`       | 原子校验并兑换 CD-Key                        |
 
-数据：`credit_packages`、`orders`、`stripe_events`、`credit_accounts`、不可变 `credit_ledger`、`credit_redemption_codes`、`pricing_versions` 和体验赠送配置版本。现有骨架中的 `orders` 作为规范表名，后续迁移不得再另建语义重复的 `billing_orders`。
 
-错误：`PACKAGE_UNAVAILABLE`、`PRICE_VERSION_CHANGED`、`CHECKOUT_CREATE_FAILED`、`PAYMENT_PENDING`、`WEBHOOK_SIGNATURE_INVALID`、`EVENT_ALREADY_PROCESSED`、`INVALID_CD_KEY`、`CD_KEY_DISABLED`、`CD_KEY_ALREADY_REDEEMED`、`CD_KEY_EXPIRED`。
 
 ### 2.3 指标与完成定义
 
-指标：价格页到 Checkout 转化、各点数包占比、每主体收入与模型成本、毛利率、支付成功率、Stripe 手续费占比、Webhook P95 入账时延、重复事件数、余额异常数、失败返还时延。
 
 完成定义：测试与生产环境配置分离；签名和幂等测试通过；任何浏览器请求都不能直接修改余额；生成报价、扣点和返还能够按价格版本追踪。
 
@@ -204,7 +182,6 @@ Stripe 退款或争议由 Webhook 更新订单，并按运营规则调整尚未�
 - 普通用户访问运营页面或 API 必须得到 403。
 - 首版只区分管理员与普通用户，不建设多层 RBAC。
 - 写操作必须填写原因、使用幂等键并写入不可变审计记录。
-- 页面和 API 不得返回 API Key、Stripe Secret、Supabase Service Role 或完整内部 Prompt。
 
 ### OPS-002 用户与任务查询 — P0
 

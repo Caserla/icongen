@@ -16,7 +16,6 @@
 2. 外部 Origin、缺少 Origin 或 `Sec-Fetch-Site: cross-site` 返回 403。
 3. 非 JSON 请求体返回 415。
 4. 声明超过 1 MiB 的请求体返回 413。
-5. Stripe Webhook 暂不受浏览器 Origin 规则影响，后续必须依赖签名验真。
 
 ## SEC-BASIC-004 应用层限流
 

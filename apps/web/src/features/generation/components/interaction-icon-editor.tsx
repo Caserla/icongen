@@ -1,33 +1,27 @@
 import { BACKGROUND_TYPE_OPTION_IDS, type ColorSetting } from "@icongen/shared";
 import { BackgroundPreview } from "./background-preview";
+import { StudioRange } from "./studio-range";
+import { StudioColorField } from "./studio-color-field";
+import { StudioSegmentedControl } from "./studio-segmented-control";
+import { StudioSettingsPanel } from "./studio-settings-panel";
 
 export type IconStructure = "linear" | "filled";
 export type BackgroundMode = "transparent" | "solid" | "gradient";
 export type BackgroundContainer = (typeof BACKGROUND_TYPE_OPTION_IDS)[number];
-type GradientDirection = Extract<
-  ColorSetting,
-  { mode: "gradient" }
->["direction"];
-
-const directions: GradientDirection[] = [
-  "top-to-bottom",
-  "bottom-to-top",
-  "left-to-right",
-  "right-to-left",
-  "top-left-to-bottom-right",
-  "top-right-to-bottom-left",
-  "radial",
-];
 const hexPattern = /^#[0-9A-Fa-f]{6}$/;
 
 function SubjectColorEditor({
   value,
   onChange,
   locale,
+  opacity,
+  onOpacityChange,
 }: {
   value: ColorSetting;
   onChange: (value: ColorSetting) => void;
   locale: "en" | "zh";
+  opacity: number;
+  onOpacityChange: (value: number) => void;
 }) {
   const gradient =
     value.mode === "gradient"
@@ -43,57 +37,9 @@ function SubjectColorEditor({
   }
   return (
     <div className="mt-3 space-y-3">
-      <div className="flex gap-2">
-        {(["solid", "gradient"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() =>
-              onChange(
-                mode === "solid"
-                  ? {
-                      mode,
-                      color:
-                        value.mode === "solid" ? value.color : value.colors[0],
-                    }
-                  : gradient,
-              )
-            }
-            aria-pressed={value.mode === mode}
-            className="draft-option px-4 py-2 text-sm font-semibold"
-          >
-            {locale === "zh"
-              ? mode === "solid"
-                ? "纯色"
-                : "多色"
-              : mode === "solid"
-                ? "Solid"
-                : "Multicolor"}
-          </button>
-        ))}
-      </div>
+      <StudioSegmentedControl value={value.mode} onChange={mode => onChange(mode === "solid" ? { mode, color: value.mode === "solid" ? value.color : value.colors[0] } : gradient)} options={locale === "zh" ? [{ value: "solid", label: "纯色" }, { value: "gradient", label: "多色" }] : [{ value: "solid", label: "Solid" }, { value: "gradient", label: "Multicolor" }]} />
       {value.mode === "solid" ? (
-        <label className="block rounded-[4px] border border-border bg-background p-3 text-sm font-semibold">
-          <span className="mb-2 block">
-            {locale === "zh" ? "颜色值" : "Color value"}
-          </span>
-          <span className="flex items-center gap-2">
-            <input
-              aria-label={locale === "zh" ? "颜色值" : "Color value"}
-              type="color"
-              value={value.color}
-              onChange={(event) => updateColor(event.target.value)}
-              className="h-10 w-12 cursor-pointer border-0 bg-transparent"
-            />
-            <input
-              aria-label={locale === "zh" ? "颜色值 HEX" : "Color value HEX"}
-              defaultValue={value.color.toUpperCase()}
-              onBlur={(event) => updateColor(event.currentTarget.value.trim())}
-              placeholder="#RRGGBB"
-              className="draft-control min-w-0 flex-1 px-3 py-2 font-mono font-normal uppercase"
-            />
-          </span>
-        </label>
+        <StudioColorField label={locale === "zh" ? "颜色值" : "Color value"} value={value.color} onChange={updateColor} locale={locale} alpha={opacity} onAlphaChange={onOpacityChange} />
       ) : (
         <p className="rounded-[4px] border border-border bg-surface-muted px-4 py-3 text-sm text-muted">
           {locale === "zh"
@@ -105,140 +51,6 @@ function SubjectColorEditor({
   );
 }
 
-function GradientEditor({
-  value,
-  onChange,
-  locale,
-}: {
-  value: Extract<ColorSetting, { mode: "gradient" }>;
-  onChange: (value: ColorSetting) => void;
-  locale: "en" | "zh";
-}) {
-  function updateColor(index: number, color: string) {
-    if (hexPattern.test(color))
-      onChange({
-        ...value,
-        colors:
-          index === 0
-            ? [color.toUpperCase(), value.colors[1]]
-            : [value.colors[0], color.toUpperCase()],
-      });
-  }
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {value.colors.map((color, index) => {
-        const label =
-          index === 0
-            ? locale === "zh"
-              ? "起始颜色"
-              : "Start color"
-            : locale === "zh"
-              ? "终点颜色"
-              : "End color";
-        return (
-          <label key={index} className="min-w-0">
-            <span className="mb-1.5 block text-xs font-semibold text-muted">
-              {label}
-            </span>
-            <span className="flex min-w-0 items-center gap-2 rounded-[4px] border border-border bg-background px-2 py-2">
-              <input
-                aria-label={label}
-                type="color"
-                value={color}
-                onChange={(event) => updateColor(index, event.target.value)}
-                className="h-9 w-9 shrink-0 cursor-pointer border-0 bg-transparent"
-              />
-              <input
-                aria-label={`${label} HEX`}
-                value={color.toUpperCase()}
-                onChange={(event) =>
-                  updateColor(index, event.target.value.trim())
-                }
-                className="min-w-0 w-full bg-transparent font-mono text-xs uppercase outline-none"
-              />
-            </span>
-          </label>
-        );
-      })}
-      <label className="relative col-span-2 min-w-0">
-        <span className="sr-only">
-          {locale === "zh" ? "渐变方向" : "Gradient direction"}
-        </span>
-        <select
-          aria-label={locale === "zh" ? "渐变方向" : "Gradient direction"}
-          value={value.direction}
-          onChange={(event) =>
-            onChange({
-              ...value,
-              direction: event.target.value as GradientDirection,
-            })
-          }
-          className="min-h-11 w-full appearance-none rounded-[4px] border border-border bg-background py-2 pl-3 pr-10 text-sm"
-        >
-          {directions.map((direction) => (
-            <option key={direction} value={direction}>
-              {locale === "zh"
-                ? (
-                    {
-                      "top-to-bottom": "从上到下",
-                      "bottom-to-top": "从下到上",
-                      "left-to-right": "从左到右",
-                      "right-to-left": "从右到左",
-                      "top-left-to-bottom-right": "左上到右下",
-                      "top-right-to-bottom-left": "右上到左下",
-                      radial: "中心放射",
-                    } as Record<string, string>
-                  )[direction]
-                : direction.replaceAll("-", " ")}
-            </option>
-          ))}
-        </select>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 20 20"
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 fill-none stroke-current text-muted"
-          strokeWidth="1.8"
-        >
-          <path d="m6 8 4 4 4-4" />
-        </svg>
-      </label>
-    </div>
-  );
-}
-
-function SolidBackgroundEditor({
-  value,
-  onChange,
-  locale,
-}: {
-  value: Extract<ColorSetting, { mode: "solid" }>;
-  onChange: (value: ColorSetting) => void;
-  locale: "en" | "zh";
-}) {
-  const label = locale === "zh" ? "背景颜色" : "Background color";
-  function update(color: string) {
-    if (hexPattern.test(color))
-      onChange({ mode: "solid", color: color.toUpperCase() });
-  }
-  return (
-    <label className="flex items-center gap-2 rounded-[4px] border border-border bg-background px-2 py-2">
-      <input
-        aria-label={label}
-        type="color"
-        value={value.color}
-        onChange={(event) => update(event.target.value)}
-        className="h-9 w-9 shrink-0 cursor-pointer border-0 bg-transparent"
-      />
-      <input
-        aria-label={`${label} HEX`}
-        value={value.color.toUpperCase()}
-        onChange={(event) => update(event.target.value.trim())}
-        className="min-w-0 w-full bg-transparent font-mono text-xs uppercase outline-none"
-      />
-    </label>
-  );
-}
-
 export function InteractionIconEditor(props: {
   locale: "en" | "zh";
   iconStructure: IconStructure;
@@ -247,16 +59,14 @@ export function InteractionIconEditor(props: {
   onSubjectSizePercentChange: (value: number) => void;
   linearStrokeWidthPercent: number;
   onLinearStrokeWidthPercentChange: (value: number) => void;
+  subjectOpacityPercent: number;
+  onSubjectOpacityPercentChange: (value: number) => void;
   subjectColor: ColorSetting;
   onSubjectColorChange: (value: ColorSetting) => void;
   backgroundMode: BackgroundMode;
-  onBackgroundModeChange: (value: BackgroundMode) => void;
-  backgroundColor: ColorSetting;
-  onBackgroundColorChange: (value: ColorSetting) => void;
   backgroundContainer: BackgroundContainer;
-  onBackgroundContainerChange: (value: BackgroundContainer) => void;
   cornerRadius: number;
-  onCornerRadiusChange: (value: number) => void;
+  backgroundColor: ColorSetting;
 }) {
   const {
     locale,
@@ -266,16 +76,14 @@ export function InteractionIconEditor(props: {
     onSubjectSizePercentChange,
     linearStrokeWidthPercent,
     onLinearStrokeWidthPercentChange,
+    subjectOpacityPercent,
+    onSubjectOpacityPercentChange,
     subjectColor,
     onSubjectColorChange,
     backgroundMode,
-    onBackgroundModeChange,
-    backgroundColor,
-    onBackgroundColorChange,
     backgroundContainer,
-    onBackgroundContainerChange,
     cornerRadius,
-    onCornerRadiusChange,
+    backgroundColor,
   } = props;
   const backgroundEnabled = backgroundMode !== "transparent";
   return (
@@ -287,165 +95,32 @@ export function InteractionIconEditor(props: {
         iconStructure={iconStructure}
         subjectSizePercent={subjectSizePercent}
         linearStrokeWidthPercent={linearStrokeWidthPercent}
+        subjectOpacityPercent={subjectOpacityPercent}
         enabled={backgroundEnabled}
         cornerRadius={cornerRadius}
         locale={locale}
       >
-        <div className="rounded-[5px] border border-border/70 bg-[#fffaf0]/70 p-4 sm:p-5">
-          <fieldset className="mb-4">
-            <legend className="text-sm font-black">
-              {locale === "zh" ? "图形结构" : "Icon structure"}
-            </legend>
-            <div className="draft-control mt-2 inline-flex gap-1 bg-surface-muted p-1">
-              {(["linear", "filled"] as const).map((structure) => (
-                <button
-                  key={structure}
-                  type="button"
-                  aria-pressed={iconStructure === structure}
-                  onClick={() => onIconStructureChange(structure)}
-                  className="draft-option px-4 py-2 text-sm font-semibold"
-                >
-                  {locale === "zh"
-                    ? structure === "linear"
-                      ? "线性"
-                      : "面性"
-                    : structure === "linear"
-                      ? "Linear"
-                      : "Filled"}
-                </button>
-              ))}
-            </div>
+        <StudioSettingsPanel title={locale === "zh" ? "图形结构" : "Icon structure"}>
+          <fieldset>
+            <legend className="sr-only">{locale === "zh" ? "图形结构" : "Icon structure"}</legend>
+            <StudioSegmentedControl value={iconStructure} onChange={onIconStructureChange} className="mt-2" options={locale === "zh" ? [{ value: "linear", label: "线性" }, { value: "filled", label: "面性" }] : [{ value: "linear", label: "Linear" }, { value: "filled", label: "Filled" }]} />
           </fieldset>
-          <div className="mb-4 grid max-w-md gap-3">
+          <div className="mt-3 grid max-w-md gap-3">
             {iconStructure === "linear" ? (
-              <label className="rounded-[4px] border border-border bg-surface-muted px-3 py-2">
-                <span className="flex items-center justify-between text-xs font-semibold">
-                  <span>{locale === "zh" ? "线条粗细" : "Stroke width"}</span>
-                  <output className="font-mono text-muted">{linearStrokeWidthPercent.toFixed(1)}%</output>
-                </span>
-                <input aria-label={locale === "zh" ? "线条粗细" : "Stroke width"} type="range" min="2" max="6" step="0.5" value={linearStrokeWidthPercent} onInput={(event) => onLinearStrokeWidthPercentChange(Number(event.currentTarget.value))} className="mt-2 w-full accent-brand" />
-              </label>
+              <StudioRange label={locale === "zh" ? "线条粗细" : "Stroke width"} min={2} max={6} step={0.5} decimals={1} suffix="%" value={linearStrokeWidthPercent} onChange={onLinearStrokeWidthPercentChange} />
             ) : null}
-            <label className="max-w-md rounded-[4px] border border-border bg-surface-muted px-3 py-2">
-              <span className="flex items-center justify-between text-xs font-semibold">
-                <span>{locale === "zh" ? "主体大小" : "Subject size"}</span>
-                <output className="font-mono text-muted">{subjectSizePercent}%</output>
-              </span>
-              <input aria-label={locale === "zh" ? "主体大小" : "Subject size"} type="range" min="50" max="85" step="1" value={subjectSizePercent} onInput={(event) => onSubjectSizePercentChange(Number(event.currentTarget.value))} className="mt-2 w-full accent-brand" />
-            </label>
+            <StudioRange label={locale === "zh" ? "主体大小" : "Subject size"} min={50} max={85} suffix="%" value={subjectSizePercent} onChange={onSubjectSizePercentChange} />
           </div>
-          <h3 className="text-sm font-black">
-            {locale === "zh" ? "主体颜色" : "Icon color"}
-          </h3>
+        </StudioSettingsPanel>
+        <StudioSettingsPanel title={locale === "zh" ? "主体颜色" : "Icon color"}>
           <SubjectColorEditor
             value={subjectColor}
             onChange={onSubjectColorChange}
             locale={locale}
+            opacity={subjectOpacityPercent}
+            onOpacityChange={onSubjectOpacityPercentChange}
           />
-        </div>
-        <div className="rounded-[5px] border border-border/70 bg-[#fffaf0]/70 p-4 sm:p-5">
-          <h3 className="text-sm font-black">
-            {locale === "zh" ? "图标背景" : "Icon background"}
-          </h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(["transparent", "solid", "gradient"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                aria-pressed={backgroundMode === mode}
-                onClick={() => onBackgroundModeChange(mode)}
-                className="draft-option px-3 py-2 text-sm font-semibold"
-              >
-                {locale === "zh"
-                  ? (
-                      {
-                        transparent: "透明背景",
-                        solid: "单色背景",
-                        gradient: "渐变背景",
-                      } as const
-                    )[mode]
-                  : (
-                      {
-                        transparent: "Transparent",
-                        solid: "Solid background",
-                        gradient: "Gradient background",
-                      } as const
-                    )[mode]}
-              </button>
-            ))}
-          </div>
-          {backgroundEnabled ? <div className="mt-4 space-y-3">
-            <div className="draft-control inline-flex gap-1 bg-surface-muted p-1">
-              {BACKGROUND_TYPE_OPTION_IDS.map((id) => {
-                const selected = backgroundContainer === id;
-                const label =
-                  locale === "zh"
-                    ? (
-                        {
-                          "rounded-square": "圆角",
-                          circle: "圆形",
-                          square: "方块",
-                        } as Record<string, string>
-                      )[id]
-                    : (
-                        {
-                          "rounded-square": "Rounded",
-                          circle: "Circular",
-                          square: "Square",
-                        } as Record<string, string>
-                      )[id];
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => onBackgroundContainerChange(id)}
-                    className="draft-option px-3 py-1.5 text-xs font-semibold"
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            {backgroundContainer === "rounded-square" ? (
-              <label className="flex max-w-md items-center gap-3 rounded-[4px] border border-border bg-surface-muted px-3 py-2">
-                <span className="shrink-0 text-xs font-semibold">
-                  {locale === "zh" ? "圆角" : "Radius"}
-                </span>
-                <input
-                  type="range"
-                  min="4"
-                  max="40"
-                  value={cornerRadius}
-                  onChange={(event) =>
-                    onCornerRadiusChange(Number(event.target.value))
-                  }
-                  className="min-w-0 flex-1 accent-brand"
-                />
-                <output className="w-9 text-right font-mono text-xs text-muted">
-                  {cornerRadius}%
-                </output>
-              </label>
-            ) : null}
-            {backgroundColor.mode === "gradient" ? (
-              <GradientEditor
-                value={backgroundColor}
-                onChange={onBackgroundColorChange}
-                locale={locale}
-              />
-            ) : (
-              <SolidBackgroundEditor
-                value={backgroundColor}
-                onChange={onBackgroundColorChange}
-                locale={locale}
-              />
-            )}
-          </div> : (
-            <p className="mt-4 rounded-[4px] border border-dashed border-border/70 px-4 py-3 text-sm leading-6 text-muted">
-              {locale === "zh" ? "当前使用透明背景，无需设置背景形状和颜色。" : "Transparent background is on, so there is no shape or background color to set."}
-            </p>
-          )}
-        </div>
+        </StudioSettingsPanel>
       </BackgroundPreview>
     </div>
   );

@@ -13,6 +13,10 @@ import {
   shouldRevealGenerationPreview,
   type AppliedVariantPreview,
 } from "@/features/generation/variant-preview-update";
+import {
+  hasRepeatedPollingFailures,
+  isGenerationStalled,
+} from "@/features/generation/generation-timeout";
 import { VariantEditDialog } from "./variant-edit-dialog";
 
 const finished = new Set(["completed", "partial", "failed"]);
@@ -28,6 +32,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   const [retrying, setRetrying] = useState<Set<string>>(new Set());
   const [lastUpdatedAt, setLastUpdatedAt] = useState(() => Date.now());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pollFailureCount, setPollFailureCount] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const [editing, setEditing] = useState<{
     variant: GenerationJobV2["subjects"][number]["variants"][number];
@@ -74,6 +79,18 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       !change || hasAppliedVariantPreview(refreshed, change);
     if (appliedRevisionIsVisible) setJob(refreshed);
     setLastUpdatedAt(Date.now());
+    setPollFailureCount(0);
+  }
+
+  async function refreshStatusNow() {
+    setIsRefreshing(true);
+    try {
+      await refreshJob();
+    } catch {
+      setPollFailureCount((count) => count + 1);
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
   useEffect(() => {
@@ -90,9 +107,10 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
           const refreshed = (await response.json()) as GenerationJobV2;
           setJob((current) => mergePolledGenerationJob(current, refreshed));
           setLastUpdatedAt(Date.now());
+          setPollFailureCount(0);
         }
       } catch {
-        /* keep the last known progress and retry */
+        if (!cancelled) setPollFailureCount((count) => count + 1);
       } finally {
         if (!cancelled) {
           setIsRefreshing(false);
@@ -206,6 +224,8 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     0,
     Math.floor((now - lastUpdatedAt) / 1000),
   );
+  const generationStalled = isGenerationStalled(job, now);
+  const pollingUnavailable = hasRepeatedPollingFailures(pollFailureCount);
   const variantStatusLabels: Record<string, [string, string]> = {
     queued: ["等待生成", "Waiting"],
     processing: ["正在生成", "Generating"],
@@ -349,19 +369,19 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     );
   }
   return (
-    <div className="space-y-8">
+    <div className="icon-results-studio space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <button
             type="button"
             onClick={goBack}
-            className="mb-3 inline-flex items-center gap-2 rounded-[4px] border border-border bg-background px-4 py-2.5 text-sm font-bold transition-colors hover:border-brand hover:text-brand"
+            className="mb-5 inline-flex items-center gap-2 rounded-[4px] border border-border bg-background px-4 py-2.5 text-sm font-bold transition-colors hover:border-brand hover:text-brand"
           >
             <span aria-hidden="true">←</span>
             {locale === "zh" ? "返回上一页" : "Back"}
           </button>
           <h1 className="text-3xl font-black tracking-[-.03em] text-foreground">
-            {locale === "zh" ? "生成结果" : "Generation results"}
+            {locale === "zh" ? "生成详情" : "Generation details"}
           </h1>
         </div>
         {effectiveJobStatus !== "completed" ? (
@@ -371,7 +391,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       {effectiveJobStatus !== "completed" ? (
         <section
           aria-live="polite"
-          className="paper-panel rounded-[6px] border border-border p-5"
+          className="studio-panel p-5"
         >
           <div className="flex items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-2">
@@ -420,11 +440,51 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
           </div>
         </section>
       ) : null}
+      {!finished.has(job.status) &&
+      (generationStalled || pollingUnavailable) ? (
+        <section
+          role="alert"
+          className="studio-notice studio-notice--warning p-4 text-sm"
+        >
+          <b>
+            {locale === "zh"
+              ? pollingUnavailable
+                ? "暂时无法获取最新生成状态"
+                : "生成时间超过预期"
+              : pollingUnavailable
+                ? "Unable to retrieve the latest status"
+                : "Generation is taking longer than expected"}
+          </b>
+          <p className="mt-1 leading-6">
+            {locale === "zh"
+              ? pollingUnavailable
+                ? "页面会继续自动重试。请检查网络，或稍后手动刷新状态。"
+                : "图片服务可能暂时繁忙或不可用。任务仍会在后台处理；如果最终生成失败，消耗的点数会自动返还。"
+              : pollingUnavailable
+                ? "This page will keep retrying automatically. Check your connection or refresh the status later."
+                : "The image service may be busy or temporarily unavailable. Processing continues in the background, and credits are returned automatically if generation ultimately fails."}
+          </p>
+          <button
+            type="button"
+            disabled={isRefreshing}
+            onClick={() => void refreshStatusNow()}
+            className="focus-ring mt-3 rounded-[4px] border border-current px-3 py-2 font-bold disabled:cursor-wait disabled:opacity-50"
+          >
+            {isRefreshing
+              ? locale === "zh"
+                ? "正在刷新…"
+                : "Refreshing…"
+              : locale === "zh"
+                ? "刷新状态"
+                : "Refresh status"}
+          </button>
+        </section>
+      ) : null}
       <div className="space-y-8">
         {job.subjects.map((subject) => (
           <section
             key={subject.id}
-            className="paper-panel rounded-[7px] border border-border p-5"
+            className="studio-panel p-5"
           >
             <div className="mb-4">
               <h2 className="text-xl font-black">{subject.name}</h2>
@@ -456,51 +516,69 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                   <article
                     key={variant.id}
                     data-selected={chosen || undefined}
-                    className={`card-polish relative rounded-[6px] border p-3 transition-colors ${chosen ? "border-brand bg-[#e6eaf3] outline outline-2 outline-brand outline-offset-2 shadow-[4px_4px_0_rgba(40,63,125,.22)]" : effectiveStatus === "processing" ? "border-brand/60 bg-[#fffaf0]/80" : "border-border bg-[#fffaf0]/80"}`}
+                    className={`studio-result-card relative p-3 transition-colors ${chosen ? "is-selected" : ""} ${effectiveStatus === "processing" ? "is-processing" : ""}`}
                   >
                     {chosen ? (
-                      <span aria-hidden="true" className="absolute left-5 top-5 z-20 grid size-7 place-items-center rounded-[3px] border border-white/80 bg-brand text-sm font-black text-white shadow-[2px_2px_0_rgba(11,23,50,.22)]">✓</span>
+                      <span
+                        aria-hidden="true"
+                        className="studio-selection-check absolute -left-2 -top-2 z-20"
+                      >
+                        <svg viewBox="0 0 24 24" className="block h-4 w-4 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
+                          <path d="m4.5 12.5 5 5 10-10" />
+                        </svg>
+                      </span>
                     ) : null}
                     <div className="group/preview relative grid aspect-square place-items-center overflow-hidden rounded-[4px] bg-surface-muted">
                       <button
                         type="button"
                         disabled={effectiveStatus !== "completed"}
                         aria-pressed={chosen}
-                        aria-label={locale === "zh" ? `选择方案 ${variant.slot}` : `Select option ${variant.slot}`}
+                        aria-label={
+                          locale === "zh"
+                            ? `选择方案 ${variant.slot}`
+                            : `Select option ${variant.slot}`
+                        }
                         onClick={() => toggle(variant.id)}
                         className="absolute inset-0 z-10 disabled:cursor-default"
                       />
-                        {previewUrl ? (
-                          <ImageWithSkeleton
-                            src={previewUrl}
-                            alt={`${subject.name} option ${variant.slot}`}
-                            className="h-full w-full"
-                            reveal={shouldRevealGenerationPreview({
-                              revealedDuringGeneration:
-                                revealedDuringGeneration,
-                              allPreviewsReady: resultPreviewsReady,
-                              currentPreviewSettled:
-                                settledPreviewUrls.has(previewUrl),
-                            })}
-                            onLoad={() => markPreviewSettled(previewUrl)}
-                            onError={() => markPreviewSettled(previewUrl)}
-                            failureLabel={locale === "zh" ? "加载失败" : "Failed to load"}
-                          />
-                        ) : effectiveStatus === "completed" ? (
-                          <SkeletonBlock className="h-full w-full rounded-[4px]" />
-                        ) : (
-                          <div className="grid place-items-center gap-3 text-sm text-muted">
-                            {effectiveStatus === "processing" ? (
-                              <span className="h-8 w-8 animate-spin rounded-full border-2 border-brand/25 border-t-brand" />
-                            ) : null}
-                            <span>{statusLabel}</span>
-                          </div>
-                        )}
+                      {previewUrl ? (
+                        <ImageWithSkeleton
+                          src={previewUrl}
+                          alt={`${subject.name} option ${variant.slot}`}
+                          className="h-full w-full"
+                          reveal={shouldRevealGenerationPreview({
+                            revealedDuringGeneration: revealedDuringGeneration,
+                            allPreviewsReady: resultPreviewsReady,
+                            currentPreviewSettled:
+                              settledPreviewUrls.has(previewUrl),
+                          })}
+                          onLoad={() => markPreviewSettled(previewUrl)}
+                          onError={() => markPreviewSettled(previewUrl)}
+                          failureLabel={
+                            locale === "zh" ? "加载失败" : "Failed to load"
+                          }
+                        />
+                      ) : effectiveStatus === "completed" ? (
+                        <SkeletonBlock className="h-full w-full rounded-[4px]" />
+                      ) : (
+                        <div className="grid place-items-center gap-3 text-sm text-muted">
+                          {effectiveStatus === "processing" ? (
+                            <span className="h-8 w-8 animate-spin rounded-full border-2 border-brand/25 border-t-brand" />
+                          ) : null}
+                          <span>{statusLabel}</span>
+                        </div>
+                      )}
                       {previewUrl && effectiveStatus === "completed" ? (
                         <button
                           type="button"
-                          aria-label={locale === "zh" ? `预览方案 ${variant.slot} 大图` : `Preview option ${variant.slot}`}
-                          title={locale === "zh" ? "预览大图" : "Preview full size"}
+                          aria-label={
+                            locale === "zh"
+                              ? `预览方案 ${variant.slot} 大图`
+                              : `Preview option ${variant.slot}`
+                          }
+                          title={
+                            locale === "zh" ? "预览大图" : "Preview full size"
+                          }
                           onClick={() =>
                             setPreviewing({
                               src: previewUrl,
@@ -509,7 +587,12 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                           }
                           className="focus-ring absolute right-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full border border-white/75 bg-[#071732]/75 px-2.5 py-1.5 text-xs font-bold text-white opacity-0 shadow-sm backdrop-blur-md transition-[opacity,transform] duration-150 hover:-translate-y-0.5 group-hover/preview:opacity-100 group-focus-within/preview:opacity-100 focus-visible:opacity-100"
                         >
-                          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-3.5 fill-none stroke-current" strokeWidth="2">
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="size-3.5 fill-none stroke-current"
+                            strokeWidth="2"
+                          >
                             <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" />
                           </svg>
                           {locale === "zh" ? "预览" : "Preview"}
@@ -530,7 +613,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                             : `Option ${variant.slot}`}
                         </b>
                         <span
-                          className={`rounded-[2px] border px-2 py-1 text-[11px] font-bold ${effectiveStatus === "processing" ? "border-brand/40 bg-[#e0e5f1] text-brand" : "border-border bg-surface-muted text-muted"}`}
+                          className={`rounded-lg border px-2 py-1 text-[11px] font-bold ${effectiveStatus === "processing" ? "border-[#363636] bg-[#252525] text-[#a9bbff]" : "border-border bg-surface-muted text-muted"}`}
                         >
                           {statusLabel}
                         </span>
@@ -573,7 +656,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
         ))}
       </div>
       {available.length > 0 ? (
-        <div className="paper-panel sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-4 rounded-[6px] border border-border p-4 shadow-[5px_5px_0_rgba(11,23,50,.16)]">
+        <div className="studio-panel sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-4 p-4">
           <p className="text-sm font-semibold">
             {locale === "zh"
               ? `已选择 ${selected.size} 个方案 · 包含原图和全部尺寸 PNG`
@@ -614,7 +697,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
               type="button"
               onClick={downloadZip}
               disabled={downloading}
-              className="mechanical-button bg-brand px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+              className="studio-button studio-button--primary px-5 py-3 text-sm font-black disabled:opacity-50"
             >
               {downloading
                 ? locale === "zh"
@@ -630,7 +713,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       {message ? (
         <p
           role="alert"
-          className="rounded-[4px] bg-[#fff1ed] p-4 text-sm text-danger"
+          className="studio-notice studio-notice--error p-4 text-sm"
         >
           {message}
         </p>
@@ -648,7 +731,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
             onClick={() => setPreviewing(null)}
             className="absolute inset-0 bg-[#071126]/80 backdrop-blur-sm"
           />
-          <div className="paper-panel relative z-10 flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[8px] border border-white/35 p-3 shadow-[10px_12px_0_rgba(0,0,0,.2)] sm:p-4">
+          <div className="studio-panel relative z-10 flex max-h-[90vh] w-full max-w-[900px] flex-col overflow-hidden p-3 sm:p-4">
             <button
               type="button"
               aria-label={locale === "zh" ? "关闭预览" : "Close preview"}

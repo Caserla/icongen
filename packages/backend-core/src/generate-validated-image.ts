@@ -135,12 +135,16 @@ export async function generateValidatedImage(
 ): Promise<{ image: GeneratedImage; qualityWarnings: ImageQualityWarning[] }> {
   let image: GeneratedImage | undefined;
   let qualityWarnings: ImageQualityWarning[] = [];
+  let forceChromaFallback = false;
 
   for (
     let qualityAttempt = 1;
     qualityAttempt <= QUALITY_RETRY_ATTEMPTS;
     qualityAttempt += 1
   ) {
+    const useChromaFallback = input.outputBackground === "transparent" &&
+      (forceChromaFallback || qualityAttempt > 1);
+    const chromaColor = { red: 0, green: 255, blue: 0 } as const;
     const previousBlockingCodes = qualityWarnings
       .filter(isBlockingWarning)
       .map((warning) => warning.code);
@@ -167,23 +171,48 @@ export async function generateValidatedImage(
           : previousBlockingCodes.includes("GEOMETRY_SYMMETRY_BROKEN")
             ? "\n\nGEOMETRY INTEGRITY CORRECTION\nThe previous result distorted the canonical semantic skeleton. Rebuild the requested subject with stable standard geometry, correct topology, smooth closed contours, and the required symmetry. Preserve the expected number and even distribution of points, lobes, or essential parts. Do not skew, stretch, twist, collapse, or use deformation to make this variant different."
           : "";
-    image = await dependencies.imageProvider.generate({
-      mode: "generation",
+    const providerInput = {
+      mode: "generation" as const,
       prompt: `${input.prompt}${retryInstruction}`,
       background: input.outputBackground,
       referenceImage: input.referenceImage,
-    });
-    if (input.outputBackground === "transparent" && input.referenceImage) {
+      chromaColor,
+    };
+    let generatedWithChroma = useChromaFallback;
+    try {
+      image = await dependencies.imageProvider.generate({
+        ...providerInput,
+        transparencyStrategy: useChromaFallback ? "chroma-key" : "native-alpha",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const nativeTransparencyUnsupported =
+        input.outputBackground === "transparent" &&
+        !useChromaFallback &&
+        /transparent background is not supported|background[^\n]*transparent[^\n]*(unsupported|not supported)/i.test(message);
+      if (!nativeTransparencyUnsupported) throw error;
+      forceChromaFallback = true;
+      generatedWithChroma = true;
+      dependencies.logger.info("Falling back to chroma-key generation because native alpha is unsupported", {
+        jobId: input.jobId,
+        variantId: input.variantId,
+      });
+      image = await dependencies.imageProvider.generate({
+        ...providerInput,
+        transparencyStrategy: "chroma-key",
+      });
+    }
+    if (input.outputBackground === "transparent" && generatedWithChroma) {
       if (dependencies.imageProcessor.normalizeTransparentBackground) {
         image = await dependencies.imageProcessor.normalizeTransparentBackground({
           bytes: image.bytes,
-          chromaColor: { red: 0, green: 255, blue: 0 },
+          chromaColor,
           tolerance: 72,
         });
       } else if (dependencies.imageProcessor.removeChromaBackground) {
         image = await dependencies.imageProcessor.removeChromaBackground({
           bytes: image.bytes,
-          color: { red: 0, green: 255, blue: 0 },
+          color: chromaColor,
           tolerance: 72,
         });
       }

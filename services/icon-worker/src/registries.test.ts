@@ -30,6 +30,7 @@ test("loads a real PNG reference image for every app illustration style", () => 
         graphicStructure: "filled",
         subjectSizePercent: 70,
         linearStrokeWidthPercent: 3.5,
+        subjectOpacityPercent: 100,
         strokeWeight: "regular",
         cornerStyle: "balanced",
         detailLevel: "standard",

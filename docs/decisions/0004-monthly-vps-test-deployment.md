@@ -6,7 +6,6 @@
 
 ## 背景
 
-Bamboo IconGen 当前由 Next.js Web/BFF、独立图片生成 Worker、Supabase Auth/PostgreSQL/Storage、Sub2API 图片模型网关、上游图片模型和 Stripe 组成。测试阶段需要控制固定基础设施成本，同时验证中国大陆与海外用户的访问、注册、生成和下载闭环。
 
 图片 Worker 使用 Sharp 检查和派生至少 1024px PNG，下载接口还会在服务端聚合文件并生成 ZIP。1 GB 主机在构建、图片处理或下载时容易出现内存压力。项目现有数据库事务、RLS、认证和私有文件均建立在 Supabase 上，把 PostgreSQL 迁入 VPS 会扩大测试范围且没有明显成本收益。
 
@@ -19,7 +18,6 @@ Bamboo IconGen 当前由 Next.js Web/BFF、独立图片生成 Worker、Supabase 
 - 继续使用现有 Supabase Auth、PostgreSQL 和私有 Storage。测试项目区域应尽量靠近 VPS 和主要测试用户，避免不必要的跨洲请求。
 - Worker 必须作为独立常驻进程运行，不能依赖开发环境的 BFF 子进程启动器。
 - 测试阶段全局 Worker 并发限制为 1；每个用户仍最多 1 个活动任务；默认将单批主体数运营限制为 1–3 个。
-- 使用 Caddy 或等效反向代理提供 HTTPS；只向公网开放 80/443，SSH 使用密钥并限制来源；Supabase Service Role、OpenAI 和 Stripe 密钥只注入服务端进程。
 - 测试阶段优先使用模拟生成或受控测试点数；真实模型调用必须配置账户级预算和速率限制。
 - 测试期不启用中国大陆 CDN 节点；如后续迁入中国大陆节点或使用境内 CDN，再单独处理 ICP 备案与相关合规事项。
 
@@ -37,7 +35,6 @@ Bamboo IconGen 当前由 Next.js Web/BFF、独立图片生成 Worker、Supabase 
 - 开放非受邀注册或出现多个并发生成用户；
 - 单批常态超过 3 个主体；
 - 发生内存不足、swap 持续使用、ZIP 下载失败或 Web 延迟明显上升；
-- 需要运行定时清理、数据导出和账户删除等多个后台任务。
 
 正式公开上线前，重新评估 Vercel/独立 Worker 或其他托管执行平台，不把本 ADR 的单机测试拓扑直接视为生产高可用方案。
 

@@ -79,6 +79,16 @@ export class SharpImageProcessor implements ImageProcessor {
     };
   }
 
+  async applyOpacity(input: { bytes: Uint8Array; opacityPercent: number }) {
+    const opacity = Math.max(0, Math.min(100, input.opacityPercent)) / 100;
+    const { data, info } = await sharp(input.bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let index = 3; index < data.length; index += info.channels)
+      data[index] = Math.round(data[index] * opacity);
+    const bytes = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
+      .png({ compressionLevel: 9, adaptiveFiltering: true }).toBuffer();
+    return { bytes, mimeType: "image/png" as const, width: info.width, height: info.height, hasAlpha: true };
+  }
+
   async applyRoundedMask(input: { bytes: Uint8Array; cornerRadiusPercent: number }) {
     const metadata = await sharp(input.bytes).metadata();
     if (!metadata.width || !metadata.height) throw new Error("Generated image dimensions could not be read");

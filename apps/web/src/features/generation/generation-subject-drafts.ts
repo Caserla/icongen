@@ -2,10 +2,12 @@ import type {
   BackgroundContainer,
   BackgroundMode,
 } from "./components/interaction-icon-editor";
+import type { ColorSetting } from "@icongen/shared";
 
 export type GenerationSubjectDraft = {
   input: string;
   backgroundMode: BackgroundMode;
+  backgroundColor: ColorSetting;
   backgroundContainer: BackgroundContainer;
   backgroundCornerRadius: number;
 };
@@ -13,6 +15,7 @@ export type GenerationSubjectDraft = {
 export type GenerationSubjectDraftAction =
   | { type: "update-input"; index: number; value: string }
   | { type: "set-background-mode"; index: number; value: BackgroundMode }
+  | { type: "set-background-color"; index: number; value: ColorSetting }
   | {
       type: "set-background-container";
       index: number;
@@ -26,6 +29,7 @@ export const initialGenerationSubjectDrafts: GenerationSubjectDraft[] = [
   {
     input: "",
     backgroundMode: "solid",
+    backgroundColor: { mode: "solid", color: "#FFFFFF" },
     backgroundContainer: "rounded-square",
     backgroundCornerRadius: 22,
   },
@@ -42,6 +46,7 @@ export function generationSubjectDraftReducer(
       {
         input: "",
         backgroundMode: "solid",
+        backgroundColor: { mode: "solid", color: "#FFFFFF" },
         backgroundContainer: "rounded-square",
         backgroundCornerRadius: 22,
       },
@@ -57,6 +62,8 @@ export function generationSubjectDraftReducer(
       return { ...draft, input: action.value };
     if (action.type === "set-background-mode")
       return { ...draft, backgroundMode: action.value };
+    if (action.type === "set-background-color")
+      return { ...draft, backgroundColor: action.value };
     if (action.type === "set-background-container")
       return { ...draft, backgroundContainer: action.value };
     return { ...draft, backgroundCornerRadius: action.value };

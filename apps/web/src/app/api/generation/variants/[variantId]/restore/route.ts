@@ -4,9 +4,12 @@ import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const paramsSchema = z.object({ variantId: z.string().uuid() });
+const bodySchema = z.object({
+  expectedActiveRevisionId: z.string().uuid(),
+});
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ variantId: string }> },
 ) {
   const params = paramsSchema.safeParse(await context.params);
@@ -14,6 +17,13 @@ export async function POST(
     return apiError(
       "INVALID_VARIANT_ID",
       "The icon option ID is invalid.",
+      400,
+    );
+  const body = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!body.success)
+    return apiError(
+      "INVALID_VARIANT_RESTORE_REQUEST",
+      "Refresh the icon before restoring it.",
       400,
     );
   try {
@@ -50,6 +60,37 @@ export async function POST(
         "The icon option was not found.",
         404,
       );
+    if (variant.data.active_revision_id !== body.data.expectedActiveRevisionId)
+      return apiError(
+        "VARIANT_RESTORE_BASE_CHANGED",
+        "The current icon changed before it could be restored. Refresh and try again.",
+        409,
+      );
+    const activeRevision = await client
+      .from("generation_variant_revisions")
+      .select("parent_revision_id")
+      .eq("id", body.data.expectedActiveRevisionId)
+      .eq("variant_id", variant.data.id)
+      .single();
+    if (activeRevision.error) throw activeRevision.error;
+    const previousRevisionId = activeRevision.data.parent_revision_id;
+    const updated = await client
+      .from("generation_variants")
+      .update({
+        active_revision_id: previousRevisionId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", variant.data.id)
+      .eq("active_revision_id", body.data.expectedActiveRevisionId)
+      .select("id")
+      .maybeSingle();
+    if (updated.error) throw updated.error;
+    if (!updated.data)
+      return apiError(
+        "VARIANT_RESTORE_BASE_CHANGED",
+        "The current icon changed while it was being restored. Refresh and try again.",
+        409,
+      );
     await client
       .from("generation_variant_revisions")
       .update({
@@ -60,24 +101,6 @@ export async function POST(
       })
       .eq("variant_id", variant.data.id)
       .in("status", ["queued", "processing"]);
-    let previousRevisionId: string | null = null;
-    if (variant.data.active_revision_id) {
-      const activeRevision = await client
-        .from("generation_variant_revisions")
-        .select("parent_revision_id")
-        .eq("id", variant.data.active_revision_id)
-        .single();
-      if (activeRevision.error) throw activeRevision.error;
-      previousRevisionId = activeRevision.data.parent_revision_id;
-    }
-    const updated = await client
-      .from("generation_variants")
-      .update({
-        active_revision_id: previousRevisionId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", variant.data.id);
-    if (updated.error) throw updated.error;
     return Response.json({
       variantId: variant.data.id,
       activeRevisionId: previousRevisionId,

@@ -20,7 +20,6 @@
 | Cloudflare Dashboard | <https://dash.cloudflare.com/> | 域名、DNS、可选代理 |
 | Cloudflare Registrar | <https://dash.cloudflare.com/?to=/:account/domains/register> | 注册域名；域名通常按年付费 |
 | Supabase Dashboard | <https://supabase.com/dashboard/projects> | Auth、PostgreSQL、私有 Storage 和服务端密钥 |
-| Stripe测试后台 | <https://dashboard.stripe.com/test/dashboard> | 测试支付；首轮也可以关闭购买入口 |
 | Docker Ubuntu安装文档 | <https://docs.docker.com/engine/install/ubuntu/> | 安装 Docker Engine 和 Compose Plugin |
 | Caddy HTTPS文档 | <https://caddyserver.com/docs/automatic-https> | 自动申请和续期 HTTPS 证书 |
 
@@ -235,7 +234,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<SUPABASE_ANON_KEY>
 SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
 ```
 
-Stripe测试未接入时不要填写生产密钥，并关闭或隐藏购买入口。
 
 ## 10. 配置Caddy
 
@@ -357,7 +355,6 @@ export ALLOW_DESTRUCTIVE_RESTORE_TEST=yes
 ```bash
 cd /opt/bamboo-stack/bamboo
 git fetch --all --prune
-git checkout <VERIFIED_RELEASE_TAG_OR_COMMIT>
 cd /opt/bamboo-stack
 sudo docker compose --env-file .env build web worker
 sudo docker compose --env-file .env up -d

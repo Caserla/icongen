@@ -126,6 +126,10 @@ export interface ImageProcessor {
     /** True only when at least one pixel is actually transparent. */
     hasTransparency?: boolean;
   }>;
+  applyOpacity?(input: {
+    bytes: Uint8Array;
+    opacityPercent: number;
+  }): Promise<ProcessedImage>;
   applyRoundedMask?(input: {
     bytes: Uint8Array;
     cornerRadiusPercent: number;

@@ -37,6 +37,13 @@ test("keeps transparent PNG output while sharpening a downscaled icon", async ()
   assert.equal(metadata.hasAlpha, true);
 });
 
+test("applies subject opacity by scaling the existing alpha channel", async () => {
+  const source = await sharp({ create: { width: 4, height: 4, channels: 4, background: { r: 20, g: 40, b: 60, alpha: 1 } } }).png().toBuffer();
+  const result = await new SharpImageProcessor().applyOpacity({ bytes: source, opacityPercent: 45 });
+  const { data } = await sharp(result.bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  assert.equal(data[3], 115);
+});
+
 test("repairs low-alpha black matte contamination after resizing", async () => {
   const width = 12;
   const pixels = Buffer.alloc(width * width * 4);

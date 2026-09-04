@@ -59,17 +59,17 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
   }
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="user-menu relative">
       <button
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring flex min-h-11 items-center gap-2 rounded-[4px] border border-border bg-surface px-2 text-left hover:bg-background"
+        className="user-menu__trigger focus-ring flex min-h-11 items-center gap-2 px-2 text-left"
       >
         <span
           aria-hidden="true"
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-sm font-black text-white"
+          className="user-menu__avatar grid size-8 shrink-0 place-items-center rounded-full text-sm font-black"
         >
           {initial}
         </span>
@@ -96,12 +96,14 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
           </svg>
         </span>
       </button>
-      {open ? (
         <div
           role="menu"
-          className="menu-pop panel-shadow absolute right-0 top-[calc(100%+8px)] z-40 w-64 origin-top-right rounded-[6px] border border-border bg-surface p-2"
+          aria-hidden={!open}
+          inert={!open}
+          data-open={open}
+          className="user-menu__panel absolute right-0 top-[calc(100%+12px)] z-40 origin-top-right"
         >
-          <div className="border-b border-border px-3 py-3">
+          <div className="user-menu__identity px-3 py-3">
             <b className="block truncate text-sm">{name}</b>
             <p className="mt-1 truncate text-xs text-muted">{viewer.email}</p>
           </div>
@@ -109,7 +111,7 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
             role="menuitem"
             href="/account"
             onClick={() => setOpen(false)}
-            className="focus-ring mt-2 flex min-h-11 items-center rounded-[4px] px-3 text-sm font-bold hover:bg-background"
+            className="user-menu__item focus-ring flex min-h-11 items-center px-3 text-sm font-bold"
           >
             {t("avatarAndProfile")}
           </Link>
@@ -118,12 +120,9 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
               role="menuitem"
               href="/admin"
               onClick={() => setOpen(false)}
-              className="focus-ring flex min-h-11 items-center justify-between rounded-[4px] px-3 text-sm font-bold hover:bg-background"
+              className="user-menu__item focus-ring flex min-h-11 items-center px-3 text-sm font-bold"
             >
-              <span>{t("adminConsole")}</span>
-              <span aria-hidden="true" className="text-brand">
-                ↗
-              </span>
+              {t("adminConsole")}
             </Link>
           ) : null}
           <button
@@ -131,12 +130,11 @@ export function UserMenu({ viewer }: { viewer: Viewer }) {
             type="button"
             disabled={signingOut}
             onClick={signOut}
-            className="focus-ring flex min-h-11 w-full items-center rounded-[4px] px-3 text-left text-sm font-bold text-danger hover:bg-[#fff1ed] disabled:opacity-50"
+            className="user-menu__item focus-ring flex min-h-11 w-full items-center px-3 text-left text-sm font-bold text-danger disabled:opacity-50"
           >
             {signingOut ? t("signingOut") : t("signOut")}
           </button>
         </div>
-      ) : null}
     </div>
   );
 }

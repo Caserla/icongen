@@ -40,7 +40,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 - 直接具体：说清用户会得到什么，不用“真正需要”“强大”等抽象修饰。
 - 友好克制：语气温和，但不卖萌、不夸张、不使用感叹号堆叠情绪。
 - 懂设计但不炫技：使用“图标主体、备选方案、透明背景”等用户能理解的术语，避免暴露数据库、Provider、迁移函数等内部概念。
-- 高风险场景冷静明确：支付、删除账户、生成失败时，说明发生了什么、是否丢失数据、用户下一步能做什么。
 
 ## 2. 总体诊断
 
@@ -59,7 +58,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 4. **错误信息缺少恢复路径。** 多数错误只说明“We could not…”，没有告诉用户是刷新、稍后重试、返回修改还是联系支持。
 5. **CTA 偏泛。** “Choose pack”“Continue”“Enter workspace”等按钮没有明确点击结果。
 6. **中英文意图偶有偏差。** 例如英文“choose the strongest result”比中文“选出最合适的结果”更带主观评价；“按你的实际生成需求购买”也不够自然。
-7. **未完成能力使用已完成语气。** 支付页直接要求用户“配置 Stripe”，把开发配置责任交给普通用户；管理后台也用未来时描述未完成能力。
 
 ## 3. 优化原则与实施顺序
 
@@ -67,8 +65,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 
 - 错误结构统一为：发生了什么 + 当前影响 + 下一步动作。
 - 用户可恢复的问题提供明确动作，如“刷新设置”“返回修改”“重新生成”。
-- 平台配置问题只说“该功能暂不可用”，不要让普通用户配置 Stripe、数据库函数或服务密钥。
-- 删除账户明确 30 天宽限期、取消方式和不可逆结果。
 
 ### P1：首页、创建与登录转化
 
@@ -113,8 +109,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 | 套餐 CTA | Choose pack / 选择点数包 | Buy 30 credits; Buy 75 credits; Buy 180 credits / 购买 30 点；购买 75 点；购买 180 点 | CTA 直接说明结果 |
 | 结账标题 | Confirm purchase / 确认充值 | Review your credit pack / 确认点数包 | “充值”可能暗示余额充值，实际为购买套餐 |
 | 结账说明 | 1 credit generates 3 variants for 1 subject / 1 点可生成 1 个主体的 3 个方案 | 1 credit creates 3 options for one icon subject. / 1 点可为 1 个图标主体生成 3 个方案。 | 统一“options/方案”，避免 variants 与用户术语混用 |
-| 支付 CTA | Continue to secure checkout / 继续前往安全支付 | Continue to payment / 前往支付 | 不在缺少证据时使用“secure”背书 |
-| 支付未接通 | Payments are not connected yet. Configure Stripe and try again. / 支付服务尚未连接，请配置 Stripe 后重试。 | Payments are temporarily unavailable. Please try again later. / 支付功能暂不可用，请稍后再试。 | 不向普通用户暴露开发配置 |
 | 返回 CTA | Choose another pack / 返回选择其他点数包 | Back to credit packs / 返回点数包 | 统一、简洁 |
 
 套餐描述建议：
@@ -191,7 +185,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 | 空状态 CTA | Create icons / 创建图标 | Create your first icon set / 创建第一套图标 | 结果更明确 |
 | 列表兜底名 | Generation job / 生成任务 | Untitled icon set / 未命名图标集 | 用户语言替代系统语言 |
 
-### 4.7 账户与删除账户
 
 | 元素 | 现有英文 / 中文 | 建议英文 / 中文 | 理由 |
 | --- | --- | --- | --- |
@@ -200,10 +193,8 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 | 充值 CTA | Top up / 充值 | Buy credits / 购买点数 | 对应实际购买行为 |
 | 加载失败 | We could not load your account. / 无法加载账户 | Your account details could not load. Refresh the page to try again. / 账户信息加载失败，请刷新页面重试。 | 提供恢复动作 |
 | 保存失败 | We could not update your profile. / 无法保存个人资料 | Your profile was not saved. Check your connection and try again. / 个人资料未保存，请检查网络后重试。 | 说明结果与下一步 |
-| 删除说明 | 现有 deleteGrace | Schedule account deletion with a 30-day grace period. You can cancel before the deletion date. / 提交后账户将在 30 天宽限期结束时删除；删除日期前可随时取消。 | 把关键期限前置 |
 | 确认输入 | Type DELETE / 输入 DELETE | Type DELETE to confirm / 输入 DELETE 以确认 | 说明输入目的 |
 | 密码标签 | Confirm password for this action / 输入密码确认操作 | Enter your password / 输入账户密码 | 更简洁，操作上下文已清楚 |
-| 删除 CTA | Schedule deletion / 安排删除 | Schedule account deletion / 安排删除账户 | 明确对象 |
 | 活跃生成阻塞 | Wait for active icon generations to finish. | An icon set is still generating. Wait for it to finish, then try again. / 仍有图标正在生成，请等待完成后重试。 | 解释原因和下一步 |
 
 ### 4.8 管理后台
@@ -272,7 +263,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 | 我的图标 | Eyebrow、H1、说明、空状态、CTA、任务兜底名、主体计数、状态标签 | 优化 |
 | 结果页 | 页面标题、阶段、进度、当前主体、更新时间、方案名、方案状态、重试、选择、全选、下载、错误 | 优化；完成后隐藏更新时间的现状保留 |
 | 账户页 | 页面标题、说明、点数、资料、安全、邮箱验证、保存及加载状态 | 说明、点数 CTA、错误优化 |
-| 删除账户 | 返回、危险区域、宽限期、导出、待删除状态、剩余天数、取消、确认字段、状态反馈 | 高风险说明优化；需产品确认删除后数据保留政策 |
 | 结账 | 无效套餐、确认标题、点数规则、支付 CTA、返回、支付不可用 | 优化 |
 | 管理后台 | 页面标题、说明、3 个模块名、占位状态 | 优化 |
 | Metadata | 站点描述、首页/注册/我的图标/结果页标题 | 优化 |
@@ -309,7 +299,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 
 1. 点数包的中文名称是否继续使用“入门 / 创作者 / 工作室”，还是英文品牌名统一不翻译。
 2. 支付服务上线时间与退款说明；当前不能写“安全支付”或具体支付保障承诺。
-3. 账户删除后，生成图片、支付记录和审计记录的具体保留政策。
 4. “可直接用于生产”是否有正式质量验收标准；确认前不使用 production-ready。
 5. 是否提供客服或反馈入口；若提供，应在不可恢复错误中增加联系路径和错误码。
 
@@ -323,7 +312,6 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 
 ### 阶段 2：按风险应用文案
 
-1. 先应用 P0 错误、支付、删除账户与结果页状态文案。
 2. 再应用首页、价格、登录和创建页主文案。
 3. 最后统一账户、后台和 Metadata。
 

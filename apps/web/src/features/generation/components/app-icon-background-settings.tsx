@@ -1,7 +1,12 @@
+import type { ColorSetting } from "@icongen/shared";
 import type {
   BackgroundContainer,
   BackgroundMode,
 } from "./interaction-icon-editor";
+import { StudioRange } from "./studio-range";
+import { StudioColorField } from "./studio-color-field";
+import { StudioSegmentedControl } from "./studio-segmented-control";
+import { StudioDisclosure } from "./studio-disclosure";
 
 export function AppIconBackgroundSettings({
   mode,
@@ -11,6 +16,8 @@ export function AppIconBackgroundSettings({
   cornerRadius,
   onCornerRadiusChange,
   locale,
+  color,
+  onColorChange,
 }: {
   mode: BackgroundMode;
   onModeChange: (mode: BackgroundMode) => void;
@@ -19,104 +26,109 @@ export function AppIconBackgroundSettings({
   cornerRadius: number;
   onCornerRadiusChange: (cornerRadius: number) => void;
   locale: "en" | "zh";
+  color?: ColorSetting;
+  onColorChange?: (color: ColorSetting) => void;
 }) {
   return (
-    <section className="rounded-[6px] border border-border bg-background p-4">
-      <h3 className="text-sm font-black">
-        {locale === "zh" ? "图标背景" : "Icon background"}
-      </h3>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {(["transparent", "solid", "gradient"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={mode === option}
-            onClick={() => onModeChange(option)}
-            className="draft-option px-3 py-2 text-sm font-semibold"
-          >
-            {locale === "zh"
-              ? (
-                  {
-                    transparent: "透明背景",
-                    solid: "单色背景",
-                    gradient: "渐变背景",
-                  } as const
-                )[option]
-              : (
-                  {
-                    transparent: "Transparent",
-                    solid: "Solid background",
-                    gradient: "Gradient background",
-                  } as const
-                )[option]}
-          </button>
-        ))}
-      </div>
+    <section>
+      <StudioSegmentedControl value={mode} onChange={onModeChange} options={locale === "zh" ? [{ value: "transparent", label: "透明背景" }, { value: "solid", label: "单色背景" }, { value: "gradient", label: "渐变背景" }] : [{ value: "transparent", label: "None" }, { value: "solid", label: "Solid" }, { value: "gradient", label: "Gradient" }]} />
       {mode !== "transparent" ? (
-        <div className="mt-3 space-y-3">
-          <div
-            className="flex flex-wrap gap-2"
-            aria-label={locale === "zh" ? "背景形状" : "Background shape"}
-          >
-            {(["rounded-square", "circle", "square"] as const).map((shape) => (
-              <button
-                key={shape}
-                type="button"
-                aria-pressed={container === shape}
-                onClick={() => onContainerChange(shape)}
-                className="draft-option px-3 py-2 text-xs font-semibold"
-              >
-                {locale === "zh"
-                  ? ({ "rounded-square": "圆角", circle: "圆形", square: "方块" } as const)[shape]
-                  : ({ "rounded-square": "Rounded", circle: "Circle", square: "Square" } as const)[shape]}
-              </button>
-            ))}
-          </div>
+        <div className="mt-1 space-y-2">
+          <StudioSegmentedControl value={container} onChange={onContainerChange} ariaLabel={locale === "zh" ? "背景形状" : "Background shape"} size="small" options={locale === "zh" ? [{ value: "rounded-square", label: "圆角" }, { value: "circle", label: "圆形" }, { value: "square", label: "方块" }] : [{ value: "rounded-square", label: "Rounded" }, { value: "circle", label: "Circle" }, { value: "square", label: "Square" }]} />
           {container === "rounded-square" ? (
-            <label className="draft-control flex w-full max-w-md items-center gap-3 bg-surface-muted px-3 py-2">
-              <span className="shrink-0 text-xs font-semibold">
-                {locale === "zh" ? "圆角角度" : "Corner radius"}
-              </span>
-              <input
-                type="range"
-                min="4"
-                max="40"
-                value={cornerRadius}
-                onChange={(event) =>
-                  onCornerRadiusChange(Number(event.target.value))
-                }
-                className="min-w-0 flex-1 accent-brand"
-                aria-label={locale === "zh" ? "圆角角度" : "Corner radius"}
-              />
-              <div className="flex shrink-0 items-center gap-1">
-                <input
-                  type="number"
-                  min="4"
-                  max="40"
-                  value={cornerRadius}
-                  onChange={(event) =>
-                    onCornerRadiusChange(
-                      Math.min(40, Math.max(4, Number(event.target.value))),
-                    )
-                  }
-                  aria-label={
-                    locale === "zh"
-                      ? "圆角角度数值"
-                      : "Corner radius value"
-                  }
-                  className="draft-control h-8 w-14 px-2 text-right font-mono text-xs"
-                />
-                <span className="text-xs text-muted">%</span>
-              </div>
-            </label>
+            <StudioRange label={locale === "zh" ? "圆角角度" : "Round corners"} min={4} max={40} suffix="%" value={cornerRadius} onChange={onCornerRadiusChange} />
+          ) : null}
+          {color && onColorChange ? (
+            <BackgroundColorSettings
+              mode={mode}
+              value={color}
+              onChange={onColorChange}
+              locale={locale}
+            />
           ) : null}
         </div>
       ) : null}
-      <p className="mt-3 text-xs text-muted">
-        {locale === "zh"
-          ? "背景配色将根据图标内容与所选风格自动生成。"
-          : "Background colors are generated automatically from the icon content and selected style."}
-      </p>
+      {!color ? (
+        <p className="mt-2 text-xs text-muted">
+          {locale === "zh"
+            ? "背景配色将根据图标内容与所选风格自动生成。"
+            : "Background colors are generated automatically from the icon content and selected style."}
+        </p>
+      ) : null}
     </section>
+  );
+}
+
+const hexPattern = /^#[0-9A-Fa-f]{6}$/;
+const gradientDirections = [
+  "top-to-bottom",
+  "bottom-to-top",
+  "left-to-right",
+  "right-to-left",
+  "top-left-to-bottom-right",
+  "top-right-to-bottom-left",
+  "radial",
+] as const;
+const gradientDirectionLabels = {
+  "top-to-bottom": { zh: "从上到下", en: "Top to bottom" },
+  "bottom-to-top": { zh: "从下到上", en: "Bottom to top" },
+  "left-to-right": { zh: "从左到右", en: "Left to right" },
+  "right-to-left": { zh: "从右到左", en: "Right to left" },
+  "top-left-to-bottom-right": { zh: "左上到右下", en: "Top left to bottom right" },
+  "top-right-to-bottom-left": { zh: "右上到左下", en: "Top right to bottom left" },
+  radial: { zh: "径向", en: "Radial" },
+} as const;
+
+function BackgroundColorSettings({ mode, value, onChange, locale }: {
+  mode: BackgroundMode;
+  value: ColorSetting;
+  onChange: (color: ColorSetting) => void;
+  locale: "en" | "zh";
+}) {
+  if (mode === "solid") {
+    const color = value.mode === "solid" ? value.color : value.colors[0];
+    const update = (next: string) => {
+      if (hexPattern.test(next)) onChange({ mode: "solid", color: next.toUpperCase() });
+    };
+    return (
+      <StudioColorField label={locale === "zh" ? "背景颜色" : "Background color"} value={color} onChange={update} locale={locale} />
+    );
+  }
+  if (mode !== "gradient") return null;
+  const gradient = value.mode === "gradient" ? value : {
+    mode: "gradient" as const,
+    colors: [value.color, "#A78BFA"] as [string, string],
+    direction: "top-left-to-bottom-right" as const,
+  };
+  const updateColor = (index: number, next: string) => {
+    if (!hexPattern.test(next)) return;
+    onChange({ ...gradient, colors: index === 0 ? [next.toUpperCase(), gradient.colors[1]] : [gradient.colors[0], next.toUpperCase()] });
+  };
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {gradient.colors.map((color, index) => {
+        const label = locale === "zh" ? (index === 0 ? "起始颜色" : "终点颜色") : (index === 0 ? "Start color" : "End color");
+        return (
+          <StudioColorField key={index} label={label} value={color} onChange={(next) => updateColor(index, next)} locale={locale} variant="gradient" />
+        );
+      })}
+      <StudioDisclosure className="studio-gradient-direction col-span-2" label={locale === "zh" ? "渐变方向" : "Gradient direction"} value={gradientDirectionLabels[gradient.direction][locale]}>
+        <div className="studio-gradient-direction__items">
+          {gradientDirections.map((direction) => (
+            <button
+              key={direction}
+              type="button"
+              aria-pressed={gradient.direction === direction}
+              onClick={(event) => {
+                onChange({ ...gradient, direction });
+                event.currentTarget.closest("details")?.removeAttribute("open");
+              }}
+            >
+              {gradientDirectionLabels[direction][locale]}
+            </button>
+          ))}
+        </div>
+      </StudioDisclosure>
+    </div>
   );
 }

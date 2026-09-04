@@ -1,5 +1,81 @@
 "use client";
 import { ButtonLink } from "@/components/ui/button-link";
 import { useLocale } from "@/components/i18n/locale-provider";
-const copy={en:{k:"AI icon sets for apps",h:"Create a consistent UI icon set in one workflow.",p:"Add each icon you need, set one shared visual direction, and get three options for every icon to compare and download.",a:"Start creating icons",workflow:"One workflow from icon list to downloadable set",steps:[["Add every icon your product needs","Add one subject per field, then submit the set together with shared settings."],["Set one visual direction for the set","Choose structure, color, background, style, and output sizes before generation."],["Compare three options for every icon","Review three visual variations, retry individual failures, and download the results you choose."]]},zh:{k:"为 App 生成成套图标",h:"一次配置，生成一套风格统一的 UI 图标",p:"逐个添加所需图标，统一设置视觉方向；每个图标生成 3 个方案，方便比较和下载。",a:"开始生成图标",workflow:"从图标清单到成套下载，一步步完成",steps:[["添加产品所需的全部图标","每个输入项填写一个图标主体，添加完成后按同一套规格提交生成。"],["为整套图标统一视觉方向","生成前统一选择图形结构、颜色、背景、风格和输出尺寸。"],["每个图标都有 3 个方案可比较","查看 3 个视觉方案，单独重试失败项，并下载选中的结果。"]]}};
-export default function HomePage(){const{locale}=useLocale();const c=copy[locale];return <main><section className="soft-spot border-b border-[#5d6680] text-[#f6edda]"><div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 lg:grid-cols-[1.08fr_.92fr] lg:items-center"><div className="hero-copy"><p className="draft-label mb-5 text-[#e76051]">AI ICON WORKSPACE / 2026</p><h1 className="display-serif max-w-4xl text-5xl leading-[1.04] tracking-[-.045em] sm:text-7xl">{c.h}</h1><p className="mt-7 max-w-2xl text-lg font-medium leading-8 tracking-[-.012em] text-[#d6d9df] sm:text-xl sm:leading-9">{c.p}</p><div className="mt-8"><ButtonLink href="/create" className="min-h-14 px-6">{c.a} →</ButtonLink></div></div><div className="hero-board grid min-h-96 grid-cols-2 gap-3 rounded-[6px] border border-[#7d8496] bg-[#f6edda] p-4 shadow-[8px_8px_0_rgba(0,0,0,.28)]">{["◒","◇","☺","✦"].map((v,i)=><div key={v} className={`grid aspect-square place-items-center rounded-[3px] border border-[#555] text-5xl font-black ${["bg-accent","bg-brand text-white","bg-[#e76051]","bg-surface text-foreground"][i]}`}>{v}</div>)}</div></div></section><section className="paper-panel motion-section border-y border-border py-16"><div className="mx-auto max-w-7xl px-5"><p className="draft-label mb-3 text-accent">PROCESS / 01—03</p><h2 className="display-serif text-4xl tracking-[-.04em]">{c.workflow}</h2><div className="stagger-grid mt-8 grid gap-5 md:grid-cols-3">{c.steps.map(([title,description],i)=><article key={title} className="card-polish rounded-[6px] border border-border bg-[#fffaf0]/75 p-6"><span className="draft-label grid size-11 place-items-center rounded-[3px] border border-brand bg-brand text-white">0{i+1}</span><h3 className="mt-5 text-xl font-black">{title}</h3><p className="mt-2 leading-7 text-muted">{description}</p></article>)}</div></div></section></main>}
+import { HomeIntro } from "@/components/marketing/home-intro";
+import { IconDropShowcase } from "@/components/marketing/icon-drop-showcase";
+import { IconEditorShowcase } from "@/components/marketing/icon-editor-showcase";
+import { Reveal } from "@/components/motion/reveal";
+
+const copy = {
+  en: {
+    eyebrow: "A creative system for product icons",
+    title: "Build every icon your product needs—in one visual language.",
+    body: "Describe the set once. Explore three directions for every icon, refine the details, and ship production-ready assets without losing consistency.",
+    action: "Create an icon set",
+    secondary: "See the workflow",
+    ticker: ["Nine visual styles", "Three options each", "PNG + SVG", "Set-level consistency"],
+    sectionTitle: "From a rough list to a complete icon system.",
+    steps: [["Describe","Add the icons your product needs in plain language."],["Direct","Choose style, structure, scale, stroke, and background."],["Refine","Compare, revise, and export the options that feel right."]],
+  },
+  zh: {
+    eyebrow: "为产品而生的图标创作系统",
+    title: "一次定义视觉语言，生成产品需要的整套图标。",
+    body: "描述图标清单，为每个图标探索 3 个方向；调整细节并导出可直接使用的生产资产，同时保持整套风格一致。",
+    action: "开始创建图标集",
+    secondary: "查看工作流程",
+    ticker: ["九种视觉风格", "每个图标三种方案", "PNG + SVG", "整套风格一致"],
+    sectionTitle: "从一份简单清单，到完整的图标系统。",
+    steps: [["描述","用自然语言添加产品需要的每个图标。"],["定向","选择风格、结构、大小、线宽与背景。"],["完善","比较、修改并导出真正满意的方案。"]],
+  },
+};
+
+export default function HomePage() {
+  const { locale } = useLocale();
+  const c = copy[locale];
+  return (
+    <main className="butter-home">
+      <HomeIntro locale={locale} />
+      <section className="butter-hero">
+        <div className="butter-hero__grid" aria-hidden="true" />
+        <div className="butter-hero__content">
+          <p className="butter-kicker">{c.eyebrow}</p>
+          <h1>{c.title}</h1>
+          <p className="butter-hero__body">{c.body}</p>
+          <div className="butter-hero__actions">
+            <ButtonLink href="/create" className="butter-primary-cta">{c.action}<span aria-hidden="true">↗</span></ButtonLink>
+            <a href="#workflow" className="butter-text-link">{c.secondary}<span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+        <div className="butter-stage" aria-label={locale === "zh" ? "图标方案动态预览" : "Animated icon option preview"}>
+          <div className="butter-stage__card butter-stage__card--one"><span>01</span><strong>✦</strong><small>SPARK</small></div>
+          <div className="butter-stage__card butter-stage__card--two"><span>02</span><strong>⌁</strong><small>FLOW</small></div>
+          <div className="butter-stage__card butter-stage__card--three"><span>03</span><strong>●</strong><small>FOCUS</small></div>
+          <div className="butter-stage__cursor" aria-hidden="true">↖</div>
+        </div>
+      </section>
+
+      <div className="butter-ticker" aria-label={c.ticker.join(", ")}>
+        <div>{[...c.ticker, ...c.ticker].map((item, index) => <span key={`${item}-${index}`}>{item}<i>✦</i></span>)}</div>
+      </div>
+
+      <IconDropShowcase locale={locale} />
+
+      <Reveal><IconEditorShowcase locale={locale} /></Reveal>
+
+      <Reveal><section id="workflow" className="butter-workflow">
+        <p className="butter-kicker">01 / WORKFLOW</p>
+        <h2>{c.sectionTitle}</h2>
+        <div className="butter-workflow__grid">
+          {c.steps.map(([title, description], index) => (
+            <article key={title}>
+              <span>0{index + 1}</span>
+              <h3>{title}</h3>
+              <p>{description}</p>
+              <i aria-hidden="true">{["＋", "◎", "↗"][index]}</i>
+            </article>
+          ))}
+        </div>
+      </section></Reveal>
+    </main>
+  );
+}

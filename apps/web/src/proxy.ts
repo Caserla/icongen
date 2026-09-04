@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkMutationRequest } from "@/lib/security/mutation-request";
 import { consumeRateLimit, requestIpIdentity, requestRateLimitIdentity } from "@/lib/security/rate-limit";
 
-const protectedPrefixes = ["/create", "/icons", "/account", "/checkout", "/admin"];
+const protectedPrefixes = ["/create", "/icons", "/account", "/admin"];
 const guestOnlyPrefixes = ["/auth/sign-in", "/auth/sign-up"];
 
 export async function proxy(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function proxy(request: NextRequest) {
       { error: { code: requestCheck.code, message: requestCheck.message } },
       { status: requestCheck.status },
     );
-  if (pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method) && pathname !== "/api/webhooks/stripe") {
+  if (pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(request.method)) {
     const highRisk = pathname.startsWith("/api/auth/") || pathname === "/api/account/credits/redeem";
     const rateLimit = consumeRateLimit({
       namespace: highRisk ? "sensitive-write" : "api-write",

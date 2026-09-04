@@ -24,6 +24,7 @@ const base: Omit<CompileIconPromptInput, "purpose"> = {
     graphicStructure: "linear",
     subjectSizePercent: 70,
     linearStrokeWidthPercent: 3.5,
+    subjectOpacityPercent: 100,
     strokeWeight: "regular",
     cornerStyle: "balanced",
     detailLevel: "standard",
@@ -37,9 +38,41 @@ test("interaction template includes visible interaction settings and excludes hi
   assert.equal(result.outputBackground, "opaque");
   assert.match(result.prompt, /linear outline glyph with no fill/);
   assert.match(result.prompt, /solid #61666E/);
+  assert.match(result.prompt, /Subject opacity: 100%/);
   assert.match(result.prompt, /22% corner radius/);
+  assert.match(result.prompt, /#FFFFFF to #E8EEF8/);
   assert.doesNotMatch(result.prompt, /32, 64, 128px/);
   assert.doesNotMatch(result.prompt, /cute clay 3D/);
+});
+
+test("transparent filled interaction icons separate the glyph from the alpha canvas", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "interaction",
+    background: { enabled: false },
+    style: { ...base.style, graphicStructure: "filled", subjectOpacityPercent: 45 },
+  });
+  assert.equal(result.outputBackground, "transparent");
+  assert.match(result.prompt, /Subject opacity: 45%/);
+  assert.match(result.prompt, /TRANSPARENT FILLED GLYPH CONTRACT/);
+  assert.match(result.prompt, /must not be interpreted as a filled square, tile, badge, card, container, or canvas background/);
+});
+
+test("interaction template resolves automatic subject background colors before prompting", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "interaction",
+    background: {
+      enabled: true,
+      container: "rounded-square",
+      cornerRadius: 22,
+      autoColor: true,
+      color: { mode: "solid", color: "#FFFFFF" },
+    },
+  });
+
+  assert.doesNotMatch(result.prompt, /container filled with solid #FFFFFF/);
+  assert.match(result.prompt, /filled with solid #[0-9A-F]{6}/);
 });
 
 test("multi-subject interaction prompts lock optical scale and linear weight", () => {
