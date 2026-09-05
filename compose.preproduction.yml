@@ -1,0 +1,86 @@
+services:
+  web:
+    build:
+      context: .
+      target: web-runtime
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    env_file:
+      - path: .env.preproduction
+        required: false
+    environment:
+      APP_ENV: preproduction
+      NEXT_PUBLIC_APP_ENV: preproduction
+      SUPABASE_ENVIRONMENT: preproduction
+      LOCAL_GENERATION_WORKER_ENABLED: "false"
+      LOCAL_VARIANT_WORKER_ENABLED: "false"
+    expose: ["3000"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=48m,mode=1777
+      - /app/apps/web/.next/cache:size=64m,uid=1000,gid=1000
+    pids_limit: 192
+    mem_limit: 400m
+    cpus: 1.25
+
+  worker:
+    build:
+      context: .
+      target: worker-runtime
+    restart: unless-stopped
+    env_file:
+      - path: .env.preproduction
+        required: false
+    environment:
+      APP_ENV: preproduction
+      SUPABASE_ENVIRONMENT: preproduction
+      GENERATION_CONCURRENCY: "1"
+      NODE_OPTIONS: "--max-old-space-size=192"
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/icongen-worker-heartbeat && test $$(($$(date +%s)-$$(date -r /tmp/icongen-worker-heartbeat +%s))) -lt 60"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    read_only: true
+    tmpfs:
+      - /tmp:size=96m,mode=1777
+    pids_limit: 160
+    mem_limit: 384m
+    cpus: 0.75
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile.basic:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    cap_add: ["NET_BIND_SERVICE"]
+    pids_limit: 96
+    mem_limit: 64m
+    cpus: 0.25
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -92,7 +92,7 @@ async function run() {
   if (!claimed.data) return;
   if (shouldInjectDetailEditFailure({
     editId,
-    nodeEnv: process.env.NODE_ENV,
+    appEnvironment: process.env.APP_ENV,
     enabled: process.env.E2E_INJECT_DETAIL_EDIT_FAILURE,
     targetEditId: process.env.E2E_DETAIL_EDIT_FAILURE_ID,
   })) throw new Error("Controlled non-production detail-edit failure");

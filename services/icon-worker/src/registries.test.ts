@@ -56,6 +56,8 @@ test("rejects an unregistered icon skill", () => {
 
 test("uses the mock provider without an API key", async () => {
   const provider = createImageProvider({
+    APP_ENV: "test",
+    SUPABASE_ENVIRONMENT: "test",
     IMAGE_PROVIDER: "mock",
     IMAGE_MODEL: "gpt-image-2",
     IMAGE_QUALITY: "medium",
@@ -65,6 +67,7 @@ test("uses the mock provider without an API key", async () => {
     SUPABASE_SERVICE_ROLE_KEY: "test-service-role",
     SUPABASE_ICON_BUCKET: "generated-icons",
     GENERATION_MAX_ATTEMPTS: 3,
+    GENERATION_CONCURRENCY: 1,
   });
   const image = await provider.generate({ mode: "generation", prompt: "test" });
   assert.equal(provider.name, "mock");
@@ -74,6 +77,8 @@ test("uses the mock provider without an API key", async () => {
 
 test("creates an OpenAI-compatible provider with a custom base URL", () => {
   const provider = createImageProvider({
+    APP_ENV: "test",
+    SUPABASE_ENVIRONMENT: "test",
     IMAGE_PROVIDER: "openai",
     IMAGE_MODEL: "gpt-image-2",
     IMAGE_QUALITY: "medium",
@@ -85,6 +90,7 @@ test("creates an OpenAI-compatible provider with a custom base URL", () => {
     SUPABASE_SERVICE_ROLE_KEY: "test-service-role",
     SUPABASE_ICON_BUCKET: "generated-icons",
     GENERATION_MAX_ATTEMPTS: 3,
+    GENERATION_CONCURRENCY: 1,
   });
 
   assert.equal(provider.name, "openai");

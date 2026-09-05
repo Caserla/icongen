@@ -17,6 +17,20 @@ let stopping = false;
 process.on("SIGTERM", () => { stopping = true; });
 process.on("SIGINT", () => { stopping = true; });
 
+async function updateHeartbeat() {
+  await writeFile(heartbeatPath, new Date().toISOString(), "utf8");
+}
+
+await updateHeartbeat();
+const heartbeatTimer = setInterval(() => {
+  void updateHeartbeat().catch((error) => {
+    logger.error("Worker heartbeat update failed", {
+      error: error instanceof Error ? error.message : "Unknown heartbeat error",
+    });
+  });
+}, 15_000);
+heartbeatTimer.unref();
+
 async function nextWork() {
   const result = await client.rpc("claim_next_worker_task", {
     p_worker_id: workerId,
@@ -41,7 +55,6 @@ async function runChild(script: "process-job" | "process-edit", id: string) {
 logger.info("Worker daemon started", { pollMs, workerId, leaseSeconds });
 while (!stopping) {
   try {
-    await writeFile(heartbeatPath, new Date().toISOString(), "utf8");
     const work = await nextWork();
     if (work) await runChild(work.script, work.id);
     else await new Promise((resolve) => setTimeout(resolve, pollMs));
@@ -50,4 +63,5 @@ while (!stopping) {
     await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
 }
+clearInterval(heartbeatTimer);
 logger.info("Worker daemon stopped");

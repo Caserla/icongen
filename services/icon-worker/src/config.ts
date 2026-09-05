@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateRuntimeEnvironment } from "@icongen/shared";
 
 const optionalUrl = z.preprocess(
   (value) => value === "" ? undefined : value,
@@ -6,6 +7,8 @@ const optionalUrl = z.preprocess(
 );
 
 const configSchema = z.object({
+  APP_ENV: z.enum(["development", "test", "preproduction", "production"]),
+  SUPABASE_ENVIRONMENT: z.enum(["development", "test", "preproduction", "production"]),
   IMAGE_PROVIDER: z.enum(["mock", "openai"]).default("mock"),
   IMAGE_MODEL: z.string().min(1).default("gpt-image-2"),
   IMAGE_QUALITY: z.enum(["low", "medium", "high", "auto"]).default("high"),
@@ -17,6 +20,7 @@ const configSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   SUPABASE_ICON_BUCKET: z.string().min(1).default("generated-icons"),
   GENERATION_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),
+  GENERATION_CONCURRENCY: z.coerce.number().int().min(1).max(3).default(3),
 }).superRefine((config, context) => {
   if (config.IMAGE_PROVIDER === "openai" && !config.IMAGE_PROVIDER_API_KEY) {
     context.addIssue({ code: "custom", path: ["IMAGE_PROVIDER_API_KEY"], message: "API key is required for OpenAI" });
@@ -26,5 +30,11 @@ const configSchema = z.object({
 export type WorkerConfig = z.infer<typeof configSchema>;
 
 export function loadConfig(): WorkerConfig {
-  return configSchema.parse(process.env);
+  const config = configSchema.parse(process.env);
+  validateRuntimeEnvironment({
+    appEnvironment: config.APP_ENV,
+    resourceEnvironment: config.SUPABASE_ENVIRONMENT,
+    imageProvider: config.IMAGE_PROVIDER,
+  });
+  return config;
 }

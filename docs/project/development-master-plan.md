@@ -93,10 +93,10 @@
 | P3-FE-002 | 前端 | 支付 | 支付结果页 | 确认中、成功、取消、失败、入账延迟和余额刷新 | 待完成 | 09-17～09-18 | — |
 | P3-BE-005 | 后端 | 数据导出 | 删除前个人数据 ZIP | profile.json；带业务订单号和价格快照的 orders.csv；credit-ledger.csv；从订单+账本计算 billing-summary.json；有效 PNG 与 manifest；异步；24 小时；所有权校验 | 待完成 | 09-19～09-21 | — |
 | P3-FE-004 | 前端 | 最小运营 | `/admin/operations` | 单页四区；无完整后台、数据看板、用户管理或设置编辑器 | 待完成 | 09-21～09-23 | — |
-| P3-INF-001 | 后端/基础设施 | 部署 | Web 与数据部署 | 按单台4 GB VPS操作手册执行东京Lightsail、静态IP、防火墙、Cloudflare DNS、Docker、Caddy、Next.js、Worker与Sub2API栈；业务数据保留Supabase | 待完成 | 09-22～09-24 | 方案和逐步手册已确认，待实施 |
-| P3-INF-002 | 后端/基础设施 | Worker | 后台执行部署 | 在测试 VPS 部署独立常驻 Worker；原子领取任务；全局并发 1；支持重启恢复、幂等重试、健康检查、告警与服务端密钥 | 待完成 | 09-22～09-24 | 方案已确认，当前生产执行器尚未实现 |
+| P3-INF-001 | 后端/基础设施 | 部署 | Web 与数据部署 | 新加坡Lightsail已完成1 GB预发布实例、静态IP、防火墙、2 GB Swap、Docker、Cloudflare DNS与Caddy HTTPS；已准备Web+Caddy+单并发Worker完整编排及noindex环境隔离；Sub2API不部署在本机，扩容至4 GB后再提高Worker并发 | 进行中 | 09-22～09-24 | 2026-09-05完成预发布入口基础设施及完整应用编排，不代表正式上线；详见新加坡Lightsail部署日志 |
+| P3-INF-002 | 后端/基础设施 | Worker | 后台执行部署 | 在预发布 VPS 部署常驻 Worker；原子领取任务；全局并发 1；支持重启恢复、幂等重试、持续健康心跳与服务端密钥 | 进行中 | 09-22～09-24 | 1 GB单并发编排及代码已完成，待预发布Supabase与Provider密钥就绪后部署验收 |
 | P3-INF-008 | 后端/基础设施 | 模型网关 | Sub2API 部署与接入 | 在4 GB测试VPS合并部署Sub2API + 专用PostgreSQL + Redis；配置私有容器网络、受保护管理入口、Bamboo专用限额Key、内部`IMAGE_PROVIDER_BASE_URL`、资源限制、备份和日志脱敏 | 待完成 | 09-22～09-24 | 已有本地部署资料待迁移、缩小参数并核验 |
-| P3-INF-004 | 后端/基础设施 | 域名 | 正式域名与认证回调 | 注册或确定正式域名；配置主域名、www、认证回调子域名；更新 Supabase Site URL 与 Redirect URLs | 待完成 | 09-22～09-24 | — |
+| P3-INF-004 | 后端/基础设施 | 域名 | 正式域名与认证回调 | 已注册`esdesign.men`并完成根域名、www、api到新加坡静态IP的DNS与HTTPS；当前仅作预发布入口，建议新增`staging.esdesign.men`；仍需配置独立预发布Supabase Site URL与Redirect URLs | 进行中 | 09-22～09-24 | 2026-09-05完成预发布域名、DNS与Caddy证书链路 |
 | P3-INF-005 | 后端/基础设施 | 邮件 | 接入生产 SMTP | 开通 Resend；验证发信域名；配置 SPF、DKIM、DMARC；在 Supabase 启用 Custom SMTP；保护和轮换 SMTP 密钥 | 待完成 | 09-22～09-24 | — |
 | P3-INF-006 | 后端/基础设施 | 邮件 | 认证邮件模板与监控 | 注册验证、重发、忘记和重置密码模板；英文优先和中文；退信/失败日志与告警 | 待完成 | 09-23～09-25 | — |
 | P3-INF-007 | 后端/基础设施 | 认证安全 | 注册防滥用 | 配置邮件频率限制、注册速率限制、CAPTCHA 和异常请求监控 | 待完成 | 09-23～09-25 | — |

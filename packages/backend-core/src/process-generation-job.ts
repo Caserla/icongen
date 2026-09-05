@@ -20,9 +20,10 @@ export type ProcessGenerationJobDependencies = {
   assetStore: AssetStore;
   promptCompiler: PromptCompiler;
   logger: AppLogger;
+  generationConcurrency?: number;
 };
 
-const GENERATION_CONCURRENCY = 3;
+const DEFAULT_GENERATION_CONCURRENCY = 3;
 
 function supportsSvg(job: GenerationJobRecord) {
   return (
@@ -97,7 +98,7 @@ export async function processGenerationJob(
   );
   await runWithConcurrency(
     pendingVariants,
-    GENERATION_CONCURRENCY,
+    dependencies.generationConcurrency ?? DEFAULT_GENERATION_CONCURRENCY,
     async ({ subject, variant }) => {
       try {
         await dependencies.repository.markVariantProcessing(variant.id);

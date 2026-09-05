@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const appEnvironment = process.env.NEXT_PUBLIC_APP_ENV ?? (isDevelopment ? "development" : undefined);
+const isIndexable = appEnvironment === "production";
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
@@ -25,6 +27,7 @@ const securityHeaders = [
   ...(isDevelopment
     ? []
     : [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]),
+  ...(isIndexable ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]),
 ];
 
 const nextConfig: NextConfig = {

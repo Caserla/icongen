@@ -1,10 +1,10 @@
 export function shouldInjectDetailEditFailure(input: {
   editId: string;
-  nodeEnv?: string;
+  appEnvironment?: string;
   enabled?: string;
   targetEditId?: string;
 }) {
-  return input.nodeEnv !== "production" &&
+  return (input.appEnvironment === "test" || input.appEnvironment === "preproduction") &&
     input.enabled === "1" &&
     input.targetEditId === input.editId;
 }

@@ -352,11 +352,10 @@ export function IconJobList({
   } = filters;
   const activeResult = liveResult;
   useEffect(() => {
-    if (!isLoading) {
-      setShowLoadingSkeleton(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setShowLoadingSkeleton(true), 220);
+    const timer = window.setTimeout(
+      () => setShowLoadingSkeleton(isLoading),
+      isLoading ? 220 : 0,
+    );
     return () => window.clearTimeout(timer);
   }, [isLoading]);
   const groups =

@@ -24,7 +24,7 @@ const finished = new Set(["completed", "partial", "failed"]);
 export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   const { locale } = useLocale();
   const router = useRouter();
-  const [job, setJob] = useState(initialJob);
+  const [job, setJob] = useState(() => hydrateCachedPreviews(initialJob));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
@@ -49,36 +49,6 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   const [settledPreviewUrls, setSettledPreviewUrls] = useState<Set<string>>(
     () => new Set(),
   );
-
-  useEffect(() => {
-    const cacheKey = `icongen:job-previews:${initialJob.id}`;
-    try {
-      const cached = JSON.parse(sessionStorage.getItem(cacheKey) ?? "[]") as unknown;
-      if (!Array.isArray(cached)) return;
-      const previewUrls = cached.filter(
-        (value): value is string => typeof value === "string" && value.length > 0,
-      );
-      if (!previewUrls.length) return;
-      let previewIndex = 0;
-      setJob((current) => ({
-        ...current,
-        subjects: current.subjects.map((subject) => ({
-          ...subject,
-          variants: subject.variants.map((variant) => {
-            if (
-              variant.previewUrl ||
-              variant.status !== "completed" ||
-              previewIndex >= previewUrls.length
-            )
-              return variant;
-            return { ...variant, previewUrl: previewUrls[previewIndex++] };
-          }),
-        })),
-      }));
-    } catch {
-      sessionStorage.removeItem(cacheKey);
-    }
-  }, [initialJob.id]);
 
   useEffect(() => {
     if (!previewing) return;
@@ -790,4 +760,33 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       ) : null}
     </div>
   );
+}
+
+function hydrateCachedPreviews(initialJob: GenerationJobV2): GenerationJobV2 {
+  if (typeof window === "undefined") return initialJob;
+  const cacheKey = `icongen:job-previews:${initialJob.id}`;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) ?? "[]") as unknown;
+    if (!Array.isArray(cached)) return initialJob;
+    const previewUrls = cached.filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    );
+    if (!previewUrls.length) return initialJob;
+    let previewIndex = 0;
+    return {
+      ...initialJob,
+      subjects: initialJob.subjects.map((subject) => ({
+        ...subject,
+        variants: subject.variants.map((variant) => {
+          if (variant.previewUrl || variant.status !== "completed" || previewIndex >= previewUrls.length) {
+            return variant;
+          }
+          return { ...variant, previewUrl: previewUrls[previewIndex++] };
+        }),
+      })),
+    };
+  } catch {
+    sessionStorage.removeItem(cacheKey);
+    return initialJob;
+  }
 }

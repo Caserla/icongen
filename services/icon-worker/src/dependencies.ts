@@ -30,5 +30,6 @@ export function createDependencies(
     imageQualityGate: new SharpImageQualityGate(),
     promptCompiler: createPromptCompiler(config.ICON_SKILL),
     logger,
+    generationConcurrency: config.GENERATION_CONCURRENCY,
   };
 }
