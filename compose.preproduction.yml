@@ -4,6 +4,7 @@ services:
       context: .
       target: web-runtime
       args:
+        APP_ENV: preproduction
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV}
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
@@ -14,6 +15,8 @@ services:
         required: false
     environment:
       APP_ENV: preproduction
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
       NEXT_PUBLIC_APP_ENV: preproduction
       SUPABASE_ENVIRONMENT: preproduction
       LOCAL_GENERATION_WORKER_ENABLED: "false"
@@ -38,6 +41,8 @@ services:
     build:
       context: .
       target: worker-runtime
+      args:
+        APP_ENV: preproduction
     restart: unless-stopped
     env_file:
       - path: .env.preproduction
@@ -60,6 +65,9 @@ services:
     pids_limit: 160
     mem_limit: 384m
     cpus: 0.75
+    networks:
+      - default
+      - sub2api
 
   caddy:
     image: caddy:2.10-alpine
@@ -80,7 +88,15 @@ services:
     pids_limit: 96
     mem_limit: 64m
     cpus: 0.25
+    networks:
+      - default
+      - sub2api
 
 volumes:
   caddy_data:
   caddy_config:
+
+networks:
+  sub2api:
+    external: true
+    name: sub2api_sub2api-network

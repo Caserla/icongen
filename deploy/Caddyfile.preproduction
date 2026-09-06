@@ -1,0 +1,16 @@
+esdesign.men, www.esdesign.men {
+  encode zstd gzip
+  header -Server
+  reverse_proxy web:3000
+}
+
+sub2api.esdesign.men {
+  encode zstd gzip
+  header -Server
+
+  reverse_proxy sub2api:8080 {
+    transport http {
+      response_header_timeout 900s
+    }
+  }
+}

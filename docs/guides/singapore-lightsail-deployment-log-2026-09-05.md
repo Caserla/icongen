@@ -1,6 +1,6 @@
 # 新加坡 Lightsail 首次部署操作日志（2026-09-05）
 
-本文记录 `esdesign.men` 在 AWS Lightsail 新加坡节点完成的首次真实云基础设施配置。它是实际操作日志，不替代[单台 4 GB VPS 合并部署操作手册](single-vps-deployment-runbook.md)。**该服务器和域名当前明确属于预发布环境，不代表产品已正式上线。** 当前实例只有 1 GB RAM，代码侧已准备 Web、单并发 Bamboo Worker 与 Caddy 的完整预发布编排；Sub2API 及其 PostgreSQL/Redis 不在这台机器部署。四环境契约与资源限制见[环境分层与测试索引](environment-and-testing.md)。
+本文记录 `esdesign.men` 在 AWS Lightsail 新加坡节点完成的首次真实云基础设施及应用部署。它是实际操作日志，不替代[单台 4 GB VPS 合并部署操作手册](single-vps-deployment-runbook.md)。**该服务器和域名当前明确属于预发布环境，不代表产品已正式上线。** 当前实例只有 1 GB RAM，已以单并发、严格内存上限方式合并运行 Bamboo Web、Worker、Caddy、Sub2API 及其 PostgreSQL/Redis。四环境契约与资源限制见[环境分层与测试索引](environment-and-testing.md)。
 
 ## 0. 环境级别与发布边界
 
@@ -47,7 +47,9 @@ Public launch: blocked
 | HTTPS 入口 | Caddy Docker 容器 | 已完成 |
 | 根域名 HTTPS | `https://esdesign.men` | 已验证；非正式发布 |
 | `www` HTTPS | `https://www.esdesign.men` | 已配置 |
-| API DNS | `api.esdesign.men` | 已解析，应用未部署 |
+| Sub2API HTTPS | `https://sub2api.esdesign.men` | 已部署并验证；仅供受控预发布使用 |
+| Bamboo Web / Worker | Docker Compose | 已部署，健康检查通过 |
+| 业务数据库 | 独立预发布 Supabase | 27 个迁移已应用，就绪检查通过 |
 
 ## 2. 规格选择与限制记录
 
@@ -60,7 +62,7 @@ Public launch: blocked
 - `GENERATION_CONCURRENCY=1` 的 Bamboo Worker；
 - 在持续监控下运行的轻量系统服务。
 
-当前实例仍不具备把 Sub2API、Sub2API PostgreSQL 和 Redis 一并运行的稳定内存余量。完整 Sub2API 合并部署仍以 4 GB 为最低测试基线；出现 OOM、持续 Swap、502、Worker 中断或 Web 延迟时必须升级或拆分服务。
+当前确实已把 Sub2API、Sub2API PostgreSQL 和 Redis 合并运行，但这只是低流量预发布的临时方案，并不改变 4 GB 的推荐基线。运行态实测容器总内存约 287 MiB，主机可用内存约 276 MiB，Swap 已使用约 261 MiB；现场构建 Next.js 时会大量换页并导致 SSH 短暂超时。后续发布应在 CI 构建 amd64 镜像，服务器只拉取并运行。出现持续 Swap 增长、502、Worker 中断、Web 延迟或 OOM 时必须立即升级或拆分服务。
 
 ## 3. Lightsail 实例创建
 
@@ -224,6 +226,7 @@ docker info --format '{{.LoggingDriver}}'
 | A | `@` | `52.77.80.116` | DNS only |
 | CNAME | `www` | `esdesign.men` | DNS only |
 | A | `api` | `52.77.80.116` | DNS only |
+| A | `sub2api` | `52.77.80.116` | DNS only |
 
 暂未添加 `AAAA`，暂未开启 Cloudflare 橙云代理。Mac 本地验收：
 
@@ -243,12 +246,23 @@ dig +short api.esdesign.men A
 sudo install -d -m 0750 -o ubuntu -g ubuntu /opt/bamboo-stack/caddy
 ```
 
-当前临时 `/opt/bamboo-stack/caddy/Caddyfile`：
+当前 `/opt/bamboo-stack/caddy/Caddyfile`：
 
 ```caddyfile
 esdesign.men, www.esdesign.men {
     encode zstd gzip
-    respond "ES Design deployment endpoint is ready." 200
+    header -Server
+    reverse_proxy web:3000
+}
+
+sub2api.esdesign.men {
+    encode zstd gzip
+    header -Server
+    reverse_proxy sub2api:8080 {
+        transport http {
+            response_header_timeout 900s
+        }
+    }
 }
 ```
 
@@ -273,27 +287,49 @@ docker run -d \
 - `https://esdesign.men`
 - `https://www.esdesign.men`
 
-2026-09-05 已在浏览器确认根域名可以通过 HTTPS 打开，临时响应正常，域名、静态 IP、80/443 防火墙和 Caddy 自动证书链路已打通。该结果只证明预发布基础设施入口可用，不表示业务应用已正式上线。
+2026-09-06 已将根域名从临时响应切换到 Bamboo Web，并确认根域名、健康接口、`robots.txt` 与 Sub2API 均通过 HTTPS 返回 200。Bamboo 响应包含 `X-Robots-Tag: noindex, nofollow, noarchive`。
 
 ## 11. 当前安全边界
 
 - Cloudflare 当前为 DNS only，因此源站静态 IP 可由公开 DNS 查询；Lightsail 与 UFW 必须持续作为入口保护。
 - 只有 Caddy 可以映射宿主机 `80/443`；未来 Next.js 只加入 Docker 私有网络，不公开 `3000`。
-- Sub2API、PostgreSQL、Redis 不得映射公网端口。
+- Sub2API 宿主机端口仅绑定 `127.0.0.1:8081`；其 PostgreSQL、Redis 只在 Docker 私网暴露，不映射公网端口。公开 Sub2API 域名仅由 Caddy 反代，长请求超时设置为 900 秒。
 - SSH 私钥、Supabase Service Role、模型 API Key 和 Sub2API 管理密钥不得写入 Git、聊天、截图或 `NEXT_PUBLIC_*` 环境变量。
-- 当前 Caddy 页面只是基础设施验收页，不代表 Bamboo Web、认证、生成、扣点或恢复链路已经上线。
+- Bamboo Web、Worker 和 Provider 基础链路已上线到预发布；认证、真实生成、扣点、失败返还和恢复仍须按回归清单继续验收，不能据此宣布生产上线。
 - 当前环境必须使用 `APP_ENV=preproduction`（或项目最终统一的等价变量），禁止伪装为 production 环境写入正式业务数据。
 
-## 12. 后续操作
+## 12. 2026-09-06 完整预发布部署操作记录
+
+1. 将本地 Sub2API PostgreSQL 数据与配置迁移到 `/opt/sub2api`，启动 `sub2api`、`sub2api-postgres`、`sub2api-redis`；本地容器停止后公网服务仍可独立运行。
+2. 创建外部 Docker 网络 `sub2api_sub2api-network`，让 Bamboo Worker 与 Caddy 加入该网络；Worker 使用 `http://sub2api:8080/v1`，不经公网回环。
+3. 在 Sub2API 创建 Bamboo 专用 API Key；服务器侧仅验证 `/v1/models` 返回 HTTP 200 和一个可用模型，不在日志中输出密钥。
+4. 配置独立预发布 Supabase，设置站点与回调 URL；生成并应用 27 个数据库迁移，验证 `generation_jobs`、`credit_ledger` 等核心表存在。
+5. 上传 Bamboo 源码到 `/opt/icongen`，使用 `.env.preproduction`（权限 `0600`）保存服务端配置。
+6. 首次并行构建因两个镜像重复进行 Next.js 编译且 SSH 会话超时而中止；随后改为后台顺序构建。构建时发现 `APP_ENV` 未传入导致 `/robots.txt` 预渲染失败，已在 Dockerfile 和 Compose build args 中明确传入 `preproduction`。
+7. 构建并启动 `icongen-web-1` 与 `icongen-worker-1`。Web 首次只绑定容器主机名，导致 localhost 健康检查失败；已通过 `HOSTNAME=0.0.0.0`、`PORT=3000` 修正。
+8. 将独立 Caddy 加入 `icongen_default` 与 `sub2api_sub2api-network`，校验 Caddyfile 后重启并切换根域名流量。
+9. 最终验收：Web liveness 200、携带私有 token 的 readiness 200 且数据库 reachable、Worker 健康、Worker 到 Sub2API `/models` 200、根域名与 Sub2API 公网 HTTPS 200。
+
+当前容器编排：
+
+| 服务 | 网络/端口 | 内存上限 | 状态 |
+| --- | --- | --- | --- |
+| `caddy` | 公网 `80/443`；加入 Bamboo 与 Sub2API 私网 | 96 MiB | 运行中 |
+| `icongen-web-1` | 仅私网 `3000` | 400 MiB | healthy |
+| `icongen-worker-1` | Bamboo + Sub2API 私网；并发 1 | 384 MiB | healthy |
+| `sub2api` | 私网 `8080`；宿主机仅 `127.0.0.1:8081` | 256 MiB | healthy |
+| `sub2api-postgres` | 仅 Sub2API 私网 `5432` | 224 MiB | healthy |
+| `sub2api-redis` | 仅 Sub2API 私网 `6379` | 64 MiB | healthy |
+
+## 13. 后续操作
 
 按顺序继续：
 
-1. 为 `web` 生成可重复构建的生产镜像，优先在 CI 构建，避免 1 GB 主机执行 Next.js 编译。
-2. 将临时 Caddy 响应替换为 `reverse_proxy web:3000`，Web 与 Caddy 通过私有 Docker 网络通信。
-3. 创建或核对 Supabase 新加坡生产项目，执行迁移、RLS 和私有 Storage 验收。
-4. 创建独立预发布 Supabase 项目；将预发布 Site URL 设置为实际验收域名，Redirect URL 设置为对应 `/auth/callback`，不得覆盖未来正式生产项目配置。
-5. 配置生产 SMTP、SPF、DKIM、DMARC。
-6. AWS 允许更大规格后升级到至少 4 GB，或为 Worker/Sub2API 建立独立节点。
-7. 部署常驻 Worker 与 Sub2API 前，完成健康检查、内存限制、私网、备份和失败恢复验收。
-8. 最后执行注册、登录、CD-Key、真实扣点、生成、免费重试、细节调整、失败返还和任务恢复的完整生产回归。
-9. 另行召开生产发布评审；只有发布阻断项清零并得到人工确认后，才将环境标识、访问策略和域名入口切换为 production。
+1. 建立 CI 构建与镜像仓库，避免 1 GB 主机现场执行 Next.js 编译，并加入可回滚的镜像版本标签。
+2. 为 Sub2API PostgreSQL 和配置建立定时加密备份与恢复演练。
+3. 配置监控告警：内存、Swap、磁盘、容器重启、健康检查、Provider 失败率和任务积压。
+4. 配置 SMTP、SPF、DKIM、DMARC，并完成正式域名邮件回调验收。
+5. AWS 允许更大规格后升级到至少 4 GB，或为 Worker/Sub2API 建立独立节点。
+6. 执行注册、登录、CD-Key、真实扣点、生成、免费重试、细节调整、失败返还和任务恢复的完整预发布回归。
+7. 增加 Cloudflare Access 或等价访问控制，并确认公开注册保持关闭。
+8. 另行召开生产发布评审；只有发布阻断项清零并得到人工确认后，才将环境标识、访问策略和域名入口切换为 production。

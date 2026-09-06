@@ -48,7 +48,25 @@
 - [x] 为创建页、我的图标页和生成结果页提供独立加载骨架。
 - [x] 在结果页实现方案细节调整页面、不可变版本记录、局部刷新、逐级还原、透明边界硬校验和有效修改检测。
 
-## 推荐下一步
+## 新加坡预发布环境（2026-09-06）
+
+- [x] 注册并解析 `esdesign.men`、`www.esdesign.men` 与 `sub2api.esdesign.men` 到新加坡 Lightsail 静态 IPv4。
+- [x] 配置 Lightsail/UFW 防火墙、2 GiB Swap、Fail2ban、Docker 与 Caddy HTTPS。
+- [x] 创建独立预发布 Supabase 项目，配置 `https://esdesign.men` Site URL 与 `/auth/callback` Redirect URL。
+- [x] 向预发布 Supabase 应用 27 个迁移，并验证核心任务、点数账本和数据库 readiness。
+- [x] 将本地 Sub2API 数据与配置迁移到服务器；本地容器关闭后，服务器服务可独立运行。
+- [x] 部署 Bamboo Web、单并发 Worker、Sub2API、Sub2API PostgreSQL、Redis 与 Caddy。
+- [x] 建立 Bamboo 与 Sub2API 私有 Docker 网络；Worker 使用 `http://sub2api:8080/v1`，数据库与 Redis 不暴露公网。
+- [x] 验证 Web liveness/readiness、Worker heartbeat、Worker → Sub2API 模型接口、根域名和 Sub2API HTTPS。
+- [x] 保持 `APP_ENV=preproduction`、关闭公开注册，并为页面设置 `noindex/noarchive`。
+- [ ] `[P0｜预发布验收]` 完成真实交互图标和插画图标生成，核对三方案、资产、点数扣除、失败返还与列表/详情展示。
+- [ ] `[P0｜预发布验收]` 完成免费重新生成、三次免费细节调整、付费调整、采用/还原与失败幂等返还的真实页面闭环。
+- [ ] `[P0｜预发布验收]` 执行 Worker 强杀、Provider 5xx、任务超时和断网恢复演练，记录任务 ID、账本与页面恢复证据。
+- [ ] `[P0｜运维]` 建立 Sub2API PostgreSQL 和配置的定时加密备份，并至少完成一次恢复演练。
+- [ ] `[P0｜运维]` 建立 CPU、内存、Swap、磁盘、容器重启、队列积压、Provider 失败率、证书和备份告警。
+- [ ] `[P1｜发布工程]` 建立 CI 的 `linux/amd64` 镜像构建、测试、镜像仓库、版本标签、服务器拉取和一键回滚，停止在 1 GB 主机现场编译 Next.js。
+- [ ] `[P1｜访问控制]` 在 Cloudflare Access 或等价网关中限制预发布访问；`robots.txt`/`noindex` 不能替代身份访问控制。
+- [ ] `[容量]` 将主机升级到至少 4 GB，或拆分 Worker/Sub2API；在此之前保持生成并发 1，禁止压力测试。
 
 ## 生产上线外部依赖与人工闭环
 
@@ -57,11 +75,11 @@
 - [ ] `[人工｜上线阻断]` 确定正式域名，并配置生产站点地址、Supabase Site URL 和完整 Redirect URL 白名单。
 - [ ] `[人工｜上线阻断]` 开通生产 SMTP 服务账号，取得 DNS 配置权限并完成 SPF、DKIM、DMARC 配置与投递验证。
 - [ ] `[人工｜发布前验收]` 准备一台真实 iPhone/Safari 和 Android 设备；无法提供真机时，开通 BrowserStack 或 Sauce Labs 账号完成兼容性验收。
-- [ ] `[人工｜上线阻断]` 建立与生产数据库、存储和密钥完全隔离的 staging 环境，用于强杀 Worker、阻断网络和注入 Provider 5xx；禁止在生产数据库执行故障注入。
+- [x] 已建立与未来生产数据库、存储和密钥隔离的预发布环境；故障注入演练仍按上方 P0 项执行，禁止在未来生产数据库运行。
 - [ ] `[产品与运营｜上线阻断]` 确定内容安全规则，包括禁止内容范围、拦截后的用户提示、申诉机制和管理员复核规则。
 - [ ] `[产品与财务｜上线阻断]` 选择内容审核服务并确认预算，包括文本审核（可评估 OpenAI Moderation）及独立图像审核服务。
 
-完成顺序建议：先确定内容安全规则与审核预算，再建设 staging 和审核链路；域名、SMTP、DNS 与真实设备验收在发布前完成。
+完成顺序建议：先完成预发布真实生成与失败恢复验收，同时确定内容安全规则与审核预算；随后完成 CI 发布、备份监控、SMTP/DNS、访问控制与真实设备验收。
 
 
 ## 支付渠道接入（后续待办，当前暂停）
@@ -86,8 +104,8 @@
 
 当前决策：第 1 期仅使用 Supabase 团队邮箱完成真实邮件注册闭环；以下事项统一安排到第 3 期上线准备。
 
-- [ ] 注册或确定 Bamboo IconGen 正式域名，并保留 DNS 管理权限
-- [ ] 配置网站主域名、`www` 和认证回调子域名，更新 Supabase Site URL 与 Redirect URLs
+- [x] 已注册 `esdesign.men` 并保留 DNS 管理权限；当前仅作为预发布域名，未来生产域名决策仍需单独评审
+- [x] 已为预发布配置主域名、`www`、Supabase Site URL 与 `/auth/callback` Redirect URL
 - [ ] 选定生产邮件服务商并开通账号，默认按 Resend + Supabase Custom SMTP 方案执行
 - [ ] 完成发信域名验证和 SPF、DKIM、DMARC DNS 记录配置
 - [ ] 在 Supabase 配置 Custom SMTP；密钥只保存于服务端和密码管理器，不提交 Git
