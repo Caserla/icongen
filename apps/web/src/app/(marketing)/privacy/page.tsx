@@ -3,7 +3,7 @@ import { PolicyPage, type PolicySection } from "@/components/legal/policy-page";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How ICON GEN by EASY DESIGN collects, uses, stores, and protects personal information.",
+  description: "How EASY ICON collects, uses, stores, and protects personal information.",
 };
 
 const sections: PolicySection[] = [
@@ -11,10 +11,10 @@ const sections: PolicySection[] = [
     title: { en: "About this policy", zh: "关于本政策" },
     paragraphs: {
       en: [
-        "This Privacy Policy applies to ICON GEN, an online icon creation service operated under the EASY DESIGN brand. It covers our website, account features, creation tools, and related support. For privacy questions or requests, contact 04102198q@gmail.com.",
+        "This Privacy Policy applies to EASY ICON, an online icon creation service operated under the EASY ICON brand. It covers our website, account features, creation tools, and related support. For privacy questions or requests, contact 04102198q@gmail.com.",
       ],
       zh: [
-        "本隐私政策适用于 EASY DESIGN 品牌运营的在线图标创作服务 ICON GEN，包括网站、账户功能、创作工具及相关支持。如有隐私问题或需要行使权利，请联系 04102198q@gmail.com。",
+        "本隐私政策适用于 EASY ICON 品牌运营的在线图标创作服务 EASY ICON，包括网站、账户功能、创作工具及相关支持。如有隐私问题或需要行使权利，请联系 04102198q@gmail.com。",
       ],
     },
   },
@@ -73,11 +73,11 @@ const sections: PolicySection[] = [
     title: { en: "Service providers and international transfers", zh: "服务商与跨境处理" },
     paragraphs: {
       en: [
-        "We use service providers to operate ICON GEN, including Supabase for authentication, databases, and private object storage; AWS infrastructure in Singapore; configured image-generation providers; Google for optional sign-in; and payment providers when you make a purchase. They process information only as needed to provide their services and under their own terms and safeguards.",
+        "We use service providers to operate EASY ICON, including Supabase for authentication, databases, and private object storage; AWS infrastructure in Singapore; configured image-generation providers; Google for optional sign-in; and payment providers when you make a purchase. They process information only as needed to provide their services and under their own terms and safeguards.",
         "Information may be processed outside your country or region. Where required, we use contractual, organizational, or other lawful safeguards for international transfers. We do not use Google user data for advertising and request only the scopes needed for sign-in.",
       ],
       zh: [
-        "我们使用第三方服务运行 ICON GEN，包括用于认证、数据库和私有对象存储的 Supabase，位于新加坡的 AWS 基础设施，已配置的图像生成服务商，用于可选登录的 Google，以及你购买服务时使用的支付服务商。它们仅在提供相应服务所需范围内，依据各自条款和保障措施处理信息。",
+        "我们使用第三方服务运行 EASY ICON，包括用于认证、数据库和私有对象存储的 Supabase，位于新加坡的 AWS 基础设施，已配置的图像生成服务商，用于可选登录的 Google，以及你购买服务时使用的支付服务商。它们仅在提供相应服务所需范围内，依据各自条款和保障措施处理信息。",
         "信息可能在你所在国家或地区之外处理。适用法律要求时，我们会采用合同、组织或其他合法保障措施。我们不会将 Google 用户数据用于广告，并且只申请登录所需的权限范围。",
       ],
     },
@@ -122,19 +122,19 @@ const sections: PolicySection[] = [
     paragraphs: {
       en: [
         "Depending on where you live, you may have rights to know, access, correct, delete, restrict or object to processing, receive a portable copy, withdraw consent, or complain to a data-protection authority. We do not sell personal information or share it for cross-context behavioural advertising.",
-        "Send requests to 04102198q@gmail.com. We may verify your identity before acting and may retain information where permitted or required by law. Revoking Google access stops future access from that account but does not automatically delete information already processed by ICON GEN; you may separately request deletion.",
+        "Send requests to 04102198q@gmail.com. We may verify your identity before acting and may retain information where permitted or required by law. Revoking Google access stops future access from that account but does not automatically delete information already processed by EASY ICON; you may separately request deletion.",
       ],
       zh: [
         "根据你的所在地，你可能享有知情、访问、更正、删除、限制或反对处理、获取可携带副本、撤回同意，或向数据保护机构投诉的权利。我们不出售个人信息，也不为跨场景行为广告共享个人信息。",
-        "请将请求发送至 04102198q@gmail.com。处理前我们可能验证你的身份，并可在法律允许或要求的范围内保留必要信息。撤销 Google 授权会阻止未来访问，但不会自动删除 ICON GEN 已处理的信息；你可以另行提出删除请求。",
+        "请将请求发送至 04102198q@gmail.com。处理前我们可能验证你的身份，并可在法律允许或要求的范围内保留必要信息。撤销 Google 授权会阻止未来访问，但不会自动删除 EASY ICON 已处理的信息；你可以另行提出删除请求。",
       ],
     },
   },
   {
     title: { en: "Children", zh: "未成年人" },
     paragraphs: {
-      en: ["ICON GEN is not directed to children under 16. If you believe a child has provided personal information without valid permission, contact us so we can review and take appropriate action."],
-      zh: ["ICON GEN 并非面向 16 岁以下未成年人。如果你认为未成年人在未获有效许可的情况下提交了个人信息，请联系我们，以便核查并采取适当措施。"],
+      en: ["EASY ICON is not directed to children under 16. If you believe a child has provided personal information without valid permission, contact us so we can review and take appropriate action."],
+      zh: ["EASY ICON 并非面向 16 岁以下未成年人。如果你认为未成年人在未获有效许可的情况下提交了个人信息，请联系我们，以便核查并采取适当措施。"],
     },
   },
   {
@@ -149,11 +149,11 @@ const sections: PolicySection[] = [
 export default function PrivacyPage() {
   return (
     <PolicyPage
-      eyebrow="EASY DESIGN / ICON GEN"
+      eyebrow="EASY ICON"
       title={{ en: "Privacy Policy", zh: "隐私政策" }}
       summary={{
-        en: "This policy explains what personal information ICON GEN handles, why we use it, where it may be processed, and the choices available to you.",
-        zh: "本政策说明 ICON GEN 会处理哪些个人信息、使用目的、可能的处理地点，以及你可以作出的选择。",
+        en: "This policy explains what personal information EASY ICON handles, why we use it, where it may be processed, and the choices available to you.",
+        zh: "本政策说明 EASY ICON 会处理哪些个人信息、使用目的、可能的处理地点，以及你可以作出的选择。",
       }}
       version={{ en: "Version: effective", zh: "版本：正式生效" }}
       lastUpdated={{

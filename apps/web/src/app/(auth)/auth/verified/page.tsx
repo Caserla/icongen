@@ -16,7 +16,7 @@ export default async function VerifiedPage({
     "/create",
   );
   return (
-    <AuthShell eyebrow="EASY DESIGN" title="">
+    <AuthShell eyebrow="EASY ICON" title="">
       <VerifiedRedirect next={next} />
     </AuthShell>
   );

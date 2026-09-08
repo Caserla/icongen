@@ -33,7 +33,7 @@ export function HomeIntro({ locale }: { locale: "en" | "zh" }) {
     >
       <div className="butter-intro__grid" aria-hidden="true" />
       <div className="butter-intro__copy">
-        <span>EASY DESIGN / ICON GEN</span>
+        <span>EASY ICON</span>
         <strong>
           {locale === "zh" ? "让图标成套发生" : "Icons, built as a set"}
         </strong>

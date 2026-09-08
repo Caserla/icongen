@@ -6,8 +6,8 @@ import { LocaleProvider } from "@/components/i18n/locale-provider";
 
 export const metadata: Metadata = {
   title: {
-    default: "ICON GEN by EASY DESIGN — AI UI Icon Generator",
-    template: "%s · ICON GEN by EASY DESIGN",
+    default: "EASY ICON — AI UI Icon Generator",
+    template: "%s · EASY ICON",
   },
   description:
     "Create consistent UI icon PNGs, with three options for every icon.",

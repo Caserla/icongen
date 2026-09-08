@@ -1,6 +1,6 @@
-# EASY DESIGN / ICON GEN Web
+# EASY ICON Web
 
-Next.js App Router frontend and BFF for the EASY DESIGN / ICON GEN MVP.
+Next.js App Router frontend and BFF for the EASY ICON MVP.
 
 ## Routes
 

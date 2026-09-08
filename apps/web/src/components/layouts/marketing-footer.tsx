@@ -10,7 +10,7 @@ export function MarketingFooter() {
   return (
     <footer className="border-t border-[#292929] bg-[#0a0909] px-5 py-6 text-sm text-[#8f8f8f]">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-        <span>EASY DESIGN / ICON GEN</span>
+        <span>EASY ICON</span>
         <nav className="flex gap-5" aria-label={zh ? "政策页面" : "Policies"}>
           <Link className="hover:text-[#f5f5f5]" href="/privacy">
             {zh ? "隐私协议" : "Privacy"}

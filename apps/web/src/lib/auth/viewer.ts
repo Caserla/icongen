@@ -36,5 +36,5 @@ export async function getOptionalViewer(): Promise<Viewer | null> {
 }
 
 export function emailAccountName(email: string) {
-  return email.split("@")[0] || "ICON GEN user";
+  return email.split("@")[0] || "EASY ICON user";
 }

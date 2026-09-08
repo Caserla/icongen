@@ -73,3 +73,4 @@
 # 最新累计交接
 
 - [2026-09-09 工作区汇总与验收交接](project/update-2026-09-09.md)
+- [EASY ICON 品牌统一（2026-09-09）](project/brand-update-2026-09-09.md)

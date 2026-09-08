@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "EASY DESIGN / ICON GEN",
-  brandName: "EASY DESIGN",
-  productName: "ICON GEN",
+  name: "EASY ICON",
+  brandName: "EASY ICON",
+  productName: "EASY ICON",
   description:
     "Create consistent UI icon sets with three options for every icon.",
   navigation: [

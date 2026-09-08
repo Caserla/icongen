@@ -94,6 +94,12 @@ body {
 .theme-switch:active { transform: scale(.96); }
 .theme-switch__icon,.theme-switch svg { display:block; width:19px; height:19px; }
 .theme-switch svg { fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.theme-switch__icon { animation: theme-icon-enter 380ms cubic-bezier(.22,.8,.25,1) both; }
+@keyframes theme-icon-enter {
+  from { opacity:0; transform:rotate(-70deg) scale(.65); }
+  to { opacity:1; transform:rotate(0) scale(1); }
+}
+@media(prefers-reduced-motion:reduce) { .theme-switch__icon { animation:none; } }
 
 /* Warm neutral light theme for authenticated workspaces and utility pages. */
 button,

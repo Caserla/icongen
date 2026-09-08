@@ -35,7 +35,7 @@ const words: Record<string, Record<Locale, string>> = {
   password: { en: "Password", zh: "密码" },
   forgot: { en: "Forgot password?", zh: "忘记密码？" },
   continue: { en: "Sign in", zh: "登录" },
-  newHere: { en: "New to ICON GEN?", zh: "第一次使用 ICON GEN？" },
+  newHere: { en: "New to EASY ICON?", zh: "第一次使用 EASY ICON？" },
   createAccount: { en: "Create your account", zh: "创建账户" },
   authUnavailable: {
     en: "Sign-in is temporarily unavailable. Please try again later.",
@@ -116,8 +116,8 @@ const words: Record<string, Record<Locale, string>> = {
   },
   startCreating: { en: "Start creating", zh: "开始创作" },
   createYourAccount: {
-    en: "Create your ICON GEN account",
-    zh: "创建 ICON GEN 账户",
+    en: "Create your EASY ICON account",
+    zh: "创建 EASY ICON 账户",
   },
   confirmPassword: { en: "Confirm password", zh: "确认密码" },
   passwordHint: {

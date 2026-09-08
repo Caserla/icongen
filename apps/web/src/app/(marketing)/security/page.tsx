@@ -3,7 +3,7 @@ import { PolicyPage, type PolicySection } from "@/components/legal/policy-page";
 
 export const metadata: Metadata = {
   title: "Security Policy",
-  description: "Security practices for ICON GEN by EASY DESIGN.",
+  description: "Security practices for EASY ICON.",
 };
 
 const sections: PolicySection[] = [
@@ -11,10 +11,10 @@ const sections: PolicySection[] = [
     title: { en: "Our approach", zh: "我们的安全原则" },
     paragraphs: {
       en: [
-        "EASY DESIGN designs ICON GEN around least privilege, data minimisation, isolated services, and recoverable operations. This page describes current pre-release controls; it does not claim a certification, independent audit, or guarantee that incidents can never occur.",
+        "EASY ICON designs EASY ICON around least privilege, data minimisation, isolated services, and recoverable operations. This page describes current pre-release controls; it does not claim a certification, independent audit, or guarantee that incidents can never occur.",
       ],
       zh: [
-        "EASY DESIGN 以最小权限、数据最小化、服务隔离和可恢复操作为原则建设 ICON GEN。本页面描述当前预发布环境的实际控制措施，不代表已取得安全认证或独立审计，也不承诺安全事件绝不会发生。",
+        "EASY ICON 以最小权限、数据最小化、服务隔离和可恢复操作为原则建设 EASY ICON。本页面描述当前预发布环境的实际控制措施，不代表已取得安全认证或独立审计，也不承诺安全事件绝不会发生。",
       ],
     },
   },
@@ -22,13 +22,13 @@ const sections: PolicySection[] = [
     title: { en: "Account and access security", zh: "账户与访问安全" },
     items: {
       en: [
-        "Authentication is handled through Supabase Auth; passwords are not stored in ICON GEN application tables.",
+        "Authentication is handled through Supabase Auth; passwords are not stored in EASY ICON application tables.",
         "Protected pages and APIs verify the signed-in user on the server. Administrative routes require a separate administrator role and sensitive actions are audited.",
         "Database ownership checks and row-level access rules restrict users to their own jobs, assets, revisions, and credit records.",
         "Production administrator multi-factor authentication and operating procedures remain required before public launch.",
       ],
       zh: [
-        "认证由 Supabase Auth 处理；密码不会存储在 ICON GEN 应用业务表中。",
+        "认证由 Supabase Auth 处理；密码不会存储在 EASY ICON 应用业务表中。",
         "受保护页面和 API 会在服务端验证登录用户；管理路由另行校验管理员角色，并记录敏感操作审计。",
         "数据库所有权检查与行级访问规则将用户限制在其自己的任务、资产、修订版本和点数记录范围内。",
         "正式上线前仍须为生产管理员启用多因素认证，并确认运营操作制度。",
@@ -122,11 +122,11 @@ const sections: PolicySection[] = [
 export default function SecurityPage() {
   return (
     <PolicyPage
-      eyebrow="EASY DESIGN / ICON GEN"
+      eyebrow="EASY ICON"
       title={{ en: "Security Policy", zh: "安全政策" }}
       summary={{
-        en: "This page explains the controls currently used to protect ICON GEN accounts, generated assets, infrastructure, and operations.",
-        zh: "本页面说明 ICON GEN 当前用于保护账户、生成资产、基础设施与运营流程的安全措施。",
+        en: "This page explains the controls currently used to protect EASY ICON accounts, generated assets, infrastructure, and operations.",
+        zh: "本页面说明 EASY ICON 当前用于保护账户、生成资产、基础设施与运营流程的安全措施。",
       }}
       sections={sections}
     />
