@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 
 export function StudioDrawer({
   title,
@@ -21,25 +28,34 @@ export function StudioDrawer({
   const requestClose = useCallback(() => {
     if (closing) return;
     setClosing(true);
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     closeTimerRef.current = window.setTimeout(onClose, reduceMotion ? 0 : 300);
   }, [closing, onClose]);
 
   useEffect(() => {
     function closeOnOutsidePointer(event: PointerEvent) {
       const target = event.target;
-      if (!(target instanceof Node) || panelRef.current?.contains(target)) return;
-      if (target instanceof Element && target.closest(".studio-color-popover")) return;
+      if (!(target instanceof Node) || panelRef.current?.contains(target))
+        return;
+      if (target instanceof Element && target.closest(".studio-color-popover"))
+        return;
       requestClose();
     }
 
     document.addEventListener("pointerdown", closeOnOutsidePointer);
-    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    return () =>
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [requestClose]);
 
-  useEffect(() => () => {
-    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current !== null)
+        window.clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
 
   function closeFromBackdrop(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) requestClose();
@@ -54,10 +70,19 @@ export function StudioDrawer({
       onMouseDown={closeFromBackdrop}
     >
       <div className="icon-background-dialog__drawer-clip">
-        <div ref={panelRef} className={`icon-background-dialog__panel${closing ? " is-closing" : ""}`}>
+        <div
+          ref={panelRef}
+          className={`icon-background-dialog__panel${closing ? " is-closing" : ""}`}
+        >
           <div className="icon-background-dialog__header">
             <h3>{title}</h3>
-            <button type="button" onClick={requestClose} aria-label={closeLabel}>×</button>
+            <button
+              type="button"
+              onClick={requestClose}
+              aria-label={closeLabel}
+            >
+              ×
+            </button>
           </div>
           {children}
         </div>

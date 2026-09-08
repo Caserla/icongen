@@ -47,7 +47,7 @@ export async function openAuthenticatedBrowser({
     ...cookie,
     url: baseUrl,
     httpOnly: false,
-    secure: false,
+    secure: new URL(baseUrl).protocol === "https:",
     sameSite: "Lax",
   })));
   const page = await context.newPage();

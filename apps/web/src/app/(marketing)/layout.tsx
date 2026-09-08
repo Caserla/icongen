@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
+import { MarketingFooter } from "@/components/layouts/marketing-footer";
 import { MarketingHeader } from "@/components/layouts/marketing-header";
-import { getOptionalViewer } from "@/lib/auth/viewer";
 
-export default async function MarketingLayout({ children }: { children: ReactNode }) {
-  const viewer = await getOptionalViewer();
+export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
-      <MarketingHeader viewer={viewer} />
+      <MarketingHeader viewer={null} />
       {children}
+      <MarketingFooter />
     </div>
   );
 }

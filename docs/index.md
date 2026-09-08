@@ -1,11 +1,12 @@
 # 项目知识库
 
-本目录是 Bamboo IconGen 的需求、技术方案和项目决策唯一入口。需求或技术方向变化时，先更新相应文档，再进入实现。
+本目录是 EASY DESIGN / ICON GEN 的需求、技术方案和项目决策唯一入口。需求或技术方向变化时，先更新相应文档，再进入实现。
 
 当前开发前必须先阅读[当前实现基线](project/current-implementation-baseline.md)。历史审计或原始 Word 文档与其冲突时，以共享 Schema、数据库迁移和当前实现基线为准。
 
 ## 产品
 
+- [图标素材库与辅助网格预览实现方案](product/icon-library-implementation-plan.md)
 - [产品概览](product/overview.md)
 - [PRD 2.0：完整产品需求](product/product-requirements.md)
 - [六个业务模块](product/business-modules.md)
@@ -69,3 +70,6 @@
 - 技术选型变化时同步更新架构概览并新增决策记录。
 - 文档中暂未确认的内容必须明确标记为“待确认”，不可作为最终需求开发。
 - 当前页面和交互口径以 PRD 2.0、前端页面规划、需求一致性审计及原子级开发计划为准；`docs/reference` 只保存立项初稿。
+# 最新累计交接
+
+- [2026-09-09 工作区汇总与验收交接](project/update-2026-09-09.md)

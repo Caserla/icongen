@@ -3,7 +3,11 @@ import { JobDetailsLoader } from "@/features/generation/components/job-details-l
 
 export const metadata: Metadata = { title: "Icon details" };
 
-export default async function IconJobPage({ params }: { params: Promise<{ jobId: string }> }) {
+export default async function IconJobPage({
+  params,
+}: {
+  params: Promise<{ jobId: string }>;
+}) {
   const { jobId } = await params;
   return <JobDetailsLoader jobId={jobId} />;
 }

@@ -104,7 +104,7 @@ export async function readGenerationJob(
     client
       .from("generation_jobs")
       .select(
-        "id,status,settings_version,skill_version,progress_percent,progress_phase,created_at,updated_at,completed_at",
+        "id,status,settings_version,skill_version,generation_spec,progress_percent,progress_phase,created_at,updated_at,completed_at",
       )
       .eq("id", jobId)
       .eq("user_id", userId)
@@ -253,7 +253,9 @@ export async function readGenerationJob(
     previewUrl:
       signedUrlByPath.get(`${asset.storage_bucket}:${asset.storage_path}`) ??
       (asset.format === "png"
-        ? appPreviewUrl(`/api/generation/variant-revisions/${asset.revision_id}/assets/${asset.id}/preview`)
+        ? appPreviewUrl(
+            `/api/generation/variant-revisions/${asset.revision_id}/assets/${asset.id}/preview`,
+          )
         : undefined),
   }));
   const assetRows = (assets ?? []).map((asset) => ({
@@ -279,6 +281,13 @@ export async function readGenerationJob(
 
   return generationJobResponseSchema.parse({
     id: job.id,
+    purpose:
+      job.generation_spec &&
+      typeof job.generation_spec === "object" &&
+      "purpose" in job.generation_spec &&
+      job.generation_spec.purpose === "app-icon"
+        ? "app-icon"
+        : "interaction",
     supportsVariantEditing,
     status: job.status,
     settingsVersion: job.settings_version,

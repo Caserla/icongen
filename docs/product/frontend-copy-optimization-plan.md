@@ -1,4 +1,4 @@
-# Bamboo IconGen 前端文案优化方案
+# EASY DESIGN / ICON GEN 前端文案优化方案
 
 > 历史优化记录：本文用于追溯文案调整过程，不是当前页面文案的唯一来源。当前产品命名以“App 交互图标 / App 插画图标”和实际前端代码为准。
 
@@ -9,7 +9,7 @@
 
 ## 1. 项目与文案任务理解
 
-Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮助用户按统一规格生成 UI 图标 PNG。当前核心流程包括：
+EASY DESIGN / ICON GEN 面向独立开发者、产品经理和小型产品团队，帮助用户按统一规格生成 UI 图标 PNG。当前核心流程包括：
 
 1. 选择图标用途：App 交互图标或 App 图标。
 2. 添加一个或多个图标主体。
@@ -125,10 +125,10 @@ Bamboo IconGen 面向独立开发者、产品经理和小型产品团队，帮�
 | --- | --- | --- | --- |
 | 登录标题 | Welcome back / 欢迎回来 | Welcome back / 欢迎回来 | 保留，简洁自然 |
 | 登录说明 | Sign in to create. / 登录后开始创作。或 Sign in and start creating your icons. / 登录并开始生成图标。 | Sign in to create and manage your icon sets. / 登录后创建和管理你的图标。 | 合并重复版本，并覆盖历史任务价值 |
-| 登录按钮 | Continue to Bamboo IconGen / 继续进入 Bamboo IconGen | Sign in / 登录 | 按钮只描述当前动作 |
+| 登录按钮 | Continue to EASY DESIGN / ICON GEN / 继续进入 EASY DESIGN / ICON GEN | Sign in / 登录 | 按钮只描述当前动作 |
 | 注册标题 | Create an account / 创建账户 | Create your account / 创建账户 | 英文更自然，中文保留 |
 | 注册说明 | 当前多处存在“start creating”式重复 | Save your icon sets, track progress, and return to past generations. / 保存图标、查看进度，并随时回看历史生成记录。 | 说明注册的实际收益 |
-| 邮箱验证完成 | Your secure sign-in session is ready. We are taking you to your Bamboo IconGen workspace now. / 安全登录会话已准备完成…… | Your email is verified. You can now open your workspace. / 邮箱验证完成，现在可以进入工作空间。 | 删除内部“session”概念和不必要的“secure” |
+| 邮箱验证完成 | Your secure sign-in session is ready. We are taking you to your EASY DESIGN / ICON GEN workspace now. / 安全登录会话已准备完成…… | Your email is verified. You can now open your workspace. / 邮箱验证完成，现在可以进入工作空间。 | 删除内部“session”概念和不必要的“secure” |
 | 验证 CTA | Enter workspace / 进入工作空间 | Open workspace / 打开工作空间 | 更自然，保持结果导向 |
 | 忘记密码成功 | If an account exists, a password reset email has been sent. / 若账户存在…… | If an account matches that email, we sent password reset instructions. / 如果该邮箱对应一个账户，我们已发送密码重置说明。 | 保留防枚举安全语义，同时更清楚 |
 | 重置链接无效 | Open a valid password reset link first. / 请先打开有效的密码重置链接。 | This reset link is invalid or has expired. Request a new link to continue. / 此重置链接无效或已过期，请重新获取链接。 | 给出恢复动作 |

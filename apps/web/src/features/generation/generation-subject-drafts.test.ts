@@ -4,7 +4,18 @@ import {
   generationSubjectDraftReducer,
   initialGenerationSubjectDrafts,
 } from "./generation-subject-drafts";
-import { createGenerationJobSchema, DESIGN_SETTINGS_VERSION } from "@icongen/shared";
+import {
+  createGenerationJobSchema,
+  DESIGN_SETTINGS_VERSION,
+} from "@icongen/shared";
+
+test("interaction subjects default to transparent backgrounds", () => {
+  assert.equal(initialGenerationSubjectDrafts[0].backgroundMode, "transparent");
+  const state = generationSubjectDraftReducer(initialGenerationSubjectDrafts, { type: "add", maxSubjects: 20 });
+  assert.equal(state[1].backgroundMode, "transparent");
+  const appState = generationSubjectDraftReducer(state, { type: "add", maxSubjects: 20, backgroundMode: "solid" });
+  assert.equal(appState[2].backgroundMode, "solid");
+});
 
 test("keeps each subject description and background settings together", () => {
   let state = generationSubjectDraftReducer(initialGenerationSubjectDrafts, {
@@ -113,8 +124,5 @@ test("interaction jobs accept a different background override for every subject"
   assert.deepEqual(result.data.subjects[0]?.backgroundOverride, {
     enabled: false,
   });
-  assert.equal(
-    result.data.subjects[1]?.backgroundOverride?.enabled,
-    true,
-  );
+  assert.equal(result.data.subjects[1]?.backgroundOverride?.enabled, true);
 });

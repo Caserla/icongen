@@ -18,7 +18,7 @@ export default async function AdminLayout({
   return (
     <main className="admin-studio min-h-screen bg-background">
       <AdminHeader />
-      <div className="mx-auto max-w-[1500px] px-5 py-8">{children}</div>
+      <div className="mx-auto max-w-[1500px] px-5 pb-10 pt-8">{children}</div>
     </main>
   );
 }

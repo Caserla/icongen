@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#FFF7E8"/>
+  <!-- Dark teal structural layer: an intentional separate flat plane. -->
+  <path d="M154 690C154 657 181 630 214 630H258V395C258 364 283 339 314 339H385V255C385 234 402 217 423 217H454C475 217 492 234 492 255V339H567C598 339 623 364 623 395V462H686V367C686 337 710 313 740 313H845C875 313 899 337 899 367V462C955 462 999 507 999 563V684C999 727 964 762 921 762H857C840 832 777 885 697 885C642 885 593 860 558 821C523 860 474 885 419 885C339 885 276 832 259 762H213C180 762 154 735 154 702V690Z" fill="#148F83"/>
+  <!-- Main locomotive body. -->
+  <path d="M180 664C180 637 202 615 229 615H286V390C286 375 298 363 313 363H568C583 363 595 375 595 390V488H694V371C694 356 706 344 721 344H836C851 344 863 356 863 371V488H890C947 488 993 534 993 591V659C993 686 971 708 944 708H863C850 770 796 817 729 817C668 817 617 779 600 725H540C523 779 472 817 411 817C344 817 290 770 277 708H229C202 708 180 686 180 664Z" fill="#20BFAE"/>
+  <!-- Cabin plane, deliberately distinct from the main body. -->
+  <path d="M286 390C286 375 298 363 313 363H568C583 363 595 375 595 390V615H286V390Z" fill="#28CBB9"/>
+  <!-- Boiler side plane. -->
+  <path d="M599 488H850C906 488 952 534 952 591V615H599V488Z" fill="#55D5C0"/>
+  <!-- Window and front lamp. -->
+  <rect x="340" y="437" width="157" height="137" rx="36" fill="#FFB800"/>
+  <circle cx="864" cy="559" r="55" fill="#FFB800"/>
+  <circle cx="864" cy="559" r="30" fill="#FFF7E8"/>
+  <!-- Chimney, flag, and three evenly styled wheels. -->
+  <path d="M724 487V397H824V487H724Z" fill="#3C3C3C"/>
+  <rect x="704" y="348" width="140" height="56" rx="28" fill="#3C3C3C"/>
+  <rect x="409" y="255" width="38" height="108" rx="19" fill="#148F83"/>
+  <path d="M447 264H548C565 264 573 285 560 297L521 332L560 367C573 379 565 400 548 400H447V264Z" fill="#FF6B61"/>
+  <g fill="#3C3C3C"><circle cx="330" cy="724" r="72"/><circle cx="522" cy="724" r="72"/><circle cx="729" cy="724" r="72"/></g>
+  <g fill="#FFB800"><circle cx="330" cy="724" r="28"/><circle cx="522" cy="724" r="28"/><circle cx="729" cy="724" r="28"/></g>
+</svg>

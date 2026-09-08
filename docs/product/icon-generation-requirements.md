@@ -207,7 +207,7 @@
 - 底部固定操作栏显示 `Selected X`、全选可用结果、清除选择和下载按钮。
 - 未选择任何方案时按钮禁用；若仍触发请求，前后端都返回 `NO_RESULTS_SELECTED`。
 - 服务端验证任务所有权、结果归属和文件状态，ZIP 默认包含原图及任务选择的全部 PNG 尺寸；支持 SVG 的风格可选追加 SVG。
-- ZIP 文件名：`bamboo-icongen-{jobId}-{yyyyMMdd-HHmm}.zip`。
+- ZIP 文件名：`easy-design-{jobId}-{yyyyMMdd-HHmm}.zip`。
 - ZIP 目录建议：`{subject-slug}/{subject-slug}-v{1..3}-{size}px.png`，并附 `manifest.json` 记录设计设置和版本，不包含内部完整提示词或密钥。
 - 下载 URL 短时有效；重复点击可复用未过期归档，不重复打包。
 

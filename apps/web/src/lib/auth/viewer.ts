@@ -1,10 +1,21 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type Viewer = { email: string; name: string; isAdmin: boolean };
 
 export async function getOptionalViewer(): Promise<Viewer | null> {
   try {
+    const cookieStore = await cookies();
+    const hasAuthCookie = cookieStore
+      .getAll()
+      .some(
+        ({ name, value }) =>
+          name.startsWith("sb-") &&
+          name.includes("-auth-token") &&
+          value.length > 0,
+      );
+    if (!hasAuthCookie) return null;
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user?.email) return null;
@@ -25,5 +36,5 @@ export async function getOptionalViewer(): Promise<Viewer | null> {
 }
 
 export function emailAccountName(email: string) {
-  return email.split("@")[0] || "Bamboo user";
+  return email.split("@")[0] || "ICON GEN user";
 }

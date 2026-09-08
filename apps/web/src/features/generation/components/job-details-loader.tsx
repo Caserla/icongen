@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { GenerationJobV2 } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { IconResultPageSkeleton } from "@/components/ui/page-skeletons";
+import { PageState } from "@/components/ui/page-state";
 import { JobDetails } from "./job-details";
 
 export function JobDetailsLoader({ jobId }: { jobId: string }) {
@@ -13,9 +14,14 @@ export function JobDetailsLoader({ jobId }: { jobId: string }) {
   const [cachedPreviews] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
-      const value = JSON.parse(sessionStorage.getItem(`icongen:job-previews:${jobId}`) ?? "[]") as unknown;
+      const value = JSON.parse(
+        sessionStorage.getItem(`icongen:job-previews:${jobId}`) ?? "[]",
+      ) as unknown;
       return Array.isArray(value)
-        ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
+        ? value.filter(
+            (item): item is string =>
+              typeof item === "string" && item.length > 0,
+          )
         : [];
     } catch {
       return [];
@@ -42,15 +48,11 @@ export function JobDetailsLoader({ jobId }: { jobId: string }) {
 
   if (job) return <JobDetails initialJob={job} />;
 
-  if (!failed) return <IconResultPageSkeleton previewUrls={cachedPreviews} />;
+  if (!failed) return <PageState />;
 
   return (
     <main className="icon-results-studio studio-page-enter mx-auto w-full max-w-[1600px] px-5 pb-20 pt-28 sm:px-8">
-      <div className="mb-6 flex items-center gap-5">
-        <span className="text-sm font-semibold text-muted">
-          {locale === "zh" ? "图标详情加载失败" : "Could not load icon details"}
-        </span>
-      </div>
+      <PageState kind="error" />
     </main>
   );
 }

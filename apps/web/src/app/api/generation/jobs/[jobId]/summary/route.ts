@@ -13,7 +13,11 @@ export async function GET(
 ) {
   const parsed = paramsSchema.safeParse(await context.params);
   if (!parsed.success)
-    return apiError("INVALID_JOB_ID", "The generation task ID is invalid.", 400);
+    return apiError(
+      "INVALID_JOB_ID",
+      "The generation task ID is invalid.",
+      400,
+    );
   try {
     const user = await requireActiveUser();
     const item = await readGenerationJobListItem(
@@ -23,9 +27,20 @@ export async function GET(
       createAdminSupabaseClient(),
     );
     if (!item)
-      return apiError("GENERATION_JOB_NOT_FOUND", "The generation task was not found.", 404);
+      return apiError(
+        "GENERATION_JOB_NOT_FOUND",
+        "The generation task was not found.",
+        404,
+      );
     return Response.json(item);
   } catch (error) {
-    return authErrorResponse(error) ?? apiError("GENERATION_JOB_LOAD_FAILED", "We could not load the generation task.", 500);
+    return (
+      authErrorResponse(error) ??
+      apiError(
+        "GENERATION_JOB_LOAD_FAILED",
+        "We could not load the generation task.",
+        500,
+      )
+    );
   }
 }

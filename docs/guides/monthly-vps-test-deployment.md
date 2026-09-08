@@ -1,6 +1,6 @@
 # 月付 VPS 测试部署指南
 
-本文定义 Bamboo IconGen 短期测试环境的部署目标、拓扑、资源限制和验收条件。它不是正式生产环境的高可用设计。
+本文定义 EASY DESIGN / ICON GEN 短期测试环境的部署目标、拓扑、资源限制和验收条件。它不是正式生产环境的高可用设计。
 
 购买入口、服务器初始化、DNS、Docker、Caddy、Supabase、启动、备份和验收的逐步命令见[单台4 GB VPS合并部署操作手册](./single-vps-deployment-runbook.md)。
 
@@ -24,7 +24,7 @@ flowchart TD
   Worker --> Supabase
 ```
 
-单台 VPS 合并运行 Bamboo 与 Sub2API。业务数据库、认证和图片资产继续使用 Supabase，以保持现有 RLS、事务函数、账户体系和私有 Storage 不变；VPS 中的 PostgreSQL 和 Redis只供 Sub2API 使用。Supabase 业务数据库与 Sub2API 数据库用途不同，不得混用。
+单台 VPS 合并运行 EASY DESIGN / ICON GEN 与 Sub2API。业务数据库、认证和图片资产继续使用 Supabase，以保持现有 RLS、事务函数、账户体系和私有 Storage 不变；VPS 中的 PostgreSQL 和 Redis只供 Sub2API 使用。Supabase 业务数据库与 Sub2API 数据库用途不同，不得混用。
 
 ## 3. 资源基线
 
@@ -42,7 +42,7 @@ flowchart TD
 
 4 GB 是合并部署的最低测试基线。Next.js 构建、Sharp 原始像素缓冲、服务端 ZIP、Sub2API、PostgreSQL 和 Redis 可能同时制造内存峰值。必须限制并发并下调 Sub2API 默认资源参数；出现 swap 持续使用、OOM、ZIP 失败或 Web 延迟时，升级到至少 8 GB 或拆分 Sub2API/Worker。
 
-建议的4 GB测试参数起点：PostgreSQL `shared_buffers=256MB`、`effective_cache_size=1536MB`、`maintenance_work_mem=64MB`、最大连接数 100；Sub2API数据库最大打开连接 20–30、空闲连接5–10；Redis连接池32–64；Bamboo Worker和Sub2API图片并发均为1。上线后依据监控调整，不照搬现有面向大内存环境的参数。
+建议的4 GB测试参数起点：PostgreSQL `shared_buffers=256MB`、`effective_cache_size=1536MB`、`maintenance_work_mem=64MB`、最大连接数 100；Sub2API数据库最大打开连接 20–30、空闲连接5–10；Redis连接池32–64；EASY DESIGN / ICON GEN Worker和Sub2API图片并发均为1。上线后依据监控调整，不照搬现有面向大内存环境的参数。
 
 ## 4. 进程与网络
 
@@ -59,7 +59,7 @@ flowchart TD
 
 - 公网只开放 80/443；22 仅允许密钥登录并尽量限制管理来源。
 - Sub2API PostgreSQL和Redis只加入私有容器网络，不映射宿主机或公网端口。
-- Worker设置内部 `IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1`；`IMAGE_PROVIDER_API_KEY` 使用为Bamboo单独创建、可撤销且限额的网关Key。内部地址不得发送给浏览器。
+- Worker设置内部 `IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1`；`IMAGE_PROVIDER_API_KEY` 使用为EASY DESIGN / ICON GEN单独创建、可撤销且限额的网关Key。内部地址不得发送给浏览器。
 - Sub2API 的管理界面不直接暴露给公众，优先使用 IP 白名单、VPN 或独立身份验证保护；其 PostgreSQL 和 Redis 仅在容器内部网络开放。
 - 日志不得记录完整 Prompt、用户令牌、服务密钥或支付敏感信息。
 
@@ -86,7 +86,7 @@ flowchart TD
 
 - VPS使用按小时累计、月费封顶的4 GB套餐；参考Lightsail同档约USD 24/月。停机通常仍计费，结束测试时删除实例及关联静态IP、快照和存储。
 - OpenAI 图片费用可能远高于 VPS。真实生成前配置预算告警、点数上限、全局并发 1 和受邀账户白名单。
-- Sub2API 同时配置 Bamboo 专用 API Key、额度、速率/并发限制和调用日志脱敏；网关限额不能替代 Bamboo 自身的点数与幂等控制。
+- Sub2API 同时配置 EASY DESIGN / ICON GEN 专用 API Key、额度、速率/并发限制和调用日志脱敏；网关限额不能替代 EASY DESIGN / ICON GEN 自身的点数与幂等控制。
 - 域名通常按年购买；纯内部测试可先使用临时域名，涉及认证回调、邮件链接和 Cookie 验证时再使用正式域名。
 
 ## 8. 上线验收清单
@@ -95,7 +95,7 @@ flowchart TD
 - [ ] Supabase Site URL、Redirect URLs、RLS 和私有 Bucket 已按测试域名配置。
 - [ ] Worker 独立运行，生产环境可以领取任务，且并发不超过 1。
 - [ ] Worker通过私有容器网络调用Sub2API `/v1/images/generations`；网关返回 `data[0].b64_json`，超时和错误码可追踪。
-- [ ] Sub2API PostgreSQL/Redis 未暴露公网，管理入口受保护，Bamboo 使用独立限额 API Key。
+- [ ] Sub2API PostgreSQL/Redis 未暴露公网，管理入口受保护，EASY DESIGN / ICON GEN 使用独立限额 API Key。
 - [ ] 进程重启后任务可恢复，不重复扣点或重复生成已完成 variant。
 - [ ] 1–3 个主体的生成、进度、单图和 ZIP 下载闭环通过。
 - [ ] 模拟 Worker 异常、Sub2API/上游模型超时和主机重启，确认任务进入可解释状态并按规则重试/返点。

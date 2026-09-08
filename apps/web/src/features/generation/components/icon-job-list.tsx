@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SlidingFilterNav } from "@/components/ui/sliding-filter-nav";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { ICON_STYLE_PRESETS, type IconStylePresetId } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
@@ -210,22 +211,23 @@ function PageJumpInput({
 
 function JobPreviewGroup({
   urls,
+  fallbackUrls,
   locale,
   eager = false,
 }: {
   urls: string[];
+  fallbackUrls: string[];
   locale: "en" | "zh";
   eager?: boolean;
 }) {
   return (
-    <div
-      className="icon-library-card__previews mt-4 grid grid-cols-3 gap-2"
-    >
+    <div className="icon-library-card__previews mt-4 grid grid-cols-3 gap-2">
       {urls.map((src, index) => (
         <div key={src} className="relative aspect-square overflow-hidden">
           <div className="h-full w-full">
             <GeneratedIconPreview
               src={src}
+              fallbackSrc={fallbackUrls[index]}
               locale={locale}
               alt={
                 locale === "zh"
@@ -290,7 +292,12 @@ function JobCard({
         </div>
       </div>
       {job.previewUrls.length > 0 ? (
-        <JobPreviewGroup urls={job.previewUrls} locale={locale} eager={eagerPreviews} />
+        <JobPreviewGroup
+          urls={job.previewUrls}
+          fallbackUrls={job.previewFallbackUrls}
+          locale={locale}
+          eager={eagerPreviews}
+        />
       ) : null}
     </Link>
   );
@@ -596,12 +603,7 @@ export function IconJobList({
     replaceFilterUrl(activeUsage, undefined, undefined, structure);
   }
   function selectStatus(status?: GenerationJobStatusFilter) {
-    prepareListTransition(
-      activeUsage,
-      activeStyle,
-      status,
-      activeStructure,
-    );
+    prepareListTransition(activeUsage, activeStyle, status, activeStructure);
     setActivePage(1);
     dispatchFilters({ type: "select-status", status });
     replaceFilterUrl(activeUsage, activeStyle, status, activeStructure);
@@ -633,130 +635,120 @@ export function IconJobList({
         <Toast message={pageToast} variant="warning" placement="center" />
       ) : null}
       <div className="icons-studio__filters">
-      <section className="icons-filter-group">
-        <p className="mb-3 text-sm font-black">
-          {locale === "zh" ? "图标类型" : "Icon type"}
-        </p>
-        <nav
-          aria-label={
-            locale === "zh" ? "按图标类型筛选" : "Filter by icon type"
-          }
-          className="icons-filter-options"
-        >
-          {usageOptions.map((option) => (
-            <button
-              type="button"
-              key={option.id}
-              onClick={() => selectUsage(option.id)}
-              aria-current={activeUsage === option.id ? "page" : undefined}
-              className="icons-filter-option focus-ring"
-            >
-              {option.label[locale]}
-            </button>
-          ))}
-        </nav>
-      </section>
-
-      <section className="icons-filter-group">
-        <p className="mb-3 text-sm font-black">
-          {locale === "zh" ? "风格选择" : "Style"}
-        </p>
-        <nav
-          aria-label={locale === "zh" ? "按风格筛选" : "Filter by style"}
-          className="icons-filter-options"
-        >
-          <button
-            type="button"
-            onClick={() =>
-              activeUsage === "interaction"
-                ? selectStructure(undefined)
-                : selectStyle(undefined)
+        <section className="icons-filter-group">
+          <p className="mb-3 text-sm font-black">
+            {locale === "zh" ? "图标类型" : "Icon type"}
+          </p>
+          <SlidingFilterNav
+            aria-label={
+              locale === "zh" ? "按图标类型筛选" : "Filter by icon type"
             }
-            aria-current={
-              activeUsage === "interaction"
-                ? !activeStructure
-                  ? "page"
-                  : undefined
-                : !activeStyle
-                  ? "page"
-                  : undefined
-            }
-            className="icons-filter-option focus-ring"
+            className="icons-filter-options"
           >
-            {locale === "zh" ? "全部风格" : "All styles"}
-          </button>
-          {activeUsage === "interaction"
-            ? structureOptions.map((option) => (
-                <button
-                  type="button"
-                  key={option.id}
-                  onClick={() => selectStructure(option.id)}
-                  aria-current={
-                    activeStructure === option.id ? "page" : undefined
-                  }
-                  className="icons-filter-option focus-ring"
-                >
-                  {option.label[locale]}
-                </button>
-              ))
-            : stylesForUsage(activeUsage).map((preset) => (
-                <button
-                  type="button"
-                  key={preset.id}
-                  onClick={() => selectStyle(preset.id)}
-                  aria-current={activeStyle === preset.id ? "page" : undefined}
-                  className="icons-filter-option focus-ring"
-                >
-                  {preset.label[locale]}
-                </button>
-              ))}
-        </nav>
-      </section>
+            {usageOptions.map((option) => (
+              <button
+                type="button"
+                key={option.id}
+                onClick={() => selectUsage(option.id)}
+                aria-current={activeUsage === option.id ? "page" : undefined}
+                className="icons-filter-option focus-ring"
+              >
+                {option.label[locale]}
+              </button>
+            ))}
+          </SlidingFilterNav>
+        </section>
 
-      <section className="icons-filter-group">
-        <p className="mb-3 text-sm font-black">
-          {locale === "zh" ? "状态选择" : "Status"}
-        </p>
-        <nav
-          aria-label={locale === "zh" ? "按状态筛选" : "Filter by status"}
-          className="icons-filter-options"
-        >
-          {statusOptions.map((option) => (
+        <section className="icons-filter-group">
+          <p className="mb-3 text-sm font-black">
+            {locale === "zh" ? "风格选择" : "Style"}
+          </p>
+          <SlidingFilterNav
+            aria-label={locale === "zh" ? "按风格筛选" : "Filter by style"}
+            className="icons-filter-options"
+          >
             <button
               type="button"
-              key={option.id ?? "all"}
-              onClick={() => selectStatus(option.id)}
-              aria-current={activeStatus === option.id ? "page" : undefined}
+              onClick={() =>
+                activeUsage === "interaction"
+                  ? selectStructure(undefined)
+                  : selectStyle(undefined)
+              }
+              aria-current={
+                activeUsage === "interaction"
+                  ? !activeStructure
+                    ? "page"
+                    : undefined
+                  : !activeStyle
+                    ? "page"
+                    : undefined
+              }
               className="icons-filter-option focus-ring"
             >
-              {option.label[locale]}
+              {locale === "zh" ? "全部风格" : "All styles"}
             </button>
-          ))}
-        </nav>
-      </section>
+            {activeUsage === "interaction"
+              ? structureOptions.map((option) => (
+                  <button
+                    type="button"
+                    key={option.id}
+                    onClick={() => selectStructure(option.id)}
+                    aria-current={
+                      activeStructure === option.id ? "page" : undefined
+                    }
+                    className="icons-filter-option focus-ring"
+                  >
+                    {option.label[locale]}
+                  </button>
+                ))
+              : stylesForUsage(activeUsage).map((preset) => (
+                  <button
+                    type="button"
+                    key={preset.id}
+                    onClick={() => selectStyle(preset.id)}
+                    aria-current={
+                      activeStyle === preset.id ? "page" : undefined
+                    }
+                    className="icons-filter-option focus-ring"
+                  >
+                    {preset.label[locale]}
+                  </button>
+                ))}
+          </SlidingFilterNav>
+        </section>
+
+        <section className="icons-filter-group">
+          <p className="mb-3 text-sm font-black">
+            {locale === "zh" ? "状态选择" : "Status"}
+          </p>
+          <SlidingFilterNav
+            aria-label={locale === "zh" ? "按状态筛选" : "Filter by status"}
+            className="icons-filter-options"
+          >
+            {statusOptions.map((option) => (
+              <button
+                type="button"
+                key={option.id ?? "all"}
+                onClick={() => selectStatus(option.id)}
+                aria-current={activeStatus === option.id ? "page" : undefined}
+                className="icons-filter-option focus-ring"
+              >
+                {option.label[locale]}
+              </button>
+            ))}
+          </SlidingFilterNav>
+        </section>
       </div>
 
-      {isLoading && showLoadingSkeleton && activeResult.jobs.length === 0 ? (
-        <div
-          className="icons-jobs-grid mt-6"
-          aria-busy="true"
-          aria-label={locale === "zh" ? "正在加载图标" : "Loading icons"}
-        >
-          {Array.from({ length: ICON_LIST_SKELETON_COUNT }, (_, item) => (
-            <SkeletonBlock key={item} className="h-[300px] rounded-2xl" />
-          ))}
-        </div>
+      {isLoading && activeResult.jobs.length === 0 ? (
+        <PageState />
       ) : loadFailed ? (
-        <section className="icons-studio__error mt-6 p-8 text-center">
-          <p className="font-bold text-muted">
-            {locale === "zh"
-              ? "图标加载失败，请重新选择后重试。"
-              : "Icons failed to load. Select the filter again to retry."}
-          </p>
-        </section>
-      ) : activeResult.jobs.length === 0 ? null : !activeStyle &&
+        <PageState kind="error" onRetry={()=>void loadList(activeUsage,activeStyle,activeStatus,activeStructure,activeResult.page)} />
+      ) : activeResult.jobs.length === 0 ? <PageState kind="empty" title={activeStyle||activeStructure||activeStatus?(locale==="zh"?"暂无符合筛选条件的图标":"No matching icons"):undefined}/> : !activeStyle &&
         !activeStructure ? (
-        <div className={`icons-jobs-grid stagger-grid icons-list-swap mt-6 ${isLoading ? "is-updating" : ""}`}>
+        <div
+          className={`icons-jobs-grid stagger-grid icons-list-swap mt-6 ${isLoading ? "is-updating" : ""}`}
+        >
           {activeResult.jobs.map((job, index) => (
             <JobCard
               key={job.id}
@@ -768,7 +760,9 @@ export function IconJobList({
           ))}
         </div>
       ) : (
-        <div className={`icons-studio__groups icons-list-swap mt-6 space-y-10 ${isLoading ? "is-updating" : ""}`}>
+        <div
+          className={`icons-studio__groups icons-list-swap mt-6 space-y-10 ${isLoading ? "is-updating" : ""}`}
+        >
           {groups.map(({ preset, jobs }) => (
             <section key={preset.id} aria-labelledby={`style-${preset.id}`}>
               <div className="icons-studio__group-heading mb-4">
@@ -902,3 +896,4 @@ export function IconJobList({
     </div>
   );
 }
+import { PageState } from "@/components/ui/page-state";

@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const expected = process.env.HEALTHCHECK_TOKEN;
-  if (!healthcheckAuthorized(request.headers.get("x-healthcheck-token"), expected)) {
+  if (
+    !healthcheckAuthorized(request.headers.get("x-healthcheck-token"), expected)
+  ) {
     return new Response(null, { status: expected ? 404 : 503 });
   }
 

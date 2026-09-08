@@ -22,13 +22,13 @@ export type GenerationSubjectDraftAction =
       value: BackgroundContainer;
     }
   | { type: "set-background-corner-radius"; index: number; value: number }
-  | { type: "add"; maxSubjects: number }
+  | { type: "add"; maxSubjects: number; backgroundMode?: BackgroundMode }
   | { type: "remove"; index: number };
 
 export const initialGenerationSubjectDrafts: GenerationSubjectDraft[] = [
   {
     input: "",
-    backgroundMode: "solid",
+    backgroundMode: "transparent",
     backgroundColor: { mode: "solid", color: "#FFFFFF" },
     backgroundContainer: "rounded-square",
     backgroundCornerRadius: 22,
@@ -45,7 +45,7 @@ export function generationSubjectDraftReducer(
       ...state,
       {
         input: "",
-        backgroundMode: "solid",
+        backgroundMode: action.backgroundMode ?? "transparent",
         backgroundColor: { mode: "solid", color: "#FFFFFF" },
         backgroundContainer: "rounded-square",
         backgroundCornerRadius: 22,

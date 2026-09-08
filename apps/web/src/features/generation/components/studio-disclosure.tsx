@@ -16,7 +16,9 @@ export function StudioDisclosure({
       <summary>
         <span>{label}</span>
         {value === undefined ? null : <strong>{value}</strong>}
-        <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg>
+        <svg aria-hidden="true" viewBox="0 0 16 16">
+          <path d="m4 6 4 4 4-4" />
+        </svg>
       </summary>
       {children}
     </details>

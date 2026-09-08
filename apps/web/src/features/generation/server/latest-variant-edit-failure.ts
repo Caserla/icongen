@@ -16,7 +16,8 @@ export function latestVariantEditFailure(
     !revision ||
     revision.status !== "failed" ||
     (revision.error_code && userResolvedCodes.has(revision.error_code))
-  ) return null;
+  )
+    return null;
 
   return {
     id: revision.id,

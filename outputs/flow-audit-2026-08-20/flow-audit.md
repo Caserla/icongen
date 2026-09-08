@@ -1,4 +1,4 @@
-# Bamboo IconGen interface flow audit — 2026-08-20
+# EASY DESIGN / ICON GEN interface flow audit — 2026-08-20
 
 ## Scope
 

@@ -1,7 +1,59 @@
 "use client";
 import { useState, type InputHTMLAttributes } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
-type Props=Omit<InputHTMLAttributes<HTMLInputElement>,"type">&{wrapperClassName?:string};
-export function PasswordInput({wrapperClassName="",className="",...props}:Props){const{t}=useLocale();const[visible,setVisible]=useState(false);const action=visible?t("hidePassword"):t("showPassword");return <div className={`relative ${wrapperClassName}`}><input {...props} type={visible?"text":"password"} className={`${className} pr-12`}/><button type="button" aria-label={action} title={action} aria-pressed={visible} onClick={()=>setVisible(v=>!v)} className="focus-ring absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-[3px] border border-transparent text-muted hover:border-border hover:bg-surface-muted hover:text-foreground">{visible?<EyeOff/>:<Eye/>}</button></div>}
-function Eye(){return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current" strokeWidth="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.75"/></svg>}
-function EyeOff(){return <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current" strokeWidth="1.8"><path d="M3 3l18 18M10.6 6.2c.5-.1.9-.2 1.4-.2 6 0 9.5 6 9.5 6a18 18 0 0 1-2.2 2.8M6.2 6.3C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6c1.4 0 2.6-.3 3.7-.7M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>}
+type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  wrapperClassName?: string;
+};
+export function PasswordInput({
+  wrapperClassName = "",
+  className = "",
+  ...props
+}: Props) {
+  const { t } = useLocale();
+  const [visible, setVisible] = useState(false);
+  const action = visible ? t("hidePassword") : t("showPassword");
+  return (
+    <div className={`relative ${wrapperClassName}`}>
+      <input
+        {...props}
+        type={visible ? "text" : "password"}
+        className={`${className} pr-12`}
+      />
+      <button
+        type="button"
+        aria-label={action}
+        title={action}
+        aria-pressed={visible}
+        onClick={() => setVisible((v) => !v)}
+        className="focus-ring absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg border border-transparent text-muted hover:border-border hover:bg-surface-muted hover:text-foreground"
+      >
+        {visible ? <EyeOff /> : <Eye />}
+      </button>
+    </div>
+  );
+}
+function Eye() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-5 fill-none stroke-current"
+      strokeWidth="1.8"
+    >
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.75" />
+    </svg>
+  );
+}
+function EyeOff() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-5 fill-none stroke-current"
+      strokeWidth="1.8"
+    >
+      <path d="M3 3l18 18M10.6 6.2c.5-.1.9-.2 1.4-.2 6 0 9.5 6 9.5 6a18 18 0 0 1-2.2 2.8M6.2 6.3C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6c1.4 0 2.6-.3 3.7-.7M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </svg>
+  );
+}

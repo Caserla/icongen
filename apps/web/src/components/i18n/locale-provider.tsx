@@ -24,8 +24,8 @@ const words: Record<string, Record<Locale, string>> = {
   hidePassword: { en: "Hide password", zh: "隐藏密码" },
   welcomeBack: { en: "Welcome back", zh: "欢迎回来" },
   signInCreate: {
-    en: "Sign in to create and manage your icon sets.",
-    zh: "登录后创建和管理你的图标。",
+    en: "Sign in to your account",
+    zh: "请登录帐号",
   },
   waiting: {
     en: "Sign in to create and manage your icon sets.",
@@ -35,7 +35,7 @@ const words: Record<string, Record<Locale, string>> = {
   password: { en: "Password", zh: "密码" },
   forgot: { en: "Forgot password?", zh: "忘记密码？" },
   continue: { en: "Sign in", zh: "登录" },
-  newHere: { en: "New to Bamboo IconGen?", zh: "第一次使用 Bamboo IconGen？" },
+  newHere: { en: "New to ICON GEN?", zh: "第一次使用 ICON GEN？" },
   createAccount: { en: "Create your account", zh: "创建账户" },
   authUnavailable: {
     en: "Sign-in is temporarily unavailable. Please try again later.",
@@ -103,14 +103,21 @@ const words: Record<string, Record<Locale, string>> = {
   lastUpdated: { en: "Last updated 24 days ago", zh: "24 天前更新" },
   saved: { en: "Personal information saved", zh: "个人信息已保存" },
   signingIn: { en: "Signing in…", zh: "正在登录…" },
+  continueWithGoogle: { en: "Continue with Google", zh: "Google 登录" },
+  continueWithGithub: { en: "Continue with GitHub", zh: "GitHub 登录" },
+  socialSignInFailed: {
+    en: "Third-party sign-in could not start. Please try again.",
+    zh: "无法启动第三方登录，请稍后重试。",
+  },
+  orContinueWithEmail: { en: "or use email", zh: "或使用邮箱登录" },
   invalidLogin: {
     en: "Please check your email and password.",
     zh: "请检查邮箱和密码。",
   },
   startCreating: { en: "Start creating", zh: "开始创作" },
   createYourAccount: {
-    en: "Create your Bamboo IconGen account",
-    zh: "创建 Bamboo IconGen 账户",
+    en: "Create your ICON GEN account",
+    zh: "创建 ICON GEN 账户",
   },
   confirmPassword: { en: "Confirm password", zh: "确认密码" },
   passwordHint: {
@@ -118,8 +125,8 @@ const words: Record<string, Record<Locale, string>> = {
     zh: "密码至少需要 8 个字符。",
   },
   acceptTerms: {
-    en: "I agree to the Terms of Service and Privacy Policy.",
-    zh: "我同意《服务条款》和《隐私政策》。",
+    en: "I have read and agree to the Privacy Policy and Security Policy.",
+    zh: "我已阅读并同意《隐私协议》和《安全政策》。",
   },
   creating: { en: "Creating…", zh: "正在创建…" },
   alreadyAccount: { en: "Already have an account?", zh: "已经有账户？" },
@@ -131,16 +138,25 @@ const words: Record<string, Record<Locale, string>> = {
     en: "We could not create your account. Check the form and try again.",
     zh: "账户创建失败，请检查填写内容后重试。",
   },
+  signupDisabled: {
+    en: "Registration is not open yet.",
+    zh: "当前暂未开放注册。",
+  },
   recovery: { en: "Account recovery", zh: "账户找回" },
   resetPassword: { en: "Reset your password", zh: "重置密码" },
   sendReset: { en: "Send reset link", zh: "发送重置链接" },
   resetSent: {
-    en: "If an account matches that email, we sent password reset instructions.",
-    zh: "如果该邮箱对应一个账户，我们已发送密码重置说明。",
+    en: "If an account matches that email, we sent a link that opens the password reset page.",
+    zh: "如果该邮箱对应一个账户，我们已发送邮件；点击邮件链接即可进入重置密码页面。",
   },
   backSignIn: { en: "Back to sign in", zh: "返回登录" },
   choosePassword: { en: "Choose a new password", zh: "设置新密码" },
   newPassword: { en: "New password", zh: "新密码" },
+  confirmNewPassword: { en: "Confirm new password", zh: "确认新密码" },
+  passwordsDoNotMatch: {
+    en: "The two passwords do not match.",
+    zh: "两次输入的密码不一致。",
+  },
   updatePassword: { en: "Update password", zh: "更新密码" },
   passwordUpdated: {
     en: "Password updated. You can now sign in.",

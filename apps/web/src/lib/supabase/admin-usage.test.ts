@@ -13,6 +13,9 @@ const approvedAdminConsumers = new Set([
   "src/app/api/admin/users/query/route.ts",
   "src/app/api/health/ready/route.ts",
   "src/app/api/generation/assets/[assetId]/preview/route.ts",
+  "src/app/api/generation/favorites/[variantId]/route.ts",
+  "src/app/api/generation/favorites/downloads/route.ts",
+  "src/app/api/generation/favorites/route.ts",
   "src/app/api/generation/jobs/[jobId]/downloads/route.ts",
   "src/app/api/generation/jobs/[jobId]/route.ts",
   "src/app/api/generation/jobs/[jobId]/summary/route.ts",
@@ -28,11 +31,15 @@ const approvedAdminConsumers = new Set([
 
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
-  const nested = await Promise.all(entries.map((entry) => {
-    const target = path.join(directory, entry.name);
-    return entry.isDirectory() ? sourceFiles(target) : [target];
-  }));
-  return nested.flat().filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
+  const nested = await Promise.all(
+    entries.map((entry) => {
+      const target = path.join(directory, entry.name);
+      return entry.isDirectory() ? sourceFiles(target) : [target];
+    }),
+  );
+  return nested
+    .flat()
+    .filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
 }
 
 test("service-role client usage stays inside the reviewed mutation allowlist", async () => {

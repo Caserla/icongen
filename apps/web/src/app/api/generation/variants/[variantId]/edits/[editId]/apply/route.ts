@@ -80,10 +80,7 @@ export async function POST(
       })
       .eq("id", variant.data.id);
     updateQuery = revision.data.parent_revision_id
-      ? updateQuery.eq(
-          "active_revision_id",
-          revision.data.parent_revision_id,
-        )
+      ? updateQuery.eq("active_revision_id", revision.data.parent_revision_id)
       : updateQuery.is("active_revision_id", null);
     const updated = await updateQuery.select("id").maybeSingle();
     if (updated.error) throw updated.error;

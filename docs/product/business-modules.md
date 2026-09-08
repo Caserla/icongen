@@ -1,6 +1,6 @@
 # 六个业务模块
 
-本页为模块导航。完整产品范围、两阶段核心流程和模块间闭环见 [Bamboo IconGen PRD](./product-requirements.md)。
+本页为模块导航。完整产品范围、两阶段核心流程和模块间闭环见 [EASY DESIGN / ICON GEN PRD](./product-requirements.md)。
 
 ## 1. 用户信息
 

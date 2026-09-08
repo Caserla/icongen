@@ -1,4 +1,4 @@
-# Bamboo IconGen
+# EASY DESIGN / ICON GEN
 
 面向海外用户的批量 UI 功能图标生成网站。用户描述多个图标主体并选择设计方向，每个主体生成 3 个统一风格的 PNG 方案，并使用 Stripe 购买点数继续生成。
 

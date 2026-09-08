@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#FFF7E8"/>
+  <!-- Twin ponytail base planes establish depth as separate flat silhouettes. -->
+  <path d="M214 351C122 367 74 449 91 540C101 596 134 642 180 668L240 620L300 438L214 351Z" fill="#6E381F"/>
+  <path d="M810 351C902 367 950 449 933 540C923 596 890 642 844 668L784 620L724 438L810 351Z" fill="#6E381F"/>
+  <!-- Coral hair ties. -->
+  <circle cx="283" cy="394" r="46" fill="#FF6B61"/>
+  <circle cx="741" cy="394" r="46" fill="#FF6B61"/>
+  <!-- Main hair mass. -->
+  <path d="M287 388C301 224 426 140 512 140C598 140 723 224 737 388L706 542L318 542L287 388Z" fill="#8C4929"/>
+  <!-- Face. -->
+  <path d="M290 439C290 324 379 236 512 236C645 236 734 324 734 439V563C734 711 635 806 512 806C389 806 290 711 290 563V439Z" fill="#FFD6AF"/>
+  <!-- Forehead fringe, an intentional separate color plane. -->
+  <path d="M305 401C316 275 408 205 512 205C616 205 708 275 719 401C672 376 642 344 626 302C569 352 479 368 394 334C369 368 339 392 305 401Z" fill="#8C4929"/>
+  <!-- Shirt and darker bottom edge. -->
+  <path d="M300 928C312 822 396 756 512 756C628 756 712 822 724 928H300Z" fill="#D84D4D"/>
+  <path d="M300 928H724V956H300V928Z" fill="#B63B42"/>
+  <!-- Large round glasses. -->
+  <circle cx="420" cy="512" r="98" stroke="#148F83" stroke-width="24"/>
+  <circle cx="604" cy="512" r="98" stroke="#148F83" stroke-width="24"/>
+  <path d="M518 512H506" stroke="#148F83" stroke-width="24" stroke-linecap="round"/>
+  <path d="M322 504L274 492" stroke="#148F83" stroke-width="22" stroke-linecap="round"/>
+  <path d="M702 504L750 492" stroke="#148F83" stroke-width="22" stroke-linecap="round"/>
+  <!-- Friendly facial details. -->
+  <circle cx="420" cy="520" r="19" fill="#3C3C3C"/>
+  <circle cx="604" cy="520" r="19" fill="#3C3C3C"/>
+  <circle cx="365" cy="622" r="27" fill="#FF9A8E"/>
+  <circle cx="659" cy="622" r="27" fill="#FF9A8E"/>
+  <path d="M466 665C490 689 534 689 558 665" stroke="#C85C50" stroke-width="16" stroke-linecap="round"/>
+</svg>

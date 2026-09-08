@@ -1,4 +1,8 @@
-import { ICON_STYLE_PRESET_IDS, type GenerationJobStatusV2, type IconStylePresetId } from "@icongen/shared";
+import {
+  ICON_STYLE_PRESET_IDS,
+  type GenerationJobStatusV2,
+  type IconStylePresetId,
+} from "@icongen/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type GenerationJobListItem = {
@@ -10,13 +14,23 @@ export type GenerationJobListItem = {
   graphicStructure: "linear" | "filled";
   subjects: { name: string; position: number }[];
   previewUrls: string[];
+  previewFallbackUrls: string[];
 };
 
-export type GenerationJobListPage = { jobs: GenerationJobListItem[]; page: number; pageSize: number; total: number; totalPages: number };
-export type GenerationJobStatusFilter = "in-progress" | "completed" | "partial" | "failed";
+export type GenerationJobListPage = {
+  jobs: GenerationJobListItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+export type GenerationJobStatusFilter =
+  "in-progress" | "completed" | "partial" | "failed";
 export type GenerationJobUsageFilter = "interaction" | "illustration";
 export type GenerationJobStructureFilter = "linear" | "filled";
-export type GenerationJobListTimings = Partial<Record<"jobs" | "subjects" | "variants" | "assets" | "signing", number>>;
+export type GenerationJobListTimings = Partial<
+  Record<"jobs" | "subjects" | "variants" | "assets" | "signing", number>
+>;
 
 const demoJobIds = [
   "11111111-1111-4111-8111-111111111111",
@@ -26,7 +40,10 @@ const demoJobIds = [
 const DEFAULT_PAGE_SIZE = 12;
 const SIGNED_PREVIEW_TTL_MS = 8 * 60_000;
 const MAX_SIGNED_PREVIEW_CACHE_ENTRIES = 2_000;
-const signedPreviewCache = new Map<string, { url: string; expiresAt: number }>();
+const signedPreviewCache = new Map<
+  string,
+  { url: string; expiresAt: number }
+>();
 
 export function readCachedGeneratedAssetUrl(bucket: string, path: string) {
   const key = `${bucket}:${path}`;
@@ -39,17 +56,37 @@ export function readCachedGeneratedAssetUrl(bucket: string, path: string) {
   return cached.url;
 }
 
-export function cacheGeneratedAssetUrl(bucket: string, path: string, url: string) {
+export function cacheGeneratedAssetUrl(
+  bucket: string,
+  path: string,
+  url: string,
+) {
   signedPreviewCache.set(`${bucket}:${path}`, {
     url,
     expiresAt: Date.now() + SIGNED_PREVIEW_TTL_MS,
   });
 }
 
-type ListSubjectRow = { id: string; job_id: string; name: string; position: number };
-type ListAssetRow = { id: string; variant_id: string; asset_role: string; format: string; size: number; storage_bucket: string; storage_path: string };
+type ListSubjectRow = {
+  id: string;
+  job_id: string;
+  name: string;
+  position: number;
+};
+type ListAssetRow = {
+  id: string;
+  variant_id: string;
+  asset_role: string;
+  format: string;
+  size: number;
+  storage_bucket: string;
+  storage_path: string;
+};
+type ListPreview = { src: string; fallbackSrc: string };
 
-export function chooseListThumbnail<T extends { size: number }>(candidates: T[]) {
+export function chooseListThumbnail<T extends { size: number }>(
+  candidates: T[],
+) {
   return [...candidates].sort((a, b) => {
     const aOversized = a.size > 256;
     const bOversized = b.size > 256;
@@ -58,7 +95,11 @@ export function chooseListThumbnail<T extends { size: number }>(candidates: T[])
   })[0];
 }
 
-async function readPreferredListAssets(client: SupabaseClient, variantIds: string[], timings?: GenerationJobListTimings) {
+async function readPreferredListAssets(
+  client: SupabaseClient,
+  variantIds: string[],
+  timings?: GenerationJobListTimings,
+) {
   const startedAt = performance.now();
   const assets: ListAssetRow[] = [];
   let missing = new Set(variantIds);
@@ -67,8 +108,11 @@ async function readPreferredListAssets(client: SupabaseClient, variantIds: strin
     const unresolved = [...missing];
     const found: ListAssetRow[] = [];
     for (let index = 0; index < unresolved.length; index += 100) {
-      const { data, error } = await client.from("generation_assets")
-        .select("id,variant_id,asset_role,format,size,storage_bucket,storage_path")
+      const { data, error } = await client
+        .from("generation_assets")
+        .select(
+          "id,variant_id,asset_role,format,size,storage_bucket,storage_path",
+        )
         .in("variant_id", unresolved.slice(index, index + 100))
         .eq("format", "png")
         .eq("asset_role", role)
@@ -91,13 +135,20 @@ async function readPreferredListAssets(client: SupabaseClient, variantIds: strin
       if (best) bestByVariant.set(variantId, best);
     }
     assets.push(...bestByVariant.values());
-    missing = new Set(unresolved.filter((variantId) => !bestByVariant.has(variantId)));
+    missing = new Set(
+      unresolved.filter((variantId) => !bestByVariant.has(variantId)),
+    );
   }
   if (timings) timings.assets = Math.round(performance.now() - startedAt);
   return assets;
 }
 
-async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClient, subjects: ListSubjectRow[], timings?: GenerationJobListTimings) {
+async function readListPreviewUrls(
+  client: SupabaseClient,
+  signer: SupabaseClient,
+  subjects: ListSubjectRow[],
+  timings?: GenerationJobListTimings,
+): Promise<Map<string, ListPreview[]>> {
   const previewSubjects: ListSubjectRow[] = [];
   const countsByJobId = new Map<string, number>();
   for (const subject of subjects) {
@@ -106,33 +157,61 @@ async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClien
     countsByJobId.set(subject.job_id, count + 1);
   }
   const subjectIds = previewSubjects.map((subject) => subject.id);
-  if (!subjectIds.length) return new Map<string, string[]>();
+  if (!subjectIds.length) return new Map<string, ListPreview[]>();
   const variants: { id: string; subject_id: string; slot: number }[] = [];
   const variantsStartedAt = performance.now();
   for (let index = 0; index < subjectIds.length; index += 100) {
-    const { data, error } = await client.from("generation_variants").select("id,subject_id,slot").in("subject_id", subjectIds.slice(index, index + 100)).eq("status", "completed").order("slot");
+    const { data, error } = await client
+      .from("generation_variants")
+      .select("id,subject_id,slot")
+      .in("subject_id", subjectIds.slice(index, index + 100))
+      .eq("status", "completed")
+      .order("slot");
     if (error) throw error;
     variants.push(...((data ?? []) as typeof variants));
   }
-  if (timings) timings.variants = Math.round(performance.now() - variantsStartedAt);
-  const assets = await readPreferredListAssets(client, variants.map((variant) => variant.id), timings);
+  if (timings)
+    timings.variants = Math.round(performance.now() - variantsStartedAt);
+  const assets = await readPreferredListAssets(
+    client,
+    variants.map((variant) => variant.id),
+    timings,
+  );
   const assetsByVariantId = new Map<string, typeof assets>();
   for (const asset of assets)
     assetsByVariantId.set(asset.variant_id, [
       ...(assetsByVariantId.get(asset.variant_id) ?? []),
       asset,
     ]);
-  const subjectById = new Map(previewSubjects.map((subject) => [subject.id, subject]));
-  const selected = variants.map((variant) => {
-    const candidates = assetsByVariantId.get(variant.id) ?? [];
-    const asset = candidates.find((item) => item.asset_role === "preview") ?? candidates.find((item) => item.asset_role === "source") ?? candidates.filter((item) => item.asset_role === "output").sort((a, b) => b.size - a.size)[0];
-    const subject = subjectById.get(variant.subject_id);
-    return asset && subject ? { ...asset, jobId: subject.job_id, subjectPosition: subject.position, slot: variant.slot } : null;
-  }).filter((item): item is NonNullable<typeof item> => Boolean(item)).sort((a, b) => a.subjectPosition - b.subjectPosition || a.slot - b.slot);
+  const subjectById = new Map(
+    previewSubjects.map((subject) => [subject.id, subject]),
+  );
+  const selected = variants
+    .map((variant) => {
+      const candidates = assetsByVariantId.get(variant.id) ?? [];
+      const asset =
+        candidates.find((item) => item.asset_role === "preview") ??
+        candidates.find((item) => item.asset_role === "source") ??
+        candidates
+          .filter((item) => item.asset_role === "output")
+          .sort((a, b) => b.size - a.size)[0];
+      const subject = subjectById.get(variant.subject_id);
+      return asset && subject
+        ? {
+            ...asset,
+            jobId: subject.job_id,
+            subjectPosition: subject.position,
+            slot: variant.slot,
+          }
+        : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .sort((a, b) => a.subjectPosition - b.subjectPosition || a.slot - b.slot);
   const selectedByJobId = new Map<string, typeof selected>();
   for (const asset of selected) {
     const current = selectedByJobId.get(asset.jobId) ?? [];
-    if (current.length < 3) selectedByJobId.set(asset.jobId, [...current, asset]);
+    if (current.length < 3)
+      selectedByJobId.set(asset.jobId, [...current, asset]);
   }
   // Signing every thumbnail through its own API request caused an N+1 chain:
   // auth + asset lookup + signing + redirect for as many as 36 images/page.
@@ -150,7 +229,10 @@ async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClien
       continue;
     }
     if (cached) signedPreviewCache.delete(cacheKey);
-    assetsByBucket.set(asset.storage_bucket, [...(assetsByBucket.get(asset.storage_bucket) ?? []), asset]);
+    assetsByBucket.set(asset.storage_bucket, [
+      ...(assetsByBucket.get(asset.storage_bucket) ?? []),
+      asset,
+    ]);
   }
   const signingStartedAt = performance.now();
   await Promise.all(
@@ -165,10 +247,13 @@ async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClien
       data.forEach((signed, index) => {
         if (signed.signedUrl) {
           signedUrlByAssetId.set(bucketAssets[index].id, signed.signedUrl);
-          signedPreviewCache.set(`${bucket}:${bucketAssets[index].storage_path}`, {
-            url: signed.signedUrl,
-            expiresAt: now + SIGNED_PREVIEW_TTL_MS,
-          });
+          signedPreviewCache.set(
+            `${bucket}:${bucketAssets[index].storage_path}`,
+            {
+              url: signed.signedUrl,
+              expiresAt: now + SIGNED_PREVIEW_TTL_MS,
+            },
+          );
         }
       });
     }),
@@ -179,18 +264,17 @@ async function readListPreviewUrls(client: SupabaseClient, signer: SupabaseClien
       if (signedPreviewCache.size <= MAX_SIGNED_PREVIEW_CACHE_ENTRIES) break;
     }
   }
-  if (timings) timings.signing = Math.round(performance.now() - signingStartedAt);
+  if (timings)
+    timings.signing = Math.round(performance.now() - signingStartedAt);
   return new Map(
     [...selectedByJobId.entries()].map(([jobId, jobAssets]) => [
       jobId,
-      jobAssets.map(
-        (asset) =>
+      jobAssets.map((asset) => ({
+        src:
           signedUrlByAssetId.get(asset.id) ??
-          new URL(
-            `/api/generation/assets/${asset.id}/preview`,
-            process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000",
-          ).toString(),
-      ),
+          `/api/generation/assets/${asset.id}/preview`,
+        fallbackSrc: `/api/generation/assets/${asset.id}/preview`,
+      })),
     ]),
   );
 }
@@ -201,14 +285,16 @@ export async function readGenerationJobListItem(
   jobId: string,
   signer: SupabaseClient = client,
 ): Promise<GenerationJobListItem | null> {
-  const { data: job, error } = await client.from("generation_jobs")
+  const { data: job, error } = await client
+    .from("generation_jobs")
     .select("id,status,created_at,generation_spec")
     .eq("id", jobId)
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
   if (!job) return null;
-  const { data, error: subjectsError } = await client.from("generation_subjects")
+  const { data, error: subjectsError } = await client
+    .from("generation_subjects")
     .select("id,job_id,name,position")
     .eq("job_id", jobId)
     .order("position", { ascending: true });
@@ -222,38 +308,84 @@ export async function readGenerationJobListItem(
     stylePreset: parseStylePreset(job.generation_spec),
     usage: parseGenerationJobUsage(job.generation_spec),
     graphicStructure: parseGraphicStructure(job.generation_spec),
-    subjects: subjects.map((subject) => ({ name: subject.name, position: subject.position })),
-    previewUrls: previews.get(job.id) ?? [],
+    subjects: subjects.map((subject) => ({
+      name: subject.name,
+      position: subject.position,
+    })),
+    previewUrls: (previews.get(job.id) ?? []).map((preview) => preview.src),
+    previewFallbackUrls: (previews.get(job.id) ?? []).map(
+      (preview) => preview.fallbackSrc,
+    ),
   };
 }
 
-export function matchesGenerationJobStatus(status: GenerationJobStatusV2, filter?: GenerationJobStatusFilter) {
-  return !filter || (filter === "in-progress" ? status === "queued" || status === "processing" : status === filter);
+export function matchesGenerationJobStatus(
+  status: GenerationJobStatusV2,
+  filter?: GenerationJobStatusFilter,
+) {
+  return (
+    !filter ||
+    (filter === "in-progress"
+      ? status === "queued" || status === "processing"
+      : status === filter)
+  );
 }
 
 export function parseStylePreset(spec: unknown): IconStylePresetId {
-  const preset = typeof spec === "object" && spec !== null && "style" in spec
-    && typeof spec.style === "object" && spec.style !== null && "preset" in spec.style ? spec.style.preset : undefined;
-  return typeof preset === "string" && ICON_STYLE_PRESET_IDS.includes(preset as IconStylePresetId) ? preset as IconStylePresetId : "line-icon";
+  const preset =
+    typeof spec === "object" &&
+    spec !== null &&
+    "style" in spec &&
+    typeof spec.style === "object" &&
+    spec.style !== null &&
+    "preset" in spec.style
+      ? spec.style.preset
+      : undefined;
+  return typeof preset === "string" &&
+    ICON_STYLE_PRESET_IDS.includes(preset as IconStylePresetId)
+    ? (preset as IconStylePresetId)
+    : "line-icon";
 }
 
-export function parseGraphicStructure(spec: unknown): GenerationJobStructureFilter {
-  const structure = typeof spec === "object" && spec !== null && "style" in spec
-    && typeof spec.style === "object" && spec.style !== null && "graphicStructure" in spec.style ? spec.style.graphicStructure : undefined;
+export function parseGraphicStructure(
+  spec: unknown,
+): GenerationJobStructureFilter {
+  const structure =
+    typeof spec === "object" &&
+    spec !== null &&
+    "style" in spec &&
+    typeof spec.style === "object" &&
+    spec.style !== null &&
+    "graphicStructure" in spec.style
+      ? spec.style.graphicStructure
+      : undefined;
   return structure === "filled" ? "filled" : "linear";
 }
 
-export function parseGenerationJobUsage(spec: unknown): GenerationJobUsageFilter {
-  const purpose = typeof spec === "object" && spec !== null && "purpose" in spec ? spec.purpose : undefined;
+export function parseGenerationJobUsage(
+  spec: unknown,
+): GenerationJobUsageFilter {
+  const purpose =
+    typeof spec === "object" && spec !== null && "purpose" in spec
+      ? spec.purpose
+      : undefined;
   if (purpose === "interaction") return "interaction";
   if (purpose === "app-icon") return "illustration";
-  return parseStylePreset(spec) === "line-icon" ? "interaction" : "illustration";
+  return parseStylePreset(spec) === "line-icon"
+    ? "interaction"
+    : "illustration";
 }
 
 export async function readGenerationJobsRpc(
   client: SupabaseClient,
   signer: SupabaseClient,
-  options: { page: number; usage: GenerationJobUsageFilter; style?: IconStylePresetId; structure?: GenerationJobStructureFilter; status?: GenerationJobStatusFilter },
+  options: {
+    page: number;
+    usage: GenerationJobUsageFilter;
+    style?: IconStylePresetId;
+    structure?: GenerationJobStructureFilter;
+    status?: GenerationJobStatusFilter;
+  },
 ): Promise<GenerationJobListPage> {
   const pageSize = DEFAULT_PAGE_SIZE;
   const { data, error } = await client.rpc("list_generation_jobs_v1", {
@@ -266,7 +398,11 @@ export async function readGenerationJobsRpc(
   });
   if (error) throw error;
   const rows = (data ?? []) as Array<{
-    id: string; status: GenerationJobStatusV2; created_at: string; generation_spec: unknown; total_count: number;
+    id: string;
+    status: GenerationJobStatusV2;
+    created_at: string;
+    generation_spec: unknown;
+    total_count: number;
     subjects: Array<{ name: string; position: number }>;
     preview_assets: ListAssetRow[];
   }>;
@@ -278,17 +414,29 @@ export async function readGenerationJobsRpc(
     const key = `${asset.storage_bucket}:${asset.storage_path}`;
     const cached = signedPreviewCache.get(key);
     if (cached && cached.expiresAt > now) urls.set(asset.id, cached.url);
-    else byBucket.set(asset.storage_bucket, [...(byBucket.get(asset.storage_bucket) ?? []), asset]);
+    else
+      byBucket.set(asset.storage_bucket, [
+        ...(byBucket.get(asset.storage_bucket) ?? []),
+        asset,
+      ]);
   }
-  await Promise.all([...byBucket.entries()].map(async ([bucket, assets]) => {
-    const signed = await signer.storage.from(bucket).createSignedUrls(assets.map((asset) => asset.storage_path), 600);
-    if (signed.error) return;
-    signed.data.forEach((entry, index) => {
-      if (!entry.signedUrl) return;
-      urls.set(assets[index].id, entry.signedUrl);
-      signedPreviewCache.set(`${bucket}:${assets[index].storage_path}`, { url: entry.signedUrl, expiresAt: now + SIGNED_PREVIEW_TTL_MS });
-    });
-  }));
+  await Promise.all(
+    [...byBucket.entries()].map(async ([bucket, assets]) => {
+      const signed = await signer.storage.from(bucket).createSignedUrls(
+        assets.map((asset) => asset.storage_path),
+        600,
+      );
+      if (signed.error) return;
+      signed.data.forEach((entry, index) => {
+        if (!entry.signedUrl) return;
+        urls.set(assets[index].id, entry.signedUrl);
+        signedPreviewCache.set(`${bucket}:${assets[index].storage_path}`, {
+          url: entry.signedUrl,
+          expiresAt: now + SIGNED_PREVIEW_TTL_MS,
+        });
+      });
+    }),
+  );
   const total = Number(rows[0]?.total_count ?? 0);
   return {
     jobs: rows.map((row) => ({
@@ -299,7 +447,12 @@ export async function readGenerationJobsRpc(
       usage: parseGenerationJobUsage(row.generation_spec),
       graphicStructure: parseGraphicStructure(row.generation_spec),
       subjects: row.subjects ?? [],
-      previewUrls: (row.preview_assets ?? []).map((asset) => urls.get(asset.id)).filter((url): url is string => Boolean(url)),
+      previewUrls: (row.preview_assets ?? [])
+        .map((asset) => urls.get(asset.id))
+        .filter((url): url is string => Boolean(url)),
+      previewFallbackUrls: (row.preview_assets ?? [])
+        .filter((asset) => urls.has(asset.id))
+        .map((asset) => `/api/generation/assets/${asset.id}/preview`),
     })),
     page: options.page,
     pageSize,
@@ -308,36 +461,87 @@ export async function readGenerationJobsRpc(
   };
 }
 
-export async function readGenerationJobs(client: SupabaseClient, userId: string, options: { page?: number; pageSize?: number; stylePreset?: IconStylePresetId; statusFilter?: GenerationJobStatusFilter; usageFilter?: GenerationJobUsageFilter; structureFilter?: GenerationJobStructureFilter } = {}, signer: SupabaseClient = client, timings?: GenerationJobListTimings): Promise<GenerationJobListPage> {
+export async function readGenerationJobs(
+  client: SupabaseClient,
+  userId: string,
+  options: {
+    page?: number;
+    pageSize?: number;
+    stylePreset?: IconStylePresetId;
+    statusFilter?: GenerationJobStatusFilter;
+    usageFilter?: GenerationJobUsageFilter;
+    structureFilter?: GenerationJobStructureFilter;
+  } = {},
+  signer: SupabaseClient = client,
+  timings?: GenerationJobListTimings,
+): Promise<GenerationJobListPage> {
   const requestedPage = Math.max(1, Math.floor(options.page ?? 1));
-  const pageSize = Math.max(1, Math.min(48, Math.floor(options.pageSize ?? DEFAULT_PAGE_SIZE)));
-  let query = client.from("generation_jobs")
-    .select("id,status,created_at,generation_spec", { count: "exact" }).eq("user_id", userId)
+  const pageSize = Math.max(
+    1,
+    Math.min(48, Math.floor(options.pageSize ?? DEFAULT_PAGE_SIZE)),
+  );
+  let query = client
+    .from("generation_jobs")
+    .select("id,status,created_at,generation_spec", { count: "exact" })
+    .eq("user_id", userId)
     .not("id", "in", `(${demoJobIds.join(",")})`)
     .order("created_at", { ascending: false });
-  if (options.usageFilter === "interaction") query = query.eq("generation_spec->>purpose", "interaction");
-  else if (options.usageFilter === "illustration") query = query.eq("generation_spec->>purpose", "app-icon");
-  if (options.stylePreset) query = query.eq("generation_spec->style->>preset", options.stylePreset);
-  if (options.structureFilter) query = query.eq("generation_spec->style->>graphicStructure", options.structureFilter);
-  if (options.statusFilter === "in-progress") query = query.in("status", ["queued", "processing"]);
-  else if (options.statusFilter) query = query.eq("status", options.statusFilter);
+  if (options.usageFilter === "interaction")
+    query = query.eq("generation_spec->>purpose", "interaction");
+  else if (options.usageFilter === "illustration")
+    query = query.eq("generation_spec->>purpose", "app-icon");
+  if (options.stylePreset)
+    query = query.eq("generation_spec->style->>preset", options.stylePreset);
+  if (options.structureFilter)
+    query = query.eq(
+      "generation_spec->style->>graphicStructure",
+      options.structureFilter,
+    );
+  if (options.statusFilter === "in-progress")
+    query = query.in("status", ["queued", "processing"]);
+  else if (options.statusFilter)
+    query = query.eq("status", options.statusFilter);
   const from = (requestedPage - 1) * pageSize;
   const jobsStartedAt = performance.now();
-  const { data: jobs, error: jobsError, count } = await query.range(from, from + pageSize - 1);
+  const {
+    data: jobs,
+    error: jobsError,
+    count,
+  } = await query.range(from, from + pageSize - 1);
   if (timings) timings.jobs = Math.round(performance.now() - jobsStartedAt);
   if (jobsError) throw jobsError;
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  if (requestedPage > totalPages && total > 0) return readGenerationJobs(client, userId, { ...options, page: totalPages, pageSize }, signer, timings);
-  if (!jobs?.length) return { jobs: [], page: requestedPage, pageSize, total, totalPages };
+  if (requestedPage > totalPages && total > 0)
+    return readGenerationJobs(
+      client,
+      userId,
+      { ...options, page: totalPages, pageSize },
+      signer,
+      timings,
+    );
+  if (!jobs?.length)
+    return { jobs: [], page: requestedPage, pageSize, total, totalPages };
 
   const subjectsStartedAt = performance.now();
-  const { data: subjects, error: subjectsError } = await client.from("generation_subjects")
-    .select("id,job_id,name,position").in("job_id", jobs.map((job) => job.id)).order("position", { ascending: true });
-  if (timings) timings.subjects = Math.round(performance.now() - subjectsStartedAt);
+  const { data: subjects, error: subjectsError } = await client
+    .from("generation_subjects")
+    .select("id,job_id,name,position")
+    .in(
+      "job_id",
+      jobs.map((job) => job.id),
+    )
+    .order("position", { ascending: true });
+  if (timings)
+    timings.subjects = Math.round(performance.now() - subjectsStartedAt);
   if (subjectsError) throw subjectsError;
   const subjectRows = (subjects ?? []) as ListSubjectRow[];
-  const previewUrls = await readListPreviewUrls(client, signer, subjectRows, timings);
+  const previewUrls = await readListPreviewUrls(
+    client,
+    signer,
+    subjectRows,
+    timings,
+  );
   const subjectsByJobId = new Map<string, ListSubjectRow[]>();
   for (const subject of subjectRows)
     subjectsByJobId.set(subject.job_id, [
@@ -347,11 +551,26 @@ export async function readGenerationJobs(client: SupabaseClient, userId: string,
 
   return {
     jobs: jobs.map((job) => ({
-      id: job.id, status: job.status as GenerationJobStatusV2, createdAt: new Date(job.created_at).toISOString(),
-      stylePreset: parseStylePreset(job.generation_spec), usage: parseGenerationJobUsage(job.generation_spec), graphicStructure: parseGraphicStructure(job.generation_spec),
-      subjects: (subjectsByJobId.get(job.id) ?? []).map((subject) => ({ name: subject.name, position: subject.position })),
-      previewUrls: previewUrls.get(job.id) ?? [],
+      id: job.id,
+      status: job.status as GenerationJobStatusV2,
+      createdAt: new Date(job.created_at).toISOString(),
+      stylePreset: parseStylePreset(job.generation_spec),
+      usage: parseGenerationJobUsage(job.generation_spec),
+      graphicStructure: parseGraphicStructure(job.generation_spec),
+      subjects: (subjectsByJobId.get(job.id) ?? []).map((subject) => ({
+        name: subject.name,
+        position: subject.position,
+      })),
+      previewUrls: (previewUrls.get(job.id) ?? []).map(
+        (preview) => preview.src,
+      ),
+      previewFallbackUrls: (previewUrls.get(job.id) ?? []).map(
+        (preview) => preview.fallbackSrc,
+      ),
     })),
-    page: requestedPage, pageSize, total, totalPages,
+    page: requestedPage,
+    pageSize,
+    total,
+    totalPages,
   };
 }

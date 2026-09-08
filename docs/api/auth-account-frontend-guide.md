@@ -6,7 +6,7 @@
 
 ## 1. 接入原则
 
-- 前端只调用 Bamboo IconGen 同域 `/api/*` 接口，不直接管理 Supabase Session。
+- 前端只调用 EASY DESIGN / ICON GEN 同域 `/api/*` 接口，不直接管理 Supabase Session。
 - 登录状态通过 Supabase SSR 的 HttpOnly Cookie 保存。
 - 浏览器不得读取、拼接或保存认证 Cookie。
 - 同域 `fetch` 默认携带 Cookie；若前后端以后分域，必须重新设计 CORS、Cookie 和 CSRF 策略。
@@ -171,11 +171,29 @@ await apiRequest<{ message: string }>("/api/auth/forgot-password", {
 
 ### 恢复回调
 
-恢复邮件经过 `/auth/callback` 建立临时恢复会话，然后跳转：
+恢复邮件必须使用 `token_hash + type=recovery`，经过 `/auth/callback`
+验证 OTP 并建立临时恢复会话，然后强制跳转：
+
+```text
+https://esdesign.men/auth/callback?token_hash={{ .TokenHash }}&type=recovery
+```
+
+Supabase Dashboard 的 **Authentication → Email Templates → Reset Password**
+模板按钮链接配置为：
+
+```html
+<a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery">Reset password</a>
+```
+
+不要使用只携带 `code` 的 PKCE 恢复链接作为正式模板；它依赖发起请求浏览器中的
+code verifier，在邮件 App、另一浏览器或另一设备打开时会失败。代码回调仅作为旧邮件兼容路径保留。
 
 ```text
 /auth/reset-password
 ```
+
+无效或过期的恢复链接返回 `/auth/forgot-password?error=invalid_recovery_link`，
+页面显示明确提示并允许重新发送，不再回到普通登录页。
 
 ### 设置新密码
 

@@ -13,6 +13,9 @@ test("server logs redact structured secrets and embedded credentials", () => {
     },
   });
   const serialized = JSON.stringify(redacted);
-  assert.doesNotMatch(serialized, /private prompt|private compiled|raw-token|person@example|secret&|abc\.def|sk_abcdefghijklmnop/);
+  assert.doesNotMatch(
+    serialized,
+    /private prompt|private compiled|raw-token|person@example|secret&|abc\.def|sk_abcdefghijklmnop/,
+  );
   assert.match(serialized, /REDACTED/);
 });

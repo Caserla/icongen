@@ -29,7 +29,7 @@ export async function POST(
     const client = createAdminSupabaseClient();
     const { data: job } = await client
       .from("generation_jobs")
-      .select("id")
+      .select("id,generation_spec")
       .eq("id", params.data.jobId)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -38,6 +38,22 @@ export async function POST(
         "GENERATION_JOB_NOT_FOUND",
         "The generation task was not found.",
         404,
+      );
+    const purpose =
+      job.generation_spec &&
+      typeof job.generation_spec === "object" &&
+      "purpose" in job.generation_spec &&
+      job.generation_spec.purpose === "app-icon"
+        ? "app-icon"
+        : "interaction";
+    if (
+      purpose === "app-icon" &&
+      (body.data.format === "svg" || body.data.includeSvg)
+    )
+      return apiError(
+        "SVG_NOT_SUPPORTED",
+        "Illustration icons do not support SVG export.",
+        400,
       );
     const { data: subjects } = await client
       .from("generation_subjects")
@@ -168,10 +184,18 @@ export async function POST(
           .download(asset.storage_path);
         if (file.error) throw file.error;
         if (file.data.size > MAX_SINGLE_ASSET_BYTES)
-          return apiError("DOWNLOAD_ASSET_TOO_LARGE", "One selected icon file is too large to package.", 413);
+          return apiError(
+            "DOWNLOAD_ASSET_TOO_LARGE",
+            "One selected icon file is too large to package.",
+            413,
+          );
         archiveInputBytes += file.data.size;
         if (archiveInputBytes > MAX_ARCHIVE_INPUT_BYTES)
-          return apiError("DOWNLOAD_TOO_LARGE", "The selected files are too large to package together. Download fewer options.", 413);
+          return apiError(
+            "DOWNLOAD_TOO_LARGE",
+            "The selected files are too large to package together. Download fewer options.",
+            413,
+          );
         const suffix =
           asset.format === "svg"
             ? ""
@@ -192,7 +216,7 @@ export async function POST(
     return new Response(archiveBuffer, {
       headers: {
         "content-type": "application/zip",
-        "content-disposition": `attachment; filename="bamboo-icongen-${job.id}.zip"`,
+        "content-disposition": `attachment; filename="easy-design-${job.id}.zip"`,
         "cache-control": "private, no-store",
       },
     });

@@ -18,6 +18,7 @@ test("normalizes internal generated assets to the current page origin", () => {
 });
 
 test("does not rewrite external image provider URLs", () => {
-  const source = "https://example.supabase.co/storage/v1/object/sign/generated-icons/image.png?token=test";
+  const source =
+    "https://example.supabase.co/storage/v1/object/sign/generated-icons/image.png?token=test";
   assert.equal(normalizeGeneratedAssetUrl(source), source);
 });

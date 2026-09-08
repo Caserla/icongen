@@ -11,10 +11,15 @@ type ButtonLinkProps = {
 const variants = {
   primary: "studio-button studio-button--primary",
   secondary: "studio-button studio-button--secondary",
-  quiet: "text-muted hover:bg-surface-muted hover:text-foreground",
+  quiet: "studio-button text-muted hover:bg-[#252525] hover:text-foreground",
 };
 
-export function ButtonLink({ href, children, variant = "primary", className = "" }: ButtonLinkProps) {
+export function ButtonLink({
+  href,
+  children,
+  variant = "primary",
+  className = "",
+}: ButtonLinkProps) {
   return (
     <Link
       href={href}

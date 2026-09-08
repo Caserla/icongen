@@ -1,12 +1,12 @@
 # 单台 4 GB VPS 合并部署操作手册
 
-本文是 Bamboo IconGen 小规模受邀测试环境的逐步操作手册。目标是在一台东京 4 GB VPS 上合并运行 Caddy、Next.js Web/BFF、Icon Worker、Sub2API、Sub2API PostgreSQL 和 Redis；业务认证、数据库和图片资产继续使用 Supabase。
+本文是 EASY DESIGN / ICON GEN 小规模受邀测试环境的逐步操作手册。目标是在一台东京 4 GB VPS 上合并运行 Caddy、Next.js Web/BFF、Icon Worker、Sub2API、Sub2API PostgreSQL 和 Redis；业务认证、数据库和图片资产继续使用 Supabase。
 
 ## 0. 部署前必须关闭的代码缺口
 
 开始购买和配置服务器前，先完成以下两项：
 
-1. 为 Bamboo Monorepo 增加可重复构建的生产镜像定义，至少生成 `web` 和 `worker` 两个镜像/启动目标。
+1. 为 EASY DESIGN / ICON GEN Monorepo 增加可重复构建的生产镜像定义，至少生成 `web` 和 `worker` 两个镜像/启动目标。
 2. 实现生产 Worker 常驻执行器。当前 `startLocalGenerationJob` 在 `NODE_ENV=production` 时不会启动任务；执行器必须原子领取 Supabase `queued` 任务、全局并发 1、支持重启恢复并跳过已完成 variant。
 
 在这两项完成前，可以先配置服务器、域名、Supabase 和 Sub2API，但完整图片生成任务会停在 `queued`。
@@ -32,7 +32,7 @@
 3. Platform 选择 **Linux/Unix**。
 4. Blueprint 选择 **OS Only → Ubuntu 24.04 LTS**；不要选预装 WordPress、Node 或数据库的镜像。
 5. 套餐选择带公网 IPv4 的 **4 GB RAM / 2 vCPU / 约 80 GB SSD** 档。
-6. 实例名称建议为 `bamboo-test-tokyo-01`。
+6. 实例名称建议为 `easy-design-test-tokyo-01`。
 7. 创建后进入 **Networking → Create static IP**，在东京区域创建并绑定到该实例。Lightsail动态公网IP可能在停止/启动后变化，正式DNS应指向静态IP。AWS步骤见[静态IP官方文档](https://docs.aws.amazon.com/lightsail/latest/userguide/lightsail-create-static-ip.html)。
 
 ## 3. 配置 Lightsail 防火墙
@@ -80,11 +80,11 @@ sudo apt install -y ca-certificates curl git jq ufw unattended-upgrades
 配置2–4 GB swap。本例使用4 GB：
 
 ```bash
-sudo fallocate -l 4G /swap-bamboo
-sudo chmod 600 /swap-bamboo
-sudo mkswap /swap-bamboo
-sudo swapon /swap-bamboo
-echo '/swap-bamboo none swap sw 0 0' | sudo tee -a /etc/fstab
+sudo fallocate -l 4G /swap-easy-design
+sudo chmod 600 /swap-easy-design
+sudo mkswap /swap-easy-design
+sudo swapon /swap-easy-design
+echo '/swap-easy-design none swap sw 0 0' | sudo tee -a /etc/fstab
 free -h
 ```
 
@@ -134,25 +134,25 @@ sudo docker compose version
 ## 7. 创建部署目录
 
 ```bash
-sudo install -d -m 0750 -o ubuntu -g ubuntu /opt/bamboo-stack
-cd /opt/bamboo-stack
-mkdir -p bamboo sub2api caddy backups/postgres
+sudo install -d -m 0750 -o ubuntu -g ubuntu /opt/easy-design-stack
+cd /opt/easy-design-stack
+mkdir -p easy-design sub2api caddy backups/postgres
 ```
 
 目录职责：
 
 ```text
-/opt/bamboo-stack/
+/opt/easy-design-stack/
 ├── compose.yml
 ├── .env                 # 仅服务器保存，权限600
-├── bamboo/              # Bamboo源码或构建上下文
+├── easy-design/              # EASY DESIGN / ICON GEN源码或构建上下文
 ├── sub2api/             # Sub2API配置，不携带本地旧数据目录
 ├── caddy/Caddyfile
 ├── caddy/data/          # TLS证书持久化
 └── backups/postgres/    # Sub2API PostgreSQL逻辑备份
 ```
 
-将Bamboo代码通过私有Git仓库克隆到`/opt/bamboo-stack/bamboo`。迁移现有Sub2API部署资料时，只复制审核后的Compose与配置模板；不要直接把本地`.env`、`data/config.yaml`、运行中的`postgres_data`或`redis_data`打包上传。
+将EASY DESIGN / ICON GEN代码通过私有Git仓库克隆到`/opt/easy-design-stack/easy-design`。迁移现有Sub2API部署资料时，只复制审核后的Compose与配置模板；不要直接把本地`.env`、`data/config.yaml`、运行中的`postgres_data`或`redis_data`打包上传。
 
 ## 8. 生成并保存密钥
 
@@ -169,12 +169,12 @@ openssl rand -hex 32
 - `SUB2API_JWT_SECRET`
 - `SUB2API_TOTP_ENCRYPTION_KEY`
 - `SUB2API_ADMIN_PASSWORD`
-- Bamboo专用Sub2API API Key（在Sub2API管理端创建，不复用管理员凭据）
+- EASY DESIGN / ICON GEN专用Sub2API API Key（在Sub2API管理端创建，不复用管理员凭据）
 
-将真实值放入`/opt/bamboo-stack/.env`，然后执行：
+将真实值放入`/opt/easy-design-stack/.env`，然后执行：
 
 ```bash
-chmod 600 /opt/bamboo-stack/.env
+chmod 600 /opt/easy-design-stack/.env
 ```
 
 不要在命令历史、Git、截图、聊天或前端`NEXT_PUBLIC_*`变量中放置这些密钥。
@@ -190,7 +190,7 @@ chmod 600 /opt/bamboo-stack/.env
 - `sub2api-postgres`
 - `sub2api-redis`
 
-所有服务加入同一个私有网络，例如`bamboo-internal`。只有Caddy映射宿主机80/443；如需SSH隧道访问Sub2API管理端，可将Sub2API端口绑定为`127.0.0.1:8080:8080`，禁止使用`0.0.0.0:8080:8080`。
+所有服务加入同一个私有网络，例如`easy-design-internal`。只有Caddy映射宿主机80/443；如需SSH隧道访问Sub2API管理端，可将Sub2API端口绑定为`127.0.0.1:8080:8080`，禁止使用`0.0.0.0:8080:8080`。
 
 4 GB测试参数起点：
 
@@ -217,7 +217,7 @@ IMAGE_MODEL=gpt-image-2
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1
-IMAGE_PROVIDER_API_KEY=<BAMBOO_SUB2API_KEY>
+IMAGE_PROVIDER_API_KEY=<EASY DESIGN / ICON GEN_SUB2API_KEY>
 ICON_SKILL=default-ui-icon
 SUPABASE_URL=<SUPABASE_PROJECT_URL>
 SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
@@ -237,7 +237,7 @@ SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
 
 ## 10. 配置Caddy
 
-`/opt/bamboo-stack/caddy/Caddyfile`使用：
+`/opt/easy-design-stack/caddy/Caddyfile`使用：
 
 ```caddyfile
 example.com, www.example.com {
@@ -273,7 +273,7 @@ ssh -L 18080:127.0.0.1:8080 -i /path/to/lightsail-key.pem ubuntu@<LIGHTSAIL_STAT
 生产镜像和Worker执行器完成后：
 
 ```bash
-cd /opt/bamboo-stack
+cd /opt/easy-design-stack
 sudo docker compose --env-file .env config
 sudo docker compose --env-file .env pull
 sudo docker compose --env-file .env build web worker
@@ -298,8 +298,8 @@ sudo docker compose logs --tail=100 sub2api
 2. 注册、验证邮件、登录、退出和重置密码正常。
 3. Supabase数据库、RLS和Private Bucket正常。
 4. Sub2API健康检查正常；PostgreSQL/Redis端口从公网不可达。
-5. 使用Bamboo专用Key向Sub2API发起一条最小图片请求。
-6. 创建一个仅含1个主体的Bamboo任务，确认状态依次进入`queued → processing → completed`。
+5. 使用EASY DESIGN / ICON GEN专用Key向Sub2API发起一条最小图片请求。
+6. 创建一个仅含1个主体的EASY DESIGN / ICON GEN任务，确认状态依次进入`queued → processing → completed`。
 7. 验证3个variant、预览、单图和ZIP下载。
 8. 重启Worker，确认未完成任务可恢复且不重复扣点/重复生成完成项。
 9. 分别使用中国电信、联通、移动测试首页、注册、生成、进度和下载。
@@ -322,7 +322,7 @@ Supabase按其项目策略备份业务数据。VPS侧必须单独备份Sub2API�
 每天执行PostgreSQL逻辑备份，不直接复制运行中的PostgreSQL数据目录：
 
 ```bash
-cd /opt/bamboo-stack
+cd /opt/easy-design-stack
 sudo docker compose exec -T sub2api-postgres sh -lc 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "backups/postgres/sub2api-$(date +%F).sql.gz"
 ```
 
@@ -332,7 +332,7 @@ sudo docker compose exec -T sub2api-postgres sh -lc 'pg_dump -U "$POSTGRES_USER"
 
 ```bash
 export PRODUCTION_DATABASE_URL='postgresql://...'
-export BACKUP_DIRECTORY='/opt/bamboo-stack/backups/postgres'
+export BACKUP_DIRECTORY='/opt/easy-design-stack/backups/postgres'
 export BACKUP_ENCRYPTION_PASSPHRASE_FILE='/run/secrets/icongen-backup-passphrase'
 ./scripts/backup-postgres-encrypted.sh
 ```
@@ -353,9 +353,9 @@ export ALLOW_DESTRUCTIVE_RESTORE_TEST=yes
 更新前先做数据库备份，然后：
 
 ```bash
-cd /opt/bamboo-stack/bamboo
+cd /opt/easy-design-stack/easy-design
 git fetch --all --prune
-cd /opt/bamboo-stack
+cd /opt/easy-design-stack
 sudo docker compose --env-file .env build web worker
 sudo docker compose --env-file .env up -d
 ```

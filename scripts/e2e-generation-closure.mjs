@@ -133,7 +133,7 @@ for (const style of requestedStyles) {
     const id = await submitJob({
       purpose: "illustration",
       style,
-      subject: `${style} brand mark with the word BAMBOO and a friendly panda`,
+      subject: `${style} brand mark with the word EASY DESIGN / ICON GEN and a friendly panda`,
     });
     const terminal = await waitForJob(id);
     return { id, terminal };

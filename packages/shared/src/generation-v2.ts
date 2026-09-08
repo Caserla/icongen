@@ -263,6 +263,7 @@ export const generationSubjectSchema = z.object({
 });
 export const generationJobResponseSchema = z.object({
   id: z.string().uuid(),
+  purpose: z.enum(["interaction", "app-icon"]).default("interaction"),
   supportsVariantEditing: z.boolean().default(false),
   status: generationJobStatusV2Schema,
   settingsVersion: z.string(),

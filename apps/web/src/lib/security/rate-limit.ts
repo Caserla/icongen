@@ -3,7 +3,10 @@ type Bucket = { count: number; resetAt: number };
 const globalBuckets = globalThis as typeof globalThis & {
   __icongenRateLimitBuckets?: Map<string, Bucket>;
 };
-const buckets = globalBuckets.__icongenRateLimitBuckets ??= new Map<string, Bucket>();
+const buckets = (globalBuckets.__icongenRateLimitBuckets ??= new Map<
+  string,
+  Bucket
+>());
 
 export type RateLimitResult = {
   allowed: boolean;
@@ -22,13 +25,15 @@ export function consumeRateLimit(input: {
   const now = input.now ?? Date.now();
   const key = `${input.namespace}:${input.identity}`;
   const current = buckets.get(key);
-  const bucket = !current || current.resetAt <= now
-    ? { count: 0, resetAt: now + input.windowMs }
-    : current;
+  const bucket =
+    !current || current.resetAt <= now
+      ? { count: 0, resetAt: now + input.windowMs }
+      : current;
   bucket.count += 1;
   buckets.set(key, bucket);
   if (buckets.size > 10_000) {
-    for (const [bucketKey, value] of buckets) if (value.resetAt <= now) buckets.delete(bucketKey);
+    for (const [bucketKey, value] of buckets)
+      if (value.resetAt <= now) buckets.delete(bucketKey);
   }
   return {
     allowed: bucket.count <= input.limit,

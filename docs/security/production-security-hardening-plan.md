@@ -2,7 +2,7 @@
 
 更新时间：2026-09-03
 
-适用范围：Bamboo IconGen 面向海外正式用户、部署到公网云服务器时的 Web、API、Worker、Supabase、Storage、模型网关、支付和运维安全。
+适用范围：EASY DESIGN / ICON GEN 面向海外正式用户、部署到公网云服务器时的 Web、API、Worker、Supabase、Storage、模型网关、支付和运维安全。
 
 ## 1. 标记说明
 

@@ -1,6 +1,6 @@
-# Bamboo IconGen Web
+# EASY DESIGN / ICON GEN Web
 
-Next.js App Router frontend and BFF for the Bamboo IconGen MVP.
+Next.js App Router frontend and BFF for the EASY DESIGN / ICON GEN MVP.
 
 ## Routes
 

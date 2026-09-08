@@ -1,4 +1,4 @@
-# Bamboo IconGen full page and interaction audit
+# EASY DESIGN / ICON GEN full page and interaction audit
 
 Date: 2026-08-20
 

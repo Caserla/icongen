@@ -14,7 +14,7 @@
 - 短期测试使用东京区域月付 VPS；账单应按小时累计并以月套餐价格封顶，具体供应商可替换。
 - 基线规格为 2 vCPU、4 GB RAM、约 80 GB SSD，并配置 2–4 GB swap。
 - 单台 VPS 合并运行 HTTPS 入口、Next.js Web/BFF、独立 Icon Worker、Sub2API、Sub2API 专用 PostgreSQL 和 Redis。
-- Worker 与 Sub2API 使用同一私有容器网络，通过内部 `IMAGE_PROVIDER_BASE_URL` 和 Bamboo 专用 API Key 调用；Sub2API API 端口、PostgreSQL 和 Redis 不直接暴露公网。
+- Worker 与 Sub2API 使用同一私有容器网络，通过内部 `IMAGE_PROVIDER_BASE_URL` 和 EASY DESIGN / ICON GEN 专用 API Key 调用；Sub2API API 端口、PostgreSQL 和 Redis 不直接暴露公网。
 - 继续使用现有 Supabase Auth、PostgreSQL 和私有 Storage。测试项目区域应尽量靠近 VPS 和主要测试用户，避免不必要的跨洲请求。
 - Worker 必须作为独立常驻进程运行，不能依赖开发环境的 BFF 子进程启动器。
 - 测试阶段全局 Worker 并发限制为 1；每个用户仍最多 1 个活动任务；默认将单批主体数运营限制为 1–3 个。
@@ -24,7 +24,7 @@
 ## 不采用的方案
 
 - **1 GB VPS 同时运行 Web、Worker 和 PostgreSQL**：图片处理、ZIP 和构建的内存余量不足，且会重复 Supabase 已提供的能力。
-- **2 GB VPS 合并运行 Bamboo 与 Sub2API**：Next.js、Sharp Worker、Sub2API、PostgreSQL 和 Redis 的内存余量不足。
+- **2 GB VPS 合并运行 EASY DESIGN / ICON GEN 与 Sub2API**：Next.js、Sharp Worker、Sub2API、PostgreSQL 和 Redis 的内存余量不足。
 - **仅部署 Next.js，不部署生产 Worker**：当前生产模式不会启动本地 Worker，任务会停留在 `queued`。
 - **测试阶段直接迁移数据库**：会同时影响 Supabase Auth、RLS、数据库函数和 Storage，不符合短期测试目标。
 

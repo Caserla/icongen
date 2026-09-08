@@ -4,7 +4,7 @@
 更新日期：2026-09-03
 状态：经营方案草案，待真实 `usage` 数据校准后定版
 
-本文定义 Bamboo IconGen 的 Image2 成本核算口径、免费服务边界、首发套餐建议和月度成本控制线。产品与研发在设计点数、重试、细节调整和运营监控时，应同时参考本文与[作品、支付与运营业务模块需求](./works-billing-admin-requirements.md)。
+本文定义 EASY DESIGN / ICON GEN 的 Image2 成本核算口径、免费服务边界、首发套餐建议和月度成本控制线。产品与研发在设计点数、重试、细节调整和运营监控时，应同时参考本文与[作品、支付与运营业务模块需求](./works-billing-admin-requirements.md)。
 
 ## 1. 当前生成单位
 

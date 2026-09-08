@@ -23,14 +23,14 @@ IMAGE_MODEL=gpt-image-2
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=https://your-sub2api-service.example/v1
-IMAGE_PROVIDER_API_KEY=your-bamboo-specific-sub2api-key
+IMAGE_PROVIDER_API_KEY=your-easy-design-specific-sub2api-key
 ```
 
 Local provider testing can use `IMAGE_PROVIDER=mock` without an OpenAI API Key.
 
-The Bamboo test and production topology uses an independently deployed Sub2API service as `IMAGE_PROVIDER_BASE_URL`. The endpoint must implement `POST /v1/images/generations` and return `data[0].b64_json`. Use a Bamboo-specific, revocable and quota-limited gateway key; do not reuse a Sub2API administrator credential.
+The EASY DESIGN / ICON GEN test and production topology uses an independently deployed Sub2API service as `IMAGE_PROVIDER_BASE_URL`. The endpoint must implement `POST /v1/images/generations` and return `data[0].b64_json`. Use a EASY DESIGN / ICON GEN-specific, revocable and quota-limited gateway key; do not reuse a Sub2API administrator credential.
 
-For Sub2API, a listed model alone is insufficient: an enabled upstream account must whitelist `gpt-image-2` and belong to the Bamboo image group (currently `image-2`). If the provider returns `503 No available compatible accounts`, verify that account-to-group mapping before changing the Worker configuration.
+For Sub2API, a listed model alone is insufficient: an enabled upstream account must whitelist `gpt-image-2` and belong to the EASY DESIGN / ICON GEN image group (currently `image-2`). If the provider returns `503 No available compatible accounts`, verify that account-to-group mapping before changing the Worker configuration.
 
 Supported interaction-icon jobs and the `minimal-logo` App-icon preset also derive a sanitized `output.svg` locally with VTracer. Apply Supabase migration `0012_svg_output_assets.sql` before deploying this Worker version. Complex illustrative and 3D presets remain PNG-only.
 

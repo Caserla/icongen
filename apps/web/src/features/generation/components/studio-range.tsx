@@ -42,7 +42,11 @@ export function StudioRange({
             onFocus={(event) => event.currentTarget.select()}
             aria-label={`${label} value`}
           />
-          {suffix}<span>/{max}{suffix}</span>
+          {suffix}
+          <span>
+            /{max}
+            {suffix}
+          </span>
         </span>
       </span>
       <input

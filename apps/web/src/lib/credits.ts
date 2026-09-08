@@ -31,14 +31,19 @@ export type CreditHistoryResponse = {
   totalPages: number;
 };
 
-export function parseCreditHistoryRequest(value: unknown): { kind: CreditHistoryKind; page: number } {
+export function parseCreditHistoryRequest(value: unknown): {
+  kind: CreditHistoryKind;
+  page: number;
+} {
   if (!value || typeof value !== "object") return { kind: "all", page: 1 };
   const input = value as { kind?: unknown; page?: unknown };
   const kind = creditHistoryKinds.includes(input.kind as CreditHistoryKind)
-    ? input.kind as CreditHistoryKind
+    ? (input.kind as CreditHistoryKind)
     : "all";
-  const numericPage = typeof input.page === "number" ? input.page : Number(input.page);
-  const page = Number.isSafeInteger(numericPage) && numericPage > 0 ? numericPage : 1;
+  const numericPage =
+    typeof input.page === "number" ? input.page : Number(input.page);
+  const page =
+    Number.isSafeInteger(numericPage) && numericPage > 0 ? numericPage : 1;
   return { kind, page };
 }
 
@@ -51,5 +56,7 @@ export function normalizeCreditCode(value: string) {
 }
 
 export function isCreditCodeShapeValid(value: string) {
-  return /^BAM[A-Z0-9]{16}$/.test(value.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+  return /^BAM[A-Z0-9]{16}$/.test(
+    value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+  );
 }

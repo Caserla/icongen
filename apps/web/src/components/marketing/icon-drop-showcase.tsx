@@ -8,7 +8,10 @@ const icons = [
   ["neon", "/images/icon-style-previews/neon-hd.png"],
   ["low-poly", "/images/icon-style-previews/low-poly-hd.png"],
   ["clay-3d", "/images/icon-style-previews/clay-3d-hd.png"],
-  ["flat-playful", "/images/icon-style-previews/hd-native/flat-playful-v13.png"],
+  [
+    "flat-playful",
+    "/images/icon-style-previews/hd-native/flat-playful-v13.png",
+  ],
   ["pixel-art", "/images/icon-style-previews/pixel-art-hd.png"],
   ["flat-illustration", "/images/icon-style-previews/flat-illustration-hd.png"],
   ["cute-sticker", "/images/icon-style-previews/cute-sticker-hd.png"],
@@ -30,7 +33,10 @@ export function IconDropShowcase({ locale }: { locale: "en" | "zh" }) {
       frame = 0;
       const rect = section.getBoundingClientRect();
       const travel = Math.max(rect.height - window.innerHeight * 0.45, 1);
-      const progress = Math.min(1, Math.max(0, (window.innerHeight * 0.82 - rect.top) / travel));
+      const progress = Math.min(
+        1,
+        Math.max(0, (window.innerHeight * 0.82 - rect.top) / travel),
+      );
       section.style.setProperty("--drop-progress", progress.toFixed(4));
     };
     const requestUpdate = () => {
@@ -47,11 +53,17 @@ export function IconDropShowcase({ locale }: { locale: "en" | "zh" }) {
   }, []);
 
   return (
-    <section ref={sectionRef} className="icon-drop" aria-labelledby="icon-drop-title">
+    <section
+      ref={sectionRef}
+      className="icon-drop"
+      aria-labelledby="icon-drop-title"
+    >
       <div className="icon-drop__copy">
         <p className="butter-kicker">ICON SYSTEM / 09</p>
         <h2 id="icon-drop-title">
-          {locale === "zh" ? "九种风格，落在同一套系统里。" : "Nine styles. One system that lands together."}
+          {locale === "zh"
+            ? "九种风格，落在同一套系统里。"
+            : "Nine styles. One system that lands together."}
         </h2>
       </div>
       <div className="icon-drop__stage">
@@ -64,7 +76,13 @@ export function IconDropShowcase({ locale }: { locale: "en" | "zh" }) {
             } as CSSProperties;
             return (
               <figure key={name} style={style} className="icon-drop__item">
-                <Image src={src} alt={`${name} ${locale === "zh" ? "品牌图标" : "brand icon"}`} width={512} height={512} sizes="(max-width: 700px) 27vw, 18vw" />
+                <Image
+                  src={src}
+                  alt={`${name} ${locale === "zh" ? "品牌图标" : "brand icon"}`}
+                  width={512}
+                  height={512}
+                  sizes="(max-width: 700px) 27vw, 18vw"
+                />
                 <figcaption>{name.replaceAll("-", " ")}</figcaption>
               </figure>
             );

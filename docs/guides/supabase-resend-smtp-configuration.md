@@ -1,12 +1,12 @@
-# Bamboo IconGen：Supabase + Resend SMTP 配置
+# EASY DESIGN / ICON GEN：Supabase + Resend SMTP 配置
 
-用途：让 Gmail、Outlook、iCloud、QQ、163 及其他正常邮箱能够注册 Bamboo IconGen、接收验证邮件和密码重置邮件。
+用途：让 Gmail、Outlook、iCloud、QQ、163 及其他正常邮箱能够注册 EASY DESIGN / ICON GEN、接收验证邮件和密码重置邮件。
 
 ## 一、需要替换的内容
 
 配置前准备：
 
-- `YOUR_DOMAIN`：Bamboo IconGen 自有域名，例如 `bambooicongen.com`。
+- `YOUR_DOMAIN`：EASY DESIGN / ICON GEN 自有域名，例如 `easy-designicongen.com`。
 - `YOUR_RESEND_API_KEY`：Resend 创建的 API Key，格式通常为 `re_...`。
 
 建议使用独立认证邮件子域名：
@@ -52,7 +52,7 @@ Value: v=DMARC1; p=none;
 在 Resend Dashboard 中进入 `API Keys -> Create API Key`：
 
 ```text
-Name: bamboo-icongen-supabase-auth
+Name: easy-design-supabase-auth
 Permission: Sending access
 Domain: auth.YOUR_DOMAIN（如 Resend 支持限定域名）
 ```
@@ -76,7 +76,7 @@ Enable custom SMTP: ON
 填写以下配置：
 
 ```text
-Sender name: Bamboo IconGen
+Sender name: EASY DESIGN / ICON GEN
 Sender email: no-reply@auth.YOUR_DOMAIN
 Host: smtp.resend.com
 Port: 465
@@ -139,13 +139,13 @@ https://YOUR_DOMAIN/auth/reset-password
 ### 注册验证邮件主题
 
 ```text
-Confirm your Bamboo IconGen account
+Confirm your EASY DESIGN / ICON GEN account
 ```
 
 ### 密码重置邮件主题
 
 ```text
-Reset your Bamboo IconGen password
+Reset your EASY DESIGN / ICON GEN password
 ```
 
 邮件正文应保留 Supabase 模板提供的确认链接变量。不要把验证 URL 写成固定地址。
@@ -181,7 +181,7 @@ Auth emails: 30 emails/hour
 1. 注册接口返回成功。
 2. 能收到验证邮件。
 3. 垃圾邮件箱中没有误判，或可以识别误判原因。
-4. 验证链接返回 Bamboo IconGen。
+4. 验证链接返回 EASY DESIGN / ICON GEN。
 5. 邮箱验证后能够登录。
 6. `profiles` 自动生成。
 7. `credit_accounts.balance` 为 `6`。

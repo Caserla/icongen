@@ -6,9 +6,17 @@ import { startLocalGenerationJob } from "@/features/generation/server/local-gene
 
 const paramsSchema = z.object({ variantId: z.string().uuid() });
 
-export async function POST(_request: Request, context: { params: Promise<{ variantId: string }> }) {
+export async function POST(
+  _request: Request,
+  context: { params: Promise<{ variantId: string }> },
+) {
   const parsed = paramsSchema.safeParse(await context.params);
-  if (!parsed.success) return apiError("INVALID_VARIANT_ID", "The icon variant ID is invalid.", 400);
+  if (!parsed.success)
+    return apiError(
+      "INVALID_VARIANT_ID",
+      "The icon variant ID is invalid.",
+      400,
+    );
 
   try {
     const user = await requireActiveUser();
@@ -28,16 +36,34 @@ export async function POST(_request: Request, context: { params: Promise<{ varia
           503,
         );
       if (retried.error.message.includes("GENERATION_VARIANT_NOT_FOUND"))
-        return apiError("GENERATION_VARIANT_NOT_FOUND", "The icon variant was not found.", 404);
+        return apiError(
+          "GENERATION_VARIANT_NOT_FOUND",
+          "The icon variant was not found.",
+          404,
+        );
       if (retried.error.message.includes("VARIANT_NOT_FAILED"))
-        return apiError("VARIANT_NOT_FAILED", "Only failed icon variants can be regenerated.", 409);
+        return apiError(
+          "VARIANT_NOT_FAILED",
+          "Only failed icon variants can be regenerated.",
+          409,
+        );
       throw retried.error;
     }
 
     const jobId = retried.data as string;
     startLocalGenerationJob(jobId);
-    return Response.json({ jobId, variantId: parsed.data.variantId, status: "queued" }, { status: 202 });
+    return Response.json(
+      { jobId, variantId: parsed.data.variantId, status: "queued" },
+      { status: 202 },
+    );
   } catch (error) {
-    return authErrorResponse(error) ?? apiError("GENERATION_VARIANT_RETRY_FAILED", "This option could not restart. Try again in a moment.", 500);
+    return (
+      authErrorResponse(error) ??
+      apiError(
+        "GENERATION_VARIANT_RETRY_FAILED",
+        "This option could not restart. Try again in a moment.",
+        500,
+      )
+    );
   }
 }

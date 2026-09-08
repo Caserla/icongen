@@ -1,21 +1,21 @@
-# Bamboo IconGen AI 模型与 Skill 配置说明书
+# EASY DESIGN / ICON GEN AI 模型与 Skill 配置说明书
 
 文档版本：1.0  
-适用项目：Bamboo IconGen
-适用对象：Bamboo IconGen 平台开发者、部署人员和管理员
+适用项目：EASY DESIGN / ICON GEN
+适用对象：EASY DESIGN / ICON GEN 平台开发者、部署人员和管理员
 
 ## 1. 文档目的
 
-本文说明如何为 Bamboo IconGen 配置图片生成模型、API Key 和 Icon Skill。
+本文说明如何为 EASY DESIGN / ICON GEN 配置图片生成模型、API Key 和 Icon Skill。
 
-这些配置由 Bamboo IconGen 平台提供方统一管理，不开放给网站普通用户。用户只能提交 UI 图标主体、颜色、背景、图标设计风格及尺寸，不能指定模型、供应商、API Key 或内部 Skill。
+这些配置由 EASY DESIGN / ICON GEN 平台提供方统一管理，不开放给网站普通用户。用户只能提交 UI 图标主体、颜色、背景、图标设计风格及尺寸，不能指定模型、供应商、API Key 或内部 Skill。
 
 ## 2. 配置关系
 
 ```text
 普通用户
   → 提交多个图标主体和结构化设计设置
-  → Bamboo IconGen 后端生成任务
+  → EASY DESIGN / ICON GEN 后端生成任务
   → Worker 读取平台部署配置
   → 调用已启用的 Icon Skill
   → 通过 Sub2API 调用已启用的 AI 图片模型
@@ -31,7 +31,7 @@
 | `IMAGE_QUALITY` | `high` | 平台统一使用的图片生成质量档位 |
 | `IMAGE_SIZE` | `2048x2048` | Image 2 高清母版生成尺寸 |
 | `IMAGE_PROVIDER_BASE_URL` | `http://sub2api:8080/v1` | 合并部署时Sub2API在私有容器网络中的OpenAI-compatible地址 |
-| `IMAGE_PROVIDER_API_KEY` | `sk-...` | 为 Bamboo 单独创建的 Sub2API 服务端 API Key |
+| `IMAGE_PROVIDER_API_KEY` | `sk-...` | 为 EASY DESIGN / ICON GEN 单独创建的 Sub2API 服务端 API Key |
 | `ICON_SKILL` | `default-ui-icon` | 当前启用的 Icon Skill |
 
 ## 3. 申请 OpenAI API Key
@@ -75,7 +75,7 @@ IMAGE_MODEL=gpt-image-2
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1
-IMAGE_PROVIDER_API_KEY=填写Bamboo专用Sub2API密钥
+IMAGE_PROVIDER_API_KEY=填写EASY DESIGN / ICON GEN专用Sub2API密钥
 
 ICON_SKILL=default-ui-icon
 
@@ -93,7 +93,7 @@ GENERATION_MAX_ATTEMPTS=3
 - `IMAGE_QUALITY`：图片生成质量，平台默认使用 `high`，普通用户不能修改。
 - `IMAGE_SIZE`：Image 2 母版尺寸，默认使用 `2048x2048`；64/128/256 等交付尺寸由 Worker 缩放，不写入提示词。
 - `IMAGE_PROVIDER_BASE_URL`：合并部署时为Sub2API在私有容器网络中的OpenAI-compatible `/v1` 地址；不得发送到浏览器。
-- `IMAGE_PROVIDER_API_KEY`：为 Bamboo 单独签发、可撤销且有限额的 Sub2API 密钥。
+- `IMAGE_PROVIDER_API_KEY`：为 EASY DESIGN / ICON GEN 单独签发、可撤销且有限额的 Sub2API 密钥。
 - `ICON_SKILL`：Skill 注册名称。当前内置值为 `default-ui-icon`。
 - `SUPABASE_URL`：Supabase 项目 URL。
 - `SUPABASE_SERVICE_ROLE_KEY`：Supabase Service Role Key，只能在服务端使用。
@@ -106,8 +106,8 @@ GENERATION_MAX_ATTEMPTS=3
 
 1. 至少一个有效的上游图像账号已启用调度。
 2. 该账号的模型白名单包含 `gpt-image-2`。
-3. 该账号已加入 Bamboo 使用的图像分组（当前为 `image-2`）。
-4. Bamboo 的专用 API Key 可访问该分组。
+3. 该账号已加入 EASY DESIGN / ICON GEN 使用的图像分组（当前为 `image-2`）。
+4. EASY DESIGN / ICON GEN 的专用 API Key 可访问该分组。
 
 若 Worker 返回 `503 No available compatible accounts`，优先在 Sub2API 管理端的「账号管理」检查以上四项；不要改用管理员密钥、不要把密钥写入前端，也不要仅因模型列表存在就切换 Worker 模型。
 
@@ -125,7 +125,7 @@ IMAGE_MODEL=gpt-image-2
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1
-IMAGE_PROVIDER_API_KEY=Bamboo专用Sub2API API Key
+IMAGE_PROVIDER_API_KEY=EASY DESIGN / ICON GEN专用Sub2API API Key
 ICON_SKILL=default-ui-icon
 SUPABASE_URL=Supabase项目地址
 SUPABASE_SERVICE_ROLE_KEY=Supabase服务端密钥
@@ -133,7 +133,7 @@ SUPABASE_SERVICE_ROLE_KEY=Supabase服务端密钥
 
 这些变量只能保存在服务端安全环境中，网站用户无法看到或修改。
 
-Sub2API与Bamboo合并在同一VPS，但保持为独立容器服务，并使用自己的PostgreSQL与Redis。其管理入口不得直接公开，数据库与Redis不得暴露公网；Bamboo专用Key应配置额度、并发/速率限制和可独立撤销能力。Worker所调用的端点必须实现`POST /v1/images/generations`并返回`data[0].b64_json`。
+Sub2API与EASY DESIGN / ICON GEN合并在同一VPS，但保持为独立容器服务，并使用自己的PostgreSQL与Redis。其管理入口不得直接公开，数据库与Redis不得暴露公网；EASY DESIGN / ICON GEN专用Key应配置额度、并发/速率限制和可独立撤销能力。Worker所调用的端点必须实现`POST /v1/images/generations`并返回`data[0].b64_json`。
 
 ## 6. 默认 Icon Skill
 
@@ -190,7 +190,7 @@ export const ICON_SKILL_VERSION = "0.8.8";
 
 ### 6.3 Skill 的含义
 
-当前 Icon Skill 是 Bamboo IconGen 后端中的 TypeScript 业务模块，不是安装在 ChatGPT 或 Codex 中的 `SKILL.md`。它会随后台生成服务一起构建和部署。
+当前 Icon Skill 是 EASY DESIGN / ICON GEN 后端中的 TypeScript 业务模块，不是安装在 ChatGPT 或 Codex 中的 `SKILL.md`。它会随后台生成服务一起构建和部署。
 
 ## 7. 修改默认 Skill
 

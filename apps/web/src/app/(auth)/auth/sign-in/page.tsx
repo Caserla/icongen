@@ -1,10 +1,20 @@
 "use client";
-import Link from "next/link";
-import { useState,useSyncExternalStore,type FormEvent } from "react";
-import { Brand } from "@/components/ui/brand";
-import { LanguageSwitch } from "@/components/i18n/language-switch";
-import { useLocale } from "@/components/i18n/locale-provider";
-import { PasswordInput } from "@/components/ui/password-input";
-export default function SignInPage(){const{t}=useLocale();const[busy,setBusy]=useState(false);const[error,setError]=useState("");const search=useSyncExternalStore(subscribeToLocation,getLocationSearch,()=>"");const params=new URLSearchParams(search);const nextPath=params.get("next")??"/create";const authUnavailable=params.get("reason")==="auth_unavailable";async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const form=new FormData(event.currentTarget);const response=await fetch("/api/auth/sign-in",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:form.get("email"),password:form.get("password"),next:nextPath})}).catch(()=>null);if(!response?.ok){setError(t("invalidLogin"));setBusy(false);return}const data=await response.json();window.location.assign(data.next)}const reasonQuery=authUnavailable?"&reason=auth_unavailable":"";return <main className="auth-studio min-h-screen p-3 sm:p-5"><header className="studio-panel mx-auto mb-5 flex min-h-17 max-w-7xl items-center justify-between px-5"><Brand/><LanguageSwitch/></header><div className="studio-panel mx-auto grid min-h-[calc(100vh-128px)] max-w-7xl overflow-hidden lg:grid-cols-2"><section className="flex min-h-[420px] flex-col justify-center bg-[#101010] p-10 text-white sm:p-16"><h1 className="text-5xl font-black leading-[.96] tracking-[-.06em] sm:text-7xl">{t("hero")}</h1><p className="mt-6 max-w-xl leading-7 text-white/65">{t("heroCopy")}</p></section><section className="grid place-items-center p-7 sm:p-14"><form onSubmit={submit} className="w-full max-w-[440px]"><p className="text-xs font-black uppercase tracking-[.14em] text-brand-strong">{t("welcomeBack")}</p><h2 className="display-serif mt-3 text-4xl tracking-[-.045em] sm:text-5xl">{t("signInCreate")}</h2><p className="mt-3 text-sm text-muted">{t("waiting")}</p>{authUnavailable?<p role="status" className="studio-notice mt-5 p-3 text-sm text-muted">{t("authUnavailable")}</p>:null}<Field label={t("email")} name="email" type="email" autoComplete="email"/><div className="mt-5 flex justify-between text-sm font-extrabold"><span>{t("password")}</span><Link href={`/auth/forgot-password?next=${encodeURIComponent(nextPath)}${reasonQuery}`} className="text-xs underline">{t("forgot")}</Link></div><PasswordInput required name="password" autoComplete="current-password" wrapperClassName="mt-2" className="focus-ring min-h-13 w-full rounded-xl border border-border bg-background px-4"/>{error?<p role="alert" className="studio-notice studio-notice--error mt-4 p-3 text-sm">{error}</p>:null}<button disabled={busy||authUnavailable} className="studio-button studio-button--primary focus-ring mt-6 min-h-14 w-full px-5 font-black disabled:cursor-not-allowed disabled:opacity-50">{busy?t("signingIn"):`${t("continue")} →`}</button><p className="mt-8 border-t border-border pt-6 text-center text-sm text-muted">{t("newHere")} <Link href={`/auth/sign-up?next=${encodeURIComponent(nextPath)}${reasonQuery}`} className="font-black text-foreground underline">{t("createAccount")}</Link></p></form></section></div></main>}
-function Field({label,name,type,autoComplete}:{label:string;name:string;type:string;autoComplete:string}){return <label className="mt-8 block text-sm font-extrabold">{label}<input required name={name} type={type} autoComplete={autoComplete} className="focus-ring mt-2 min-h-13 w-full rounded-[6px] border border-border bg-background px-4 font-normal"/></label>}
-function subscribeToLocation(){return()=>undefined}function getLocationSearch(){return window.location.search}
+
+import { AuthHeader } from "@/components/auth/auth-header";
+import { SignInForm } from "@/components/auth/sign-in-form";
+
+export default function SignInPage() {
+  return (
+    <main className="auth-studio h-dvh overflow-hidden">
+      <AuthHeader />
+      <div className="h-[calc(100dvh-72px)] px-3 pb-3 pt-5 sm:px-5 sm:pb-5">
+        <div className="studio-panel mx-auto grid h-full max-w-7xl overflow-hidden lg:grid-cols-2">
+          <section aria-hidden="true" className="hidden bg-[#101010] lg:block" />
+          <section className="grid min-h-0 items-start justify-items-center overflow-y-auto px-7 pb-7 pt-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-14 sm:pb-14 sm:pt-10">
+            <SignInForm />
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}

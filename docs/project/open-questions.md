@@ -6,7 +6,7 @@
 
 ### Q1 平台生产配置
 
-以下不是普通用户配置项，而是 Bamboo IconGen 运营方在服务端配置：
+以下不是普通用户配置项，而是 EASY DESIGN / ICON GEN 运营方在服务端配置：
 
 - OpenAI 项目 API Key、模型访问权限和月度成本上限。
 - 邮件发送域名、发件人名称与邮箱，用于验证邮件和密码重置。
@@ -21,7 +21,7 @@
 
 - 产品正式名称、运营公司或个人主体名称与联系地址。
 - 支持邮箱、隐私请求邮箱。
-- 服务条款、隐私政策、退款政策页面 URL。
+- 服务条款与退款政策页面 URL；隐私协议草案已建立在 `/privacy`，安全政策草案已建立在 `/security`，正式生效前仍需补齐主体和联系信息并完成法律审阅。
 
 建议：开发阶段先使用配置占位符，发布生产环境前必须替换，不在前端代码中散落硬编码。
 
@@ -57,7 +57,7 @@
 ## 4. 已冻结基线摘要
 
 - 短期测试使用东京区域月付4 GB VPS，合并运行Caddy、Next.js Web/BFF、独立Worker、Sub2API及其专用PostgreSQL/Redis；配置2–4 GB swap，Worker和图片网关并发均为1。
-- Worker通过私有容器网络调用同机Sub2API；Sub2API API、PostgreSQL和Redis不暴露公网，Bamboo使用独立限额Key。
+- Worker通过私有容器网络调用同机Sub2API；Sub2API API、PostgreSQL和Redis不暴露公网，EASY DESIGN / ICON GEN使用独立限额Key。
 - 业务数据继续使用Supabase Auth、PostgreSQL和私有Storage；VPS上的PostgreSQL只供Sub2API使用，正式生产托管方案在公开上线前重新评估。
 - 测试期默认只开放每批1–3个主体；开放注册、常态更大批次或出现内存压力时升级到至少8 GB或拆分Sub2API/Worker。
 - 每任务最多 20 个主体；每主体生成 3 个方案并消耗 1 点。

@@ -34,9 +34,9 @@
 
 从对应模板复制成本机或服务器私有文件，例如 `.env.preproduction`。真实密钥不得写入 Git、公开前端变量、文档或日志。
 
-## 当前 1 GB 新加坡预发布部署
+## 当前 4 GB 新加坡预发布部署
 
-使用 `compose.preproduction.yml` 完整运行 Web、单并发 Worker 与 Caddy，并为 1 GB 主机设置保守的容器内存上限。Worker 固定 `GENERATION_CONCURRENCY=1`，优先保证链路完整而不是吞吐量：
+使用 `compose.preproduction.yml` 完整运行 Web、Worker 与 Caddy。2026-09-08 已由 1 GB 快照迁移至 4 GB 实例，默认 Worker 并发恢复为 2，并将 Web、Worker、Caddy 的内存上限分别提高到 768 MB、1 GB、128 MB：
 
 ```bash
 cp .env.preproduction.example .env.preproduction
@@ -49,7 +49,7 @@ curl -I https://esdesign.men | grep -i x-robots-tag
 
 预期健康检查返回 `environment: preproduction`，且 `docker compose ps` 中 Web、Worker、Caddy 均为运行状态。临时占用 80/443 的 Caddy 容器需要在正式 Compose 切换前停止并移除，但应保留 `/data` 证书数据卷。
 
-1 GB 仅作为低流量预发布验收配置：Web 400 MB、Worker 384 MB、Caddy 64 MB，并依赖已配置的 2 GB Swap。出现 Swap 持续增长、Worker OOM、页面明显变慢时应停止生成压测并扩容。扩容后只需提高 Compose 资源限制和 `GENERATION_CONCURRENCY`，业务代码和数据库结构无需迁移。
+当前仍保留 2 GB Swap 作为突发保护，但正常运行不应依赖 Swap。并发暂定为 2 而不是直接升至代码上限 3：先观察 Provider 限流、Worker 峰值内存和生成成功率，再决定是否继续提升。业务代码和 Supabase 数据库结构无需因本次实例扩容迁移。
 
 ## 人机分工
 

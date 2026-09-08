@@ -6,6 +6,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
+import { Toast } from "@/components/ui/toast";
 import {
   applyVariantPreview,
   hasAppliedVariantPreview,
@@ -18,6 +19,7 @@ import {
   isGenerationStalled,
 } from "@/features/generation/generation-timeout";
 import { VariantEditDialog } from "./variant-edit-dialog";
+import { FavoriteToggle } from "./favorites-drawer";
 
 const finished = new Set(["completed", "partial", "failed"]);
 
@@ -205,9 +207,9 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
   const allAvailableSelected =
     available.length > 0 &&
     available.every((variant) => selected.has(variant.id));
-  const supportsSvgDownload = available.some((variant) =>
-    Boolean(variant.vectorUrl),
-  );
+  const supportsSvgDownload =
+    job.purpose === "interaction" &&
+    available.some((variant) => Boolean(variant.vectorUrl));
   const completedVariants = allVariants.filter(
     (variant) =>
       variant.status === "completed" ||
@@ -233,7 +235,8 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     failed: ["生成失败", "Could not generate"],
   };
   function toggle(id: string) {
-    const update = () => setSelected((current) => {
+    const update = () =>
+      setSelected((current) => {
         const next = new Set(current);
         if (next.has(id)) next.delete(id);
         else next.add(id);
@@ -326,7 +329,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `bamboo-icongen-${job.id}.zip`;
+      anchor.download = `easy-design-${job.id}.zip`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -380,7 +383,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex shrink-0 items-center gap-2 rounded-[4px] border border-border bg-background px-3.5 py-2.5 text-sm font-bold transition-colors hover:border-brand hover:text-brand"
+          className="studio-button studio-button--secondary inline-flex shrink-0 items-center gap-2 px-3.5 py-2.5 text-sm font-bold"
         >
           <span aria-hidden="true">←</span>
           {locale === "zh" ? "返回上一页" : "Back"}
@@ -395,10 +398,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
         </div>
       </div>
       {effectiveJobStatus !== "completed" ? (
-        <section
-          aria-live="polite"
-          className="studio-panel p-5"
-        >
+        <section aria-live="polite" className="studio-panel p-5">
           <div className="flex items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-2">
               <span
@@ -420,7 +420,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
           </div>
           <div className="draft-progress mt-3 h-3">
             <div
-              className="h-full bg-brand transition-[width] duration-500"
+              className={`draft-progress__fill h-full bg-brand transition-[width] duration-500 ${finished.has(job.status) ? "" : "is-active"}`}
               style={{ width: `${job.progress.percent}%` }}
             />
           </div>
@@ -474,7 +474,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
             type="button"
             disabled={isRefreshing}
             onClick={() => void refreshStatusNow()}
-            className="focus-ring mt-3 rounded-[4px] border border-current px-3 py-2 font-bold disabled:cursor-wait disabled:opacity-50"
+            className="studio-button studio-button--secondary focus-ring mt-3 px-3 py-2 font-bold disabled:cursor-wait disabled:opacity-50"
           >
             {isRefreshing
               ? locale === "zh"
@@ -488,10 +488,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
       ) : null}
       <div className="space-y-8">
         {job.subjects.map((subject) => (
-          <section
-            key={subject.id}
-            className="studio-panel p-5"
-          >
+          <section key={subject.id} className="studio-panel p-5">
             <div className="mb-4">
               <h2 className="text-xl font-black">{subject.name}</h2>
               {subject.description !== subject.name ? (
@@ -531,12 +528,20 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                         className="studio-selection-check absolute -left-2 -top-2 z-20"
                         style={{ viewTransitionName: "studio-selection-check" }}
                       >
-                        <svg viewBox="0 0 24 24" className="block h-4 w-4 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="square" strokeLinejoin="miter">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="block h-4 w-4 fill-none stroke-current"
+                          strokeWidth="2.2"
+                          strokeLinecap="square"
+                          strokeLinejoin="miter"
+                        >
                           <path d="m4.5 12.5 5 5 10-10" />
                         </svg>
                       </span>
                     ) : null}
-                    <div className="group/preview relative grid aspect-square place-items-center overflow-hidden rounded-[4px] bg-surface-muted">
+                    <div
+                      className={`studio-result-preview group/preview relative grid aspect-square place-items-center overflow-hidden rounded-xl bg-transparent is-${effectiveStatus}`}
+                    >
                       <button
                         type="button"
                         disabled={effectiveStatus !== "completed"}
@@ -567,7 +572,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                           }
                         />
                       ) : effectiveStatus === "completed" ? (
-                        <SkeletonBlock className="h-full w-full rounded-[4px]" />
+                        <SkeletonBlock className="h-full w-full rounded-xl" />
                       ) : (
                         <div className="grid place-items-center gap-3 text-sm text-muted">
                           {effectiveStatus === "processing" ? (
@@ -593,7 +598,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                               alt: `${subject.name} option ${variant.slot}`,
                             })
                           }
-                          className="focus-ring absolute right-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full border border-white/75 bg-[#071732]/75 px-2.5 py-1.5 text-xs font-bold text-white opacity-0 shadow-sm backdrop-blur-md transition-[opacity,transform] duration-150 hover:-translate-y-0.5 group-hover/preview:opacity-100 group-focus-within/preview:opacity-100 focus-visible:opacity-100"
+                          className="focus-ring absolute right-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#151515]/90 px-2.5 py-1.5 text-xs font-bold text-white opacity-0 backdrop-blur-md transition-opacity duration-150 group-hover/preview:opacity-100 group-focus-within/preview:opacity-100 focus-visible:opacity-100"
                         >
                           <svg
                             aria-hidden="true"
@@ -632,7 +637,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                         type="button"
                         disabled={isRetrying}
                         onClick={() => void retryVariant(variant.id)}
-                        className="mt-3 w-full rounded-[4px] border border-brand px-4 py-2.5 text-sm font-bold text-brand disabled:opacity-50"
+                        className="studio-button studio-button--secondary mt-3 w-full px-4 py-2.5 text-sm font-bold disabled:opacity-50"
                       >
                         {isRetrying
                           ? locale === "zh"
@@ -643,18 +648,12 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                             : "Try this option again"}
                       </button>
                     ) : null}
-                    {job.supportsVariantEditing &&
-                    effectiveStatus === "completed" &&
-                    Boolean(previewUrl) ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditing({ variant, subjectName: subject.name })
-                        }
-                        className="mt-3 w-full rounded-[4px] border border-border px-4 py-2.5 text-sm font-bold hover:border-brand hover:text-brand"
-                      >
-                        {locale === "zh" ? "细节调整" : "Adjust details"}
-                      </button>
+                    {effectiveStatus === "completed" && Boolean(previewUrl) ? (
+                      <div className="mt-3 flex items-stretch gap-2 overflow-visible">{job.supportsVariantEditing ? <button
+                          type="button"
+                          onClick={() => setEditing({ variant, subjectName: subject.name })}
+                          className="studio-button studio-button--secondary relative z-[1] min-w-0 basis-0 flex-1 shrink-0 px-4 py-2.5 text-sm font-bold"
+                        >{locale === "zh" ? "细节调整" : "Adjust details"}</button> : <span className="flex-1" />}<FavoriteToggle placement="action" item={{ variantId: variant.id, jobId: job.id, subjectName: subject.name, slot: variant.slot, previewUrl: previewUrl! }} /></div>
                     ) : null}
                   </article>
                 );
@@ -680,7 +679,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                     : new Set(available.map((variant) => variant.id)),
                 )
               }
-              className="rounded-[4px] border border-border px-4 py-3 text-sm font-bold"
+              className="studio-button studio-button--secondary px-4 py-3 text-sm font-bold"
             >
               {allAvailableSelected
                 ? locale === "zh"
@@ -691,7 +690,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                   : "Select all"}
             </button>
             {supportsSvgDownload ? (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-[4px] border border-border bg-white px-3 text-sm font-bold">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-border bg-[#222226] px-3 text-sm font-bold">
                 <input
                   type="checkbox"
                   checked={includeSvg}
@@ -719,12 +718,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
         </div>
       ) : null}
       {message ? (
-        <p
-          role="alert"
-          className="studio-notice studio-notice--error p-4 text-sm"
-        >
-          {message}
-        </p>
+        <Toast message={message} variant="error" />
       ) : null}
       {previewing ? (
         <div
@@ -737,14 +731,14 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
             type="button"
             aria-label={locale === "zh" ? "关闭预览" : "Close preview"}
             onClick={() => setPreviewing(null)}
-            className="absolute inset-0 bg-[#071126]/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70"
           />
           <div className="studio-panel relative z-10 flex max-h-[78vh] w-full max-w-[680px] flex-col overflow-hidden p-3 sm:p-4">
             <button
               type="button"
               aria-label={locale === "zh" ? "关闭预览" : "Close preview"}
               onClick={() => setPreviewing(null)}
-              className="focus-ring absolute right-5 top-5 z-20 grid size-9 place-items-center rounded-full border border-border bg-background/90 text-xl font-bold text-foreground shadow-sm backdrop-blur hover:text-brand"
+              className="focus-ring absolute right-5 top-5 z-20 grid size-9 place-items-center rounded-xl border border-border bg-[#252525] text-xl font-bold text-foreground hover:bg-[#2b2b2b]"
             >
               ×
             </button>
@@ -752,7 +746,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
               src={previewing.src}
               alt={previewing.alt}
               loading="eager"
-              className="aspect-square max-h-[calc(78vh-2rem)] w-full rounded-[5px] bg-surface-muted"
+              className="aspect-square max-h-[calc(78vh-2rem)] w-full rounded-xl bg-transparent"
               imageClassName="object-contain"
             />
           </div>
@@ -766,7 +760,9 @@ function hydrateCachedPreviews(initialJob: GenerationJobV2): GenerationJobV2 {
   if (typeof window === "undefined") return initialJob;
   const cacheKey = `icongen:job-previews:${initialJob.id}`;
   try {
-    const cached = JSON.parse(sessionStorage.getItem(cacheKey) ?? "[]") as unknown;
+    const cached = JSON.parse(
+      sessionStorage.getItem(cacheKey) ?? "[]",
+    ) as unknown;
     if (!Array.isArray(cached)) return initialJob;
     const previewUrls = cached.filter(
       (value): value is string => typeof value === "string" && value.length > 0,
@@ -778,7 +774,11 @@ function hydrateCachedPreviews(initialJob: GenerationJobV2): GenerationJobV2 {
       subjects: initialJob.subjects.map((subject) => ({
         ...subject,
         variants: subject.variants.map((variant) => {
-          if (variant.previewUrl || variant.status !== "completed" || previewIndex >= previewUrls.length) {
+          if (
+            variant.previewUrl ||
+            variant.status !== "completed" ||
+            previewIndex >= previewUrls.length
+          ) {
             return variant;
           }
           return { ...variant, previewUrl: previewUrls[previewIndex++] };

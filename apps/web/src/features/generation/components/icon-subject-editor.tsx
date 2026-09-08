@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AppIconBackgroundSettings } from "./app-icon-background-settings";
-import { MAX_SUBJECT_DESCRIPTION_LENGTH, type ColorSetting } from "@icongen/shared";
+import {
+  MAX_SUBJECT_DESCRIPTION_LENGTH,
+  type ColorSetting,
+} from "@icongen/shared";
 import type {
   BackgroundContainer,
   BackgroundMode,
@@ -45,12 +48,20 @@ export function IconSubjectEditor({
   backgroundColors?: ColorSetting[];
   onBackgroundColorChange?: (index: number, value: ColorSetting) => void;
 }) {
-  const [expandedBackgroundIndex, setExpandedBackgroundIndex] = useState<number | null>(null);
-  const [expandedSubjectIndex, setExpandedSubjectIndex] = useState<number | null>(null);
+  const [expandedBackgroundIndex, setExpandedBackgroundIndex] = useState<
+    number | null
+  >(null);
+  const [expandedSubjectIndex, setExpandedSubjectIndex] = useState<
+    number | null
+  >(null);
   const subjectListRef = useRef<HTMLDivElement>(null);
   const subjectEditorRef = useRef<HTMLDivElement>(null);
   const subjectTriggerRefs = useRef(new Map<number, HTMLButtonElement>());
-  const [subjectEditorRect, setSubjectEditorRect] = useState<{ left: number; top: number; width: number } | null>(null);
+  const [subjectEditorRect, setSubjectEditorRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+  } | null>(null);
   const pendingAddRef = useRef(false);
   useEffect(() => {
     if (!pendingAddRef.current) return;
@@ -66,8 +77,15 @@ export function IconSubjectEditor({
     const positionEditor = () => {
       const trigger = subjectTriggerRefs.current.get(expandedSubjectIndex);
       const rect = trigger?.getBoundingClientRect();
-      const rowRect = trigger?.closest<HTMLElement>(".icon-subject-row")?.getBoundingClientRect();
-      if (rect) setSubjectEditorRect({ left: rect.left, top: rect.top, width: rowRect?.width ?? rect.width });
+      const rowRect = trigger
+        ?.closest<HTMLElement>(".icon-subject-row")
+        ?.getBoundingClientRect();
+      if (rect)
+        setSubjectEditorRect({
+          left: rect.left,
+          top: rect.top,
+          width: rowRect?.width ?? rect.width,
+        });
     };
     positionEditor();
     const closeOnOutsidePointer = (event: PointerEvent) => {
@@ -90,17 +108,21 @@ export function IconSubjectEditor({
   }, [expandedSubjectIndex]);
   const hasBackgroundSettings = Boolean(
     backgroundModes &&
-      onBackgroundModeChange &&
-      backgroundContainers &&
-      onBackgroundContainerChange &&
-      backgroundCornerRadii &&
-      onBackgroundCornerRadiusChange,
+    onBackgroundModeChange &&
+    backgroundContainers &&
+    onBackgroundContainerChange &&
+    backgroundCornerRadii &&
+    onBackgroundCornerRadiusChange,
   );
   return (
     <StudioSideCard
       className="creation-side-card--subjects"
       title={locale === "zh" ? "图标主体" : "Icon subjects"}
-      meta={<span className="icon-subject-count">{values.length} / {maxSubjects}</span>}
+      meta={
+        <span className="icon-subject-count">
+          {values.length} / {maxSubjects}
+        </span>
+      }
     >
       <div ref={subjectListRef} className="icon-subject-list mt-4 space-y-3">
         {values.map((value, index) => (
@@ -121,7 +143,8 @@ export function IconSubjectEditor({
                   onClick={(event) => {
                     setExpandedBackgroundIndex(null);
                     const list = subjectListRef.current;
-                    const row = event.currentTarget.closest<HTMLElement>(".studio-panel");
+                    const row =
+                      event.currentTarget.closest<HTMLElement>(".studio-panel");
                     if (list && row) {
                       const listRect = list.getBoundingClientRect();
                       const rowRect = row.getBoundingClientRect();
@@ -131,16 +154,27 @@ export function IconSubjectEditor({
                       });
                     }
                     const rect = event.currentTarget.getBoundingClientRect();
-                    const rowRect = event.currentTarget.closest<HTMLElement>(".icon-subject-row")?.getBoundingClientRect();
-                    setSubjectEditorRect({ left: rect.left, top: rect.top, width: rowRect?.width ?? rect.width });
+                    const rowRect = event.currentTarget
+                      .closest<HTMLElement>(".icon-subject-row")
+                      ?.getBoundingClientRect();
+                    setSubjectEditorRect({
+                      left: rect.left,
+                      top: rect.top,
+                      width: rowRect?.width ?? rect.width,
+                    });
                     setExpandedSubjectIndex(index);
                   }}
                   className="icon-subject-input min-h-12 w-full px-4 text-left"
                   aria-haspopup="dialog"
                   aria-expanded={expandedSubjectIndex === index}
                 >
-                  <span className={value.trim() ? "" : "icon-subject-placeholder"}>
-                    {value.trim() || (locale === "zh" ? "输入你想生成的图标…" : "Type what you want to create…")}
+                  <span
+                    className={value.trim() ? "" : "icon-subject-placeholder"}
+                  >
+                    {value.trim() ||
+                      (locale === "zh"
+                        ? "输入你想生成的图标…"
+                        : "Type what you want to create…")}
                   </span>
                 </button>
               </div>
@@ -161,7 +195,11 @@ export function IconSubjectEditor({
                       : `Configure background for icon ${index + 1}`
                   }
                 >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5 fill-current"
+                  >
                     <circle cx="5" cy="12" r="1.6" />
                     <circle cx="12" cy="12" r="1.6" />
                     <circle cx="19" cy="12" r="1.6" />
@@ -206,30 +244,36 @@ export function IconSubjectEditor({
       onBackgroundCornerRadiusChange ? (
         <StudioDrawer
           title={locale === "zh" ? "图标背景" : "Icon background"}
-          closeLabel={locale === "zh" ? "关闭背景设置" : "Close background settings"}
+          closeLabel={
+            locale === "zh" ? "关闭背景设置" : "Close background settings"
+          }
           onClose={() => setExpandedBackgroundIndex(null)}
           className={`icon-background-dialog--mode-${backgroundModes[expandedBackgroundIndex] ?? "solid"}${backgroundColors ? " icon-background-dialog--manual-colors" : ""}`}
         >
-            <AppIconBackgroundSettings
-              mode={backgroundModes[expandedBackgroundIndex] ?? "solid"}
-              onModeChange={(mode) => onBackgroundModeChange(expandedBackgroundIndex, mode)}
-              container={backgroundContainers[expandedBackgroundIndex] ?? "rounded-square"}
-              onContainerChange={(container) =>
-                onBackgroundContainerChange(expandedBackgroundIndex, container)
-              }
-              cornerRadius={backgroundCornerRadii[expandedBackgroundIndex] ?? 22}
-              onCornerRadiusChange={(value) =>
-                onBackgroundCornerRadiusChange(expandedBackgroundIndex, value)
-              }
-              locale={locale}
-              color={backgroundColors?.[expandedBackgroundIndex]}
-              onColorChange={
-                onBackgroundColorChange
-                  ? (value) =>
-                      onBackgroundColorChange(expandedBackgroundIndex, value)
-                  : undefined
-              }
-            />
+          <AppIconBackgroundSettings
+            mode={backgroundModes[expandedBackgroundIndex] ?? "solid"}
+            onModeChange={(mode) =>
+              onBackgroundModeChange(expandedBackgroundIndex, mode)
+            }
+            container={
+              backgroundContainers[expandedBackgroundIndex] ?? "rounded-square"
+            }
+            onContainerChange={(container) =>
+              onBackgroundContainerChange(expandedBackgroundIndex, container)
+            }
+            cornerRadius={backgroundCornerRadii[expandedBackgroundIndex] ?? 22}
+            onCornerRadiusChange={(value) =>
+              onBackgroundCornerRadiusChange(expandedBackgroundIndex, value)
+            }
+            locale={locale}
+            color={backgroundColors?.[expandedBackgroundIndex]}
+            onColorChange={
+              onBackgroundColorChange
+                ? (value) =>
+                    onBackgroundColorChange(expandedBackgroundIndex, value)
+                : undefined
+            }
+          />
         </StudioDrawer>
       ) : null}
       <button
@@ -239,7 +283,7 @@ export function IconSubjectEditor({
           onAdd();
         }}
         disabled={values.length >= maxSubjects}
-        className="mt-4 min-h-11 rounded-[4px] border border-brand px-5 text-sm font-bold text-brand disabled:cursor-not-allowed disabled:opacity-40"
+        className="studio-button studio-button--secondary studio-subject-add mt-4 min-h-11 px-5 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
       >
         + {locale === "zh" ? "再添加一个图标" : "Add another icon"}
       </button>
@@ -248,7 +292,11 @@ export function IconSubjectEditor({
             <div
               ref={subjectEditorRef}
               role="dialog"
-              aria-label={locale === "zh" ? `编辑图标主体 ${expandedSubjectIndex + 1}` : `Edit icon subject ${expandedSubjectIndex + 1}`}
+              aria-label={
+                locale === "zh"
+                  ? `编辑图标主体 ${expandedSubjectIndex + 1}`
+                  : `Edit icon subject ${expandedSubjectIndex + 1}`
+              }
               className="icon-subject-editor-popover icon-subject-editor-popover--portal"
               style={subjectEditorRect}
             >
@@ -256,11 +304,20 @@ export function IconSubjectEditor({
                 autoFocus
                 value={values[expandedSubjectIndex] ?? ""}
                 maxLength={MAX_SUBJECT_DESCRIPTION_LENGTH}
-                onChange={(event) => onChange(expandedSubjectIndex, event.target.value)}
-                placeholder={locale === "zh" ? "详细描述你想生成的图标…" : "Describe the icon you want to create…"}
+                onChange={(event) =>
+                  onChange(expandedSubjectIndex, event.target.value)
+                }
+                placeholder={
+                  locale === "zh"
+                    ? "详细描述你想生成的图标…"
+                    : "Describe the icon you want to create…"
+                }
                 className="icon-subject-editor-textarea"
               />
-              <span className="icon-subject-editor-count">{(values[expandedSubjectIndex] ?? "").length} / {MAX_SUBJECT_DESCRIPTION_LENGTH}</span>
+              <span className="icon-subject-editor-count">
+                {(values[expandedSubjectIndex] ?? "").length} /{" "}
+                {MAX_SUBJECT_DESCRIPTION_LENGTH}
+              </span>
             </div>,
             document.body,
           )

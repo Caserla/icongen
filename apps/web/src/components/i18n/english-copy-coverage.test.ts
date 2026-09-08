@@ -39,7 +39,10 @@ test("admin navigation, panels, empty states, and errors provide English copy", 
     "Reload",
     "Generate CD-Keys",
   ]) {
-    assert.ok(`${header}\n${dashboard}`.includes(copy), `missing English admin copy: ${copy}`);
+    assert.ok(
+      `${header}\n${dashboard}`.includes(copy),
+      `missing English admin copy: ${copy}`,
+    );
   }
 });
 

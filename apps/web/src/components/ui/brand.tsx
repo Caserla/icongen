@@ -1,2 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
-export function Brand(){return <Link href="/" aria-label="Bamboo IconGen home" className="focus-ring flex shrink-0 items-center gap-3 rounded-[3px] text-lg font-black tracking-[-.035em]"><span className="grid size-9 shrink-0 place-items-center rounded-[3px] border border-[#172a61] bg-brand text-[#f6edda] shadow-[2px_2px_0_rgba(11,23,50,.24)]"><svg viewBox="0 0 36 36" className="size-7" fill="none" aria-hidden="true"><path d="M13.5 30c2.2-8.4 3.7-16.2 4.3-24" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/><path d="M16.8 14.8c4.8-5.8 9.5-7.3 14.2-4.5-3.8 5-8.5 6.5-14.2 4.5ZM15.8 21c-5.8.2-9.7-2-11.7-6.5 5.7-.6 9.6 1.6 11.7 6.5ZM13.9 25.2c4.9-.4 8.3 1.6 10.2 5.9-5 .4-8.4-1.6-10.2-5.9Z" fill="currentColor"/></svg></span><span className="whitespace-nowrap">BAMBOO <span className="font-medium text-muted">/ ICON GEN</span></span></Link>}
+export function Brand() {
+  return (
+    <Link
+      href="/"
+      aria-label="EASY DESIGN / ICON GEN home"
+      className="focus-ring flex shrink-0 items-center gap-3 rounded-xl text-lg font-black tracking-[-.035em]"
+    >
+      <span className="relative size-9 shrink-0 overflow-hidden rounded-xl">
+        <Image
+          src="/images/easy-design-brand-icon.png"
+          alt=""
+          fill
+          priority
+          sizes="36px"
+          className="object-cover"
+          aria-hidden="true"
+        />
+      </span>
+      <span className="whitespace-nowrap">
+        EASY DESIGN <span className="font-medium text-muted">/ ICON GEN</span>
+      </span>
+    </Link>
+  );
+}

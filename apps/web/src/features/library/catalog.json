@@ -1,0 +1,3554 @@
+[
+  {
+    "id": "essential-sample-1",
+    "nameZh": "钥匙",
+    "nameEn": "Key",
+    "category": "essential",
+    "version": "b997df861a78",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/essential-sample-1/b997df861a78.json"
+  },
+  {
+    "id": "essential-sample-2",
+    "nameZh": "回形针",
+    "nameEn": "Paperclip",
+    "category": "essential",
+    "version": "73069cd713b9",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/essential-sample-2/73069cd713b9.json"
+  },
+  {
+    "id": "essential-sample-3",
+    "nameZh": "书签",
+    "nameEn": "Bookmark",
+    "category": "essential",
+    "version": "0a37f8e798be",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/essential-sample-3/0a37f8e798be.json"
+  },
+  {
+    "id": "files-sample-1",
+    "nameZh": "单页文件",
+    "nameEn": "Document",
+    "category": "files",
+    "version": "d3a25c690d88",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/files-sample-1/d3a25c690d88.json"
+  },
+  {
+    "id": "files-sample-2",
+    "nameZh": "文件叠",
+    "nameEn": "Documents",
+    "category": "files",
+    "version": "dd9f9357074a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/files-sample-2/dd9f9357074a.json"
+  },
+  {
+    "id": "files-sample-3",
+    "nameZh": "活页文件夹",
+    "nameEn": "Binder",
+    "category": "files",
+    "version": "38921090775e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/files-sample-3/38921090775e.json"
+  },
+  {
+    "id": "emoji-sample-1",
+    "nameZh": "笑脸",
+    "nameEn": "Smile",
+    "category": "emoji",
+    "version": "7f7faf600989",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/emoji-sample-1/7f7faf600989.json"
+  },
+  {
+    "id": "emoji-sample-2",
+    "nameZh": "惊讶脸",
+    "nameEn": "Surprised",
+    "category": "emoji",
+    "version": "319ec268ced4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/emoji-sample-2/319ec268ced4.json"
+  },
+  {
+    "id": "emoji-sample-3",
+    "nameZh": "困倦脸",
+    "nameEn": "Sleepy",
+    "category": "emoji",
+    "version": "aa6e35f389aa",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/emoji-sample-3/aa6e35f389aa.json"
+  },
+  {
+    "id": "time-sample-1",
+    "nameZh": "闹钟",
+    "nameEn": "Alarm clock",
+    "category": "time",
+    "version": "d23205648ee3",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/time-sample-1/d23205648ee3.json"
+  },
+  {
+    "id": "time-sample-2",
+    "nameZh": "沙漏",
+    "nameEn": "Hourglass",
+    "category": "time",
+    "version": "187c586f10bb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/time-sample-2/187c586f10bb.json"
+  },
+  {
+    "id": "time-sample-3",
+    "nameZh": "秒表",
+    "nameEn": "Stopwatch",
+    "category": "time",
+    "version": "931fcc00e478",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/time-sample-3/931fcc00e478.json"
+  },
+  {
+    "id": "weather-sample-1",
+    "nameZh": "太阳",
+    "nameEn": "Sun",
+    "category": "weather",
+    "version": "d6aff14bbdf3",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/weather-sample-1/d6aff14bbdf3.json"
+  },
+  {
+    "id": "weather-sample-2",
+    "nameZh": "雨云",
+    "nameEn": "Rain cloud",
+    "category": "weather",
+    "version": "ebb6018cdd12",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/weather-sample-2/ebb6018cdd12.json"
+  },
+  {
+    "id": "weather-sample-3",
+    "nameZh": "雪花",
+    "nameEn": "Snowflake",
+    "category": "weather",
+    "version": "c47614321184",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/weather-sample-3/c47614321184.json"
+  },
+  {
+    "id": "food-sample-1",
+    "nameZh": "苹果",
+    "nameEn": "Apple",
+    "category": "food",
+    "version": "094754141f5b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/food-sample-1/094754141f5b.json"
+  },
+  {
+    "id": "food-sample-2",
+    "nameZh": "胡萝卜",
+    "nameEn": "Carrot",
+    "category": "food",
+    "version": "7a18e81dcef5",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/food-sample-2/7a18e81dcef5.json"
+  },
+  {
+    "id": "food-sample-3",
+    "nameZh": "鸡蛋",
+    "nameEn": "Egg",
+    "category": "food",
+    "version": "fd79f6242b4c",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/food-sample-3/fd79f6242b4c.json"
+  },
+  {
+    "id": "energy-sample-1",
+    "nameZh": "电池",
+    "nameEn": "Battery",
+    "category": "energy",
+    "version": "1a5f637adac5",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/energy-sample-1/1a5f637adac5.json"
+  },
+  {
+    "id": "energy-sample-2",
+    "nameZh": "风力机",
+    "nameEn": "Wind turbine",
+    "category": "energy",
+    "version": "b5b39c74d110",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/energy-sample-2/b5b39c74d110.json"
+  },
+  {
+    "id": "energy-sample-3",
+    "nameZh": "电源插头",
+    "nameEn": "Power plug",
+    "category": "energy",
+    "version": "ad9a323f8836",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/energy-sample-3/ad9a323f8836.json"
+  },
+  {
+    "id": "kitchen-sample-1",
+    "nameZh": "汤锅",
+    "nameEn": "Cooking pot",
+    "category": "kitchen",
+    "version": "e2ce98340674",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/kitchen-sample-1/e2ce98340674.json"
+  },
+  {
+    "id": "kitchen-sample-2",
+    "nameZh": "打蛋器",
+    "nameEn": "Whisk",
+    "category": "kitchen",
+    "version": "9991921ca0aa",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/kitchen-sample-2/9991921ca0aa.json"
+  },
+  {
+    "id": "kitchen-sample-3",
+    "nameZh": "砧板",
+    "nameEn": "Cutting board",
+    "category": "kitchen",
+    "version": "32f0d9a87295",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/kitchen-sample-3/32f0d9a87295.json"
+  },
+  {
+    "id": "archive-sample-1",
+    "nameZh": "档案盒",
+    "nameEn": "Archive box",
+    "category": "archive",
+    "version": "31ca397857eb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/archive-sample-1/31ca397857eb.json"
+  },
+  {
+    "id": "archive-sample-2",
+    "nameZh": "归档柜",
+    "nameEn": "Filing cabinet",
+    "category": "archive",
+    "version": "a0d4edfe33f6",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/archive-sample-2/a0d4edfe33f6.json"
+  },
+  {
+    "id": "archive-sample-3",
+    "nameZh": "文件夹",
+    "nameEn": "Folder",
+    "category": "archive",
+    "version": "146a1f661879",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/archive-sample-3/146a1f661879.json"
+  },
+  {
+    "id": "beauty-sample-1",
+    "nameZh": "口红",
+    "nameEn": "Lipstick",
+    "category": "beauty",
+    "version": "ddb0933cef43",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/beauty-sample-1/ddb0933cef43.json"
+  },
+  {
+    "id": "beauty-sample-2",
+    "nameZh": "香水瓶",
+    "nameEn": "Perfume bottle",
+    "category": "beauty",
+    "version": "e72363eaeed6",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/beauty-sample-2/e72363eaeed6.json"
+  },
+  {
+    "id": "beauty-sample-3",
+    "nameZh": "化妆刷",
+    "nameEn": "Makeup brush",
+    "category": "beauty",
+    "version": "1ebc900b67af",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/beauty-sample-3/1ebc900b67af.json"
+  },
+  {
+    "id": "booking-sample-1",
+    "nameZh": "日历",
+    "nameEn": "Calendar",
+    "category": "booking",
+    "version": "1313490aa2ca",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/booking-sample-1/1313490aa2ca.json"
+  },
+  {
+    "id": "booking-sample-2",
+    "nameZh": "预约票券",
+    "nameEn": "Reservation ticket",
+    "category": "booking",
+    "version": "0b272fe748a4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/booking-sample-2/0b272fe748a4.json"
+  },
+  {
+    "id": "booking-sample-3",
+    "nameZh": "酒店门牌",
+    "nameEn": "Door hanger",
+    "category": "booking",
+    "version": "11842043d6f4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/booking-sample-3/11842043d6f4.json"
+  },
+  {
+    "id": "computers-devices-electronics-sample-1",
+    "nameZh": "笔记本电脑",
+    "nameEn": "Laptop",
+    "category": "computers-devices-electronics",
+    "version": "9d988ae22daa",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/computers-devices-electronics-sample-1/9d988ae22daa.json"
+  },
+  {
+    "id": "computers-devices-electronics-sample-2",
+    "nameZh": "显示器",
+    "nameEn": "Monitor",
+    "category": "computers-devices-electronics",
+    "version": "b2e3fe1f3bb2",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/computers-devices-electronics-sample-2/b2e3fe1f3bb2.json"
+  },
+  {
+    "id": "computers-devices-electronics-sample-3",
+    "nameZh": "电脑鼠标",
+    "nameEn": "Mouse",
+    "category": "computers-devices-electronics",
+    "version": "d62fbc51eddf",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/computers-devices-electronics-sample-3/d62fbc51eddf.json"
+  },
+  {
+    "id": "email-sample-1",
+    "nameZh": "闭合信封",
+    "nameEn": "Closed envelope",
+    "category": "email",
+    "version": "a7a0a6319864",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/email-sample-1/a7a0a6319864.json"
+  },
+  {
+    "id": "email-sample-2",
+    "nameZh": "打开信封",
+    "nameEn": "Open envelope",
+    "category": "email",
+    "version": "b4a2a5bcf439",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/email-sample-2/b4a2a5bcf439.json"
+  },
+  {
+    "id": "email-sample-3",
+    "nameZh": "立柱邮箱",
+    "nameEn": "Mailbox",
+    "category": "email",
+    "version": "476e27558ac0",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/email-sample-3/476e27558ac0.json"
+  },
+  {
+    "id": "medical-sample-1",
+    "nameZh": "听诊器",
+    "nameEn": "Stethoscope",
+    "category": "medical",
+    "version": "c5a029f30cd4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/medical-sample-1/c5a029f30cd4.json"
+  },
+  {
+    "id": "medical-sample-2",
+    "nameZh": "药丸",
+    "nameEn": "Pill",
+    "category": "medical",
+    "version": "59d54c8d55ce",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/medical-sample-2/59d54c8d55ce.json"
+  },
+  {
+    "id": "medical-sample-3",
+    "nameZh": "急救箱",
+    "nameEn": "First aid kit",
+    "category": "medical",
+    "version": "dae0765fa75b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/medical-sample-3/dae0765fa75b.json"
+  },
+  {
+    "id": "security-sample-1",
+    "nameZh": "挂锁",
+    "nameEn": "Padlock",
+    "category": "security",
+    "version": "15c9a9945077",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/security-sample-1/15c9a9945077.json"
+  },
+  {
+    "id": "security-sample-2",
+    "nameZh": "盾牌",
+    "nameEn": "Shield",
+    "category": "security",
+    "version": "b1ca09b9fd7e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/security-sample-2/b1ca09b9fd7e.json"
+  },
+  {
+    "id": "security-sample-3",
+    "nameZh": "监控摄像头",
+    "nameEn": "Security camera",
+    "category": "security",
+    "version": "8218d5ad7e72",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/security-sample-3/8218d5ad7e72.json"
+  },
+  {
+    "id": "location-sample-1",
+    "nameZh": "地图图钉",
+    "nameEn": "Map pin",
+    "category": "location",
+    "version": "4581d5e54289",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/location-sample-1/4581d5e54289.json"
+  },
+  {
+    "id": "location-sample-2",
+    "nameZh": "折叠地图",
+    "nameEn": "Folded map",
+    "category": "location",
+    "version": "61809684eccb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/location-sample-2/61809684eccb.json"
+  },
+  {
+    "id": "location-sample-3",
+    "nameZh": "路标",
+    "nameEn": "Signpost",
+    "category": "location",
+    "version": "6c201b6390b3",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "url": "/library/samples/location-sample-3/6c201b6390b3.json"
+  },
+  {
+    "id": "home-sample-1",
+    "nameZh": "房屋",
+    "nameEn": "House",
+    "category": "home",
+    "version": "6102760a2ffe",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/home-sample-1/6102760a2ffe.json"
+  },
+  {
+    "id": "home-sample-2",
+    "nameZh": "门",
+    "nameEn": "Door",
+    "category": "home",
+    "version": "1e51a859e95e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/home-sample-2/1e51a859e95e.json"
+  },
+  {
+    "id": "home-sample-3",
+    "nameZh": "窗户",
+    "nameEn": "Window",
+    "category": "home",
+    "version": "bfc5d2d81662",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/home-sample-3/bfc5d2d81662.json"
+  },
+  {
+    "id": "clothes-sample-1",
+    "nameZh": "短袖衫",
+    "nameEn": "T-shirt",
+    "category": "clothes",
+    "version": "14f9ff8c4f95",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/clothes-sample-1/14f9ff8c4f95.json"
+  },
+  {
+    "id": "clothes-sample-2",
+    "nameZh": "连衣裙",
+    "nameEn": "Dress",
+    "category": "clothes",
+    "version": "b997073e09ff",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/clothes-sample-2/b997073e09ff.json"
+  },
+  {
+    "id": "clothes-sample-3",
+    "nameZh": "外套",
+    "nameEn": "Coat",
+    "category": "clothes",
+    "version": "9ebfeb3aa810",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/clothes-sample-3/9ebfeb3aa810.json"
+  },
+  {
+    "id": "stationery-sample-1",
+    "nameZh": "橡皮",
+    "nameEn": "Eraser",
+    "category": "stationery",
+    "version": "517afa12a56b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/stationery-sample-1/517afa12a56b.json"
+  },
+  {
+    "id": "stationery-sample-2",
+    "nameZh": "铅笔",
+    "nameEn": "Pencil",
+    "category": "stationery",
+    "version": "42a187d4348c",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/stationery-sample-2/42a187d4348c.json"
+  },
+  {
+    "id": "stationery-sample-3",
+    "nameZh": "订书机",
+    "nameEn": "Stapler",
+    "category": "stationery",
+    "version": "727ab453f7d2",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/stationery-sample-3/727ab453f7d2.json"
+  },
+  {
+    "id": "design-sample-1",
+    "nameZh": "调色盘",
+    "nameEn": "Palette",
+    "category": "design",
+    "version": "d622ce37ad1f",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/design-sample-1/d622ce37ad1f.json"
+  },
+  {
+    "id": "design-sample-2",
+    "nameZh": "色卡",
+    "nameEn": "Color swatches",
+    "category": "design",
+    "version": "f9b36a8e5820",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/design-sample-2/f9b36a8e5820.json"
+  },
+  {
+    "id": "design-sample-3",
+    "nameZh": "画架",
+    "nameEn": "Easel",
+    "category": "design",
+    "version": "51fcb7b8a49f",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/design-sample-3/51fcb7b8a49f.json"
+  },
+  {
+    "id": "school-learning-sample-1",
+    "nameZh": "书本",
+    "nameEn": "Book",
+    "category": "school-learning",
+    "version": "79ee7f273f77",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/school-learning-sample-1/79ee7f273f77.json"
+  },
+  {
+    "id": "school-learning-sample-2",
+    "nameZh": "毕业帽",
+    "nameEn": "Graduation cap",
+    "category": "school-learning",
+    "version": "3d929ae89c0a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/school-learning-sample-2/3d929ae89c0a.json"
+  },
+  {
+    "id": "school-learning-sample-3",
+    "nameZh": "黑板",
+    "nameEn": "Blackboard",
+    "category": "school-learning",
+    "version": "9e7e5fa6590b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/school-learning-sample-3/9e7e5fa6590b.json"
+  },
+  {
+    "id": "money-sample-1",
+    "nameZh": "纸币",
+    "nameEn": "Banknote",
+    "category": "money",
+    "version": "d0ea22802567",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/money-sample-1/d0ea22802567.json"
+  },
+  {
+    "id": "money-sample-2",
+    "nameZh": "硬币堆",
+    "nameEn": "Coin stack",
+    "category": "money",
+    "version": "c07caef25f6e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/money-sample-2/c07caef25f6e.json"
+  },
+  {
+    "id": "money-sample-3",
+    "nameZh": "存钱罐",
+    "nameEn": "Piggy bank",
+    "category": "money",
+    "version": "1f11ce9dbf66",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/money-sample-3/1f11ce9dbf66.json"
+  },
+  {
+    "id": "shop-sample-1",
+    "nameZh": "购物袋",
+    "nameEn": "Shopping bag",
+    "category": "shop",
+    "version": "0c7dee938ed5",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/shop-sample-1/0c7dee938ed5.json"
+  },
+  {
+    "id": "shop-sample-2",
+    "nameZh": "购物车",
+    "nameEn": "Shopping cart",
+    "category": "shop",
+    "version": "b5921ead84cb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/shop-sample-2/b5921ead84cb.json"
+  },
+  {
+    "id": "shop-sample-3",
+    "nameZh": "店铺门面",
+    "nameEn": "Storefront",
+    "category": "shop",
+    "version": "8b0d910fe2a0",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/shop-sample-3/8b0d910fe2a0.json"
+  },
+  {
+    "id": "notifications-sample-1",
+    "nameZh": "通知铃",
+    "nameEn": "Notification bell",
+    "category": "notifications",
+    "version": "87bf377b15fa",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/notifications-sample-1/87bf377b15fa.json"
+  },
+  {
+    "id": "notifications-sample-2",
+    "nameZh": "扩音器",
+    "nameEn": "Megaphone",
+    "category": "notifications",
+    "version": "2ca3d3abfaa2",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/notifications-sample-2/2ca3d3abfaa2.json"
+  },
+  {
+    "id": "notifications-sample-3",
+    "nameZh": "警报灯",
+    "nameEn": "Alarm light",
+    "category": "notifications",
+    "version": "e91e1a8d1e15",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-003-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/notifications-sample-3/e91e1a8d1e15.json"
+  },
+  {
+    "id": "animals-sample-1",
+    "nameZh": "兔子头像",
+    "nameEn": "Rabbit",
+    "category": "animals",
+    "version": "aba9d1855f8b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/animals-sample-1/aba9d1855f8b.json"
+  },
+  {
+    "id": "animals-sample-2",
+    "nameZh": "鲸鱼",
+    "nameEn": "Whale",
+    "category": "animals",
+    "version": "974a30fbce7c",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/animals-sample-2/974a30fbce7c.json"
+  },
+  {
+    "id": "animals-sample-3",
+    "nameZh": "蝴蝶",
+    "nameEn": "Butterfly",
+    "category": "animals",
+    "version": "e9907361097f",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/animals-sample-3/e9907361097f.json"
+  },
+  {
+    "id": "baby-sample-1",
+    "nameZh": "婴儿车",
+    "nameEn": "Stroller",
+    "category": "baby",
+    "version": "9a78fc9a817f",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/baby-sample-1/9a78fc9a817f.json"
+  },
+  {
+    "id": "baby-sample-2",
+    "nameZh": "婴儿摇铃",
+    "nameEn": "Baby rattle",
+    "category": "baby",
+    "version": "defab04ede6f",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/baby-sample-2/defab04ede6f.json"
+  },
+  {
+    "id": "baby-sample-3",
+    "nameZh": "围兜",
+    "nameEn": "Bib",
+    "category": "baby",
+    "version": "496b5e3ff3c5",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/baby-sample-3/496b5e3ff3c5.json"
+  },
+  {
+    "id": "building-sample-1",
+    "nameZh": "住宅楼",
+    "nameEn": "Residential building",
+    "category": "building",
+    "version": "140c59240f0a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/building-sample-1/140c59240f0a.json"
+  },
+  {
+    "id": "building-sample-2",
+    "nameZh": "工厂",
+    "nameEn": "Factory",
+    "category": "building",
+    "version": "799a340d928d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/building-sample-2/799a340d928d.json"
+  },
+  {
+    "id": "building-sample-3",
+    "nameZh": "仓库",
+    "nameEn": "Warehouse",
+    "category": "building",
+    "version": "212da4706a58",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/building-sample-3/212da4706a58.json"
+  },
+  {
+    "id": "business-sample-1",
+    "nameZh": "公文包",
+    "nameEn": "Briefcase",
+    "category": "business",
+    "version": "fd76ae9c36ce",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/business-sample-1/fd76ae9c36ce.json"
+  },
+  {
+    "id": "business-sample-2",
+    "nameZh": "演讲台",
+    "nameEn": "Lectern",
+    "category": "business",
+    "version": "a3eca4e26c3b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/business-sample-2/a3eca4e26c3b.json"
+  },
+  {
+    "id": "business-sample-3",
+    "nameZh": "名片夹",
+    "nameEn": "Business card holder",
+    "category": "business",
+    "version": "4ce56636ffc2",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/business-sample-3/4ce56636ffc2.json"
+  },
+  {
+    "id": "call-sample-1",
+    "nameZh": "电话听筒",
+    "nameEn": "Telephone receiver",
+    "category": "call",
+    "version": "f47221b76b24",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/call-sample-1/f47221b76b24.json"
+  },
+  {
+    "id": "call-sample-2",
+    "nameZh": "桌面电话",
+    "nameEn": "Desk phone",
+    "category": "call",
+    "version": "aa53375d78d5",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/call-sample-2/aa53375d78d5.json"
+  },
+  {
+    "id": "call-sample-3",
+    "nameZh": "对讲机",
+    "nameEn": "Walkie-talkie",
+    "category": "call",
+    "version": "f1ebf31deff7",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/call-sample-3/f1ebf31deff7.json"
+  },
+  {
+    "id": "car-sample-1",
+    "nameZh": "轿车正面",
+    "nameEn": "Car",
+    "category": "car",
+    "version": "fbf76f5c75a4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/car-sample-1/fbf76f5c75a4.json"
+  },
+  {
+    "id": "car-sample-2",
+    "nameZh": "面包车侧面",
+    "nameEn": "Van",
+    "category": "car",
+    "version": "5f466a9b6103",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/car-sample-2/5f466a9b6103.json"
+  },
+  {
+    "id": "car-sample-3",
+    "nameZh": "皮卡侧面",
+    "nameEn": "Pickup truck",
+    "category": "car",
+    "version": "b338e608bf10",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/car-sample-3/b338e608bf10.json"
+  },
+  {
+    "id": "car-service-sample-1",
+    "nameZh": "汽车轮胎",
+    "nameEn": "Car tire",
+    "category": "car-service",
+    "version": "5b61b93ab3b4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/car-service-sample-1/5b61b93ab3b4.json"
+  },
+  {
+    "id": "car-service-sample-2",
+    "nameZh": "汽车千斤顶",
+    "nameEn": "Car jack",
+    "category": "car-service",
+    "version": "6273560a739b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/car-service-sample-2/6273560a739b.json"
+  },
+  {
+    "id": "car-service-sample-3",
+    "nameZh": "加油枪",
+    "nameEn": "Fuel nozzle",
+    "category": "car-service",
+    "version": "3bc76d4ddf52",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/car-service-sample-3/3bc76d4ddf52.json"
+  },
+  {
+    "id": "casino-sample-1",
+    "nameZh": "骰子",
+    "nameEn": "Dice",
+    "category": "casino",
+    "version": "9a2f57b0a4ff",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/casino-sample-1/9a2f57b0a4ff.json"
+  },
+  {
+    "id": "casino-sample-2",
+    "nameZh": "筹码",
+    "nameEn": "Casino chips",
+    "category": "casino",
+    "version": "e769eabe019c",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/casino-sample-2/e769eabe019c.json"
+  },
+  {
+    "id": "casino-sample-3",
+    "nameZh": "扑克牌",
+    "nameEn": "Playing cards",
+    "category": "casino",
+    "version": "c7fc98acb50d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-004-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/casino-sample-3/c7fc98acb50d.json"
+  },
+  {
+    "id": "christmas-sample-1",
+    "nameZh": "圣诞树",
+    "nameEn": "Christmas tree",
+    "category": "christmas",
+    "version": "78b299d6dc47",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/christmas-sample-1/78b299d6dc47.json"
+  },
+  {
+    "id": "christmas-sample-2",
+    "nameZh": "圣诞袜",
+    "nameEn": "Christmas stocking",
+    "category": "christmas",
+    "version": "dc83de257fb3",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/christmas-sample-2/dc83de257fb3.json"
+  },
+  {
+    "id": "christmas-sample-3",
+    "nameZh": "礼物盒",
+    "nameEn": "Gift box",
+    "category": "christmas",
+    "version": "cf21fb06b952",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/christmas-sample-3/cf21fb06b952.json"
+  },
+  {
+    "id": "clothes2-sample-1",
+    "nameZh": "围巾",
+    "nameEn": "Scarf",
+    "category": "clothes2",
+    "version": "4cd480908611",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/clothes2-sample-1/4cd480908611.json"
+  },
+  {
+    "id": "clothes2-sample-2",
+    "nameZh": "针织帽",
+    "nameEn": "Knit hat",
+    "category": "clothes2",
+    "version": "eb6827c8c64e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/clothes2-sample-2/eb6827c8c64e.json"
+  },
+  {
+    "id": "clothes2-sample-3",
+    "nameZh": "连指手套",
+    "nameEn": "Mittens",
+    "category": "clothes2",
+    "version": "5e268087ac30",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/clothes2-sample-3/5e268087ac30.json"
+  },
+  {
+    "id": "coffe-sample-1",
+    "nameZh": "咖啡杯碟",
+    "nameEn": "Coffee cup",
+    "category": "coffe",
+    "version": "7a44aaadcc2e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/coffe-sample-1/7a44aaadcc2e.json"
+  },
+  {
+    "id": "coffe-sample-2",
+    "nameZh": "摩卡壶",
+    "nameEn": "Moka pot",
+    "category": "coffe",
+    "version": "4b776691c356",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/coffe-sample-2/4b776691c356.json"
+  },
+  {
+    "id": "coffe-sample-3",
+    "nameZh": "手冲滤杯",
+    "nameEn": "Coffee dripper",
+    "category": "coffe",
+    "version": "553bdfbb4b99",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/coffe-sample-3/553bdfbb4b99.json"
+  },
+  {
+    "id": "furniture-sample-1",
+    "nameZh": "扶手椅",
+    "nameEn": "Armchair",
+    "category": "furniture",
+    "version": "7decfca72186",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/furniture-sample-1/7decfca72186.json"
+  },
+  {
+    "id": "furniture-sample-2",
+    "nameZh": "双人沙发",
+    "nameEn": "Sofa",
+    "category": "furniture",
+    "version": "c4dc3c0d663b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/furniture-sample-2/c4dc3c0d663b.json"
+  },
+  {
+    "id": "furniture-sample-3",
+    "nameZh": "圆餐桌",
+    "nameEn": "Dining table",
+    "category": "furniture",
+    "version": "1bbb3128d4d2",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/furniture-sample-3/1bbb3128d4d2.json"
+  },
+  {
+    "id": "game-sample-1",
+    "nameZh": "游戏手柄",
+    "nameEn": "Game controller",
+    "category": "game",
+    "version": "3161794f95b4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/game-sample-1/3161794f95b4.json"
+  },
+  {
+    "id": "game-sample-2",
+    "nameZh": "国际象棋兵",
+    "nameEn": "Chess pawn",
+    "category": "game",
+    "version": "a832ad2a4273",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/game-sample-2/a832ad2a4273.json"
+  },
+  {
+    "id": "game-sample-3",
+    "nameZh": "游戏摇杆",
+    "nameEn": "Joystick",
+    "category": "game",
+    "version": "ec22cc62c6b6",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/game-sample-3/ec22cc62c6b6.json"
+  },
+  {
+    "id": "nature-sample-1",
+    "nameZh": "树叶",
+    "nameEn": "Leaf",
+    "category": "nature",
+    "version": "8f43b5403b86",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/nature-sample-1/8f43b5403b86.json"
+  },
+  {
+    "id": "nature-sample-2",
+    "nameZh": "双峰山",
+    "nameEn": "Mountain peaks",
+    "category": "nature",
+    "version": "7e04e0e2194d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/nature-sample-2/7e04e0e2194d.json"
+  },
+  {
+    "id": "nature-sample-3",
+    "nameZh": "五瓣花",
+    "nameEn": "Flower",
+    "category": "nature",
+    "version": "37627341d8d3",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/nature-sample-3/37627341d8d3.json"
+  },
+  {
+    "id": "pet-sample-1",
+    "nameZh": "狗头像",
+    "nameEn": "Dog",
+    "category": "pet",
+    "version": "ce1ac7002fef",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/pet-sample-1/ce1ac7002fef.json"
+  },
+  {
+    "id": "pet-sample-2",
+    "nameZh": "宠物项圈",
+    "nameEn": "Pet collar",
+    "category": "pet",
+    "version": "2261e8671182",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/pet-sample-2/2261e8671182.json"
+  },
+  {
+    "id": "pet-sample-3",
+    "nameZh": "宠物食盆",
+    "nameEn": "Pet bowl",
+    "category": "pet",
+    "version": "8cab3859322d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/pet-sample-3/8cab3859322d.json"
+  },
+  {
+    "id": "travel-sample-1",
+    "nameZh": "拉杆行李箱",
+    "nameEn": "Suitcase",
+    "category": "travel",
+    "version": "82d5c9700f41",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/travel-sample-1/82d5c9700f41.json"
+  },
+  {
+    "id": "travel-sample-2",
+    "nameZh": "护照",
+    "nameEn": "Passport",
+    "category": "travel",
+    "version": "9af423b1a135",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/travel-sample-2/9af423b1a135.json"
+  },
+  {
+    "id": "travel-sample-3",
+    "nameZh": "露营帐篷",
+    "nameEn": "Tent",
+    "category": "travel",
+    "version": "a31d6d388981",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-005-r321-release",
+    "sourceStatus": "released",
+    "url": "/library/samples/travel-sample-3/a31d6d388981.json"
+  },
+  {
+    "id": "delivery-sample-1",
+    "nameZh": "运输纸箱",
+    "nameEn": "Shipping box",
+    "category": "delivery",
+    "version": "174bd62b4c2d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/delivery-sample-1/174bd62b4c2d.json"
+  },
+  {
+    "id": "delivery-sample-2",
+    "nameZh": "送货卡车",
+    "nameEn": "Delivery truck",
+    "category": "delivery",
+    "version": "d987aa78724d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/delivery-sample-2/d987aa78724d.json"
+  },
+  {
+    "id": "delivery-sample-3",
+    "nameZh": "搬运手推车",
+    "nameEn": "Hand truck",
+    "category": "delivery",
+    "version": "3fbd7ffa4929",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/delivery-sample-3/3fbd7ffa4929.json"
+  },
+  {
+    "id": "design-tools-sample-1",
+    "nameZh": "钢笔尖",
+    "nameEn": "Pen nib",
+    "category": "design-tools",
+    "version": "a17c62695cce",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/design-tools-sample-1/a17c62695cce.json"
+  },
+  {
+    "id": "design-tools-sample-2",
+    "nameZh": "绘图圆规",
+    "nameEn": "Drawing compass",
+    "category": "design-tools",
+    "version": "2871e465028e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/design-tools-sample-2/2871e465028e.json"
+  },
+  {
+    "id": "design-tools-sample-3",
+    "nameZh": "三角尺",
+    "nameEn": "Set square",
+    "category": "design-tools",
+    "version": "9a1ff7b53d24",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/design-tools-sample-3/9a1ff7b53d24.json"
+  },
+  {
+    "id": "device-sample-1",
+    "nameZh": "智能手表",
+    "nameEn": "Smartwatch",
+    "category": "device",
+    "version": "8389d2fffd53",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/device-sample-1/8389d2fffd53.json"
+  },
+  {
+    "id": "device-sample-2",
+    "nameZh": "电子书阅读器",
+    "nameEn": "E-reader",
+    "category": "device",
+    "version": "69ad27479a86",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/device-sample-2/69ad27479a86.json"
+  },
+  {
+    "id": "device-sample-3",
+    "nameZh": "平板电脑",
+    "nameEn": "Tablet",
+    "category": "device",
+    "version": "64c17b457517",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/device-sample-3/64c17b457517.json"
+  },
+  {
+    "id": "devices-sample-1",
+    "nameZh": "投影仪",
+    "nameEn": "Projector",
+    "category": "devices",
+    "version": "7b06029fae74",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/devices-sample-1/7b06029fae74.json"
+  },
+  {
+    "id": "devices-sample-2",
+    "nameZh": "网络摄像头",
+    "nameEn": "Webcam",
+    "category": "devices",
+    "version": "ac53172a4e3e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/devices-sample-2/ac53172a4e3e.json"
+  },
+  {
+    "id": "devices-sample-3",
+    "nameZh": "打印机",
+    "nameEn": "Printer",
+    "category": "devices",
+    "version": "0e67f7d8938b",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/devices-sample-3/0e67f7d8938b.json"
+  },
+  {
+    "id": "fitness-sample-1",
+    "nameZh": "哑铃",
+    "nameEn": "Dumbbell",
+    "category": "fitness",
+    "version": "4237fc09329e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/fitness-sample-1/4237fc09329e.json"
+  },
+  {
+    "id": "fitness-sample-2",
+    "nameZh": "瑜伽垫",
+    "nameEn": "Yoga mat",
+    "category": "fitness",
+    "version": "5afcdb4d9a31",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/fitness-sample-2/5afcdb4d9a31.json"
+  },
+  {
+    "id": "fitness-sample-3",
+    "nameZh": "健身长凳",
+    "nameEn": "Workout bench",
+    "category": "fitness",
+    "version": "5137a5f3295a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/fitness-sample-3/5137a5f3295a.json"
+  },
+  {
+    "id": "food2-sample-1",
+    "nameZh": "汉堡包",
+    "nameEn": "Hamburger",
+    "category": "food2",
+    "version": "4e3ab87cc4bf",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/food2-sample-1/4e3ab87cc4bf.json"
+  },
+  {
+    "id": "food2-sample-2",
+    "nameZh": "寿司卷",
+    "nameEn": "Sushi",
+    "category": "food2",
+    "version": "e76a17c1ece8",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/food2-sample-2/e76a17c1ece8.json"
+  },
+  {
+    "id": "food2-sample-3",
+    "nameZh": "法棍面包",
+    "nameEn": "Baguette",
+    "category": "food2",
+    "version": "96b1e1e7a4a1",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/food2-sample-3/96b1e1e7a4a1.json"
+  },
+  {
+    "id": "halloween-sample-1",
+    "nameZh": "南瓜灯",
+    "nameEn": "Jack-o-lantern",
+    "category": "halloween",
+    "version": "39544a2bf407",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/halloween-sample-1/39544a2bf407.json"
+  },
+  {
+    "id": "halloween-sample-2",
+    "nameZh": "幽灵",
+    "nameEn": "Ghost",
+    "category": "halloween",
+    "version": "c59ca616eb31",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/halloween-sample-2/c59ca616eb31.json"
+  },
+  {
+    "id": "halloween-sample-3",
+    "nameZh": "巫师帽",
+    "nameEn": "Witch hat",
+    "category": "halloween",
+    "version": "72ba69b48758",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/halloween-sample-3/72ba69b48758.json"
+  },
+  {
+    "id": "network-sample-1",
+    "nameZh": "无线路由器",
+    "nameEn": "Router",
+    "category": "network",
+    "version": "95d39109c836",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/network-sample-1/95d39109c836.json"
+  },
+  {
+    "id": "network-sample-2",
+    "nameZh": "网线插头",
+    "nameEn": "Ethernet plug",
+    "category": "network",
+    "version": "001271e108a9",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/network-sample-2/001271e108a9.json"
+  },
+  {
+    "id": "network-sample-3",
+    "nameZh": "卫星天线",
+    "nameEn": "Satellite dish",
+    "category": "network",
+    "version": "907d17325fc8",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-006-r321-revision4",
+    "sourceStatus": "released",
+    "url": "/library/samples/network-sample-3/907d17325fc8.json"
+  },
+  {
+    "id": "ecology-sample-1",
+    "nameZh": "双叶幼苗",
+    "nameEn": "Seedling",
+    "category": "ecology",
+    "version": "c408a414e2d1",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/ecology-sample-1/c408a414e2d1.json"
+  },
+  {
+    "id": "ecology-sample-2",
+    "nameZh": "太阳能板",
+    "nameEn": "Solar panel",
+    "category": "ecology",
+    "version": "98eb27e93c87",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/ecology-sample-2/98eb27e93c87.json"
+  },
+  {
+    "id": "ecology-sample-3",
+    "nameZh": "分类垃圾桶",
+    "nameEn": "Recycling bin",
+    "category": "ecology",
+    "version": "59b1097fffa1",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/ecology-sample-3/59b1097fffa1.json"
+  },
+  {
+    "id": "health-sample-1",
+    "nameZh": "体重秤",
+    "nameEn": "Bathroom scale",
+    "category": "health",
+    "version": "0482c5b8b212",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/health-sample-1/0482c5b8b212.json"
+  },
+  {
+    "id": "health-sample-2",
+    "nameZh": "玻璃体温计",
+    "nameEn": "Thermometer",
+    "category": "health",
+    "version": "3e3df56b6579",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/health-sample-2/3e3df56b6579.json"
+  },
+  {
+    "id": "health-sample-3",
+    "nameZh": "药片泡罩板",
+    "nameEn": "Blister pack",
+    "category": "health",
+    "version": "9c09d7be7339",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/health-sample-3/9c09d7be7339.json"
+  },
+  {
+    "id": "landmarks-sample-1",
+    "nameZh": "石拱桥",
+    "nameEn": "Arch bridge",
+    "category": "landmarks",
+    "version": "186af59e16af",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/landmarks-sample-1/186af59e16af.json"
+  },
+  {
+    "id": "landmarks-sample-2",
+    "nameZh": "方尖碑",
+    "nameEn": "Obelisk",
+    "category": "landmarks",
+    "version": "824378163366",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/landmarks-sample-2/824378163366.json"
+  },
+  {
+    "id": "landmarks-sample-3",
+    "nameZh": "古典石柱",
+    "nameEn": "Classical column",
+    "category": "landmarks",
+    "version": "c40e600cc6d6",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/landmarks-sample-3/c40e600cc6d6.json"
+  },
+  {
+    "id": "military-sample-1",
+    "nameZh": "军用头盔",
+    "nameEn": "Military helmet",
+    "category": "military",
+    "version": "15eb87bd35f9",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/military-sample-1/15eb87bd35f9.json"
+  },
+  {
+    "id": "military-sample-2",
+    "nameZh": "军用水壶",
+    "nameEn": "Canteen",
+    "category": "military",
+    "version": "f9ef1d56ce39",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/military-sample-2/f9ef1d56ce39.json"
+  },
+  {
+    "id": "military-sample-3",
+    "nameZh": "军牌",
+    "nameEn": "Dog tags",
+    "category": "military",
+    "version": "7ee014da8004",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/military-sample-3/7ee014da8004.json"
+  },
+  {
+    "id": "mobile-sample-1",
+    "nameZh": "智能手机",
+    "nameEn": "Smartphone",
+    "category": "mobile",
+    "version": "95f09c0786a2",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/mobile-sample-1/95f09c0786a2.json"
+  },
+  {
+    "id": "mobile-sample-2",
+    "nameZh": "手机支架",
+    "nameEn": "Phone stand",
+    "category": "mobile",
+    "version": "9f92ef19a6b1",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/mobile-sample-2/9f92ef19a6b1.json"
+  },
+  {
+    "id": "mobile-sample-3",
+    "nameZh": "充电适配器",
+    "nameEn": "Charger",
+    "category": "mobile",
+    "version": "e58278629392",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/mobile-sample-3/e58278629392.json"
+  },
+  {
+    "id": "tools-sample-1",
+    "nameZh": "开口扳手",
+    "nameEn": "Wrench",
+    "category": "tools",
+    "version": "2e7e30aecc30",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/tools-sample-1/2e7e30aecc30.json"
+  },
+  {
+    "id": "tools-sample-2",
+    "nameZh": "螺丝刀",
+    "nameEn": "Screwdriver",
+    "category": "tools",
+    "version": "d3ca8dbd67cb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/tools-sample-2/d3ca8dbd67cb.json"
+  },
+  {
+    "id": "tools-sample-3",
+    "nameZh": "尖嘴钳",
+    "nameEn": "Needle-nose pliers",
+    "category": "tools",
+    "version": "5091df7c73ac",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/tools-sample-3/5091df7c73ac.json"
+  },
+  {
+    "id": "video-sample-1",
+    "nameZh": "手持摄像机",
+    "nameEn": "Camcorder",
+    "category": "video",
+    "version": "3b471b2d38c8",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/video-sample-1/3b471b2d38c8.json"
+  },
+  {
+    "id": "video-sample-2",
+    "nameZh": "电影胶片",
+    "nameEn": "Film reel",
+    "category": "video",
+    "version": "488de8a1d448",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/video-sample-2/488de8a1d448.json"
+  },
+  {
+    "id": "video-sample-3",
+    "nameZh": "场记板",
+    "nameEn": "Clapperboard",
+    "category": "video",
+    "version": "9787afa5fecf",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/video-sample-3/9787afa5fecf.json"
+  },
+  {
+    "id": "video-audio-image-sample-1",
+    "nameZh": "照相机",
+    "nameEn": "Camera",
+    "category": "video-audio-image",
+    "version": "9834df16be7a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/video-audio-image-sample-1/9834df16be7a.json"
+  },
+  {
+    "id": "video-audio-image-sample-2",
+    "nameZh": "书架音箱",
+    "nameEn": "Speaker",
+    "category": "video-audio-image",
+    "version": "a8a518bd05dc",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/video-audio-image-sample-2/a8a518bd05dc.json"
+  },
+  {
+    "id": "video-audio-image-sample-3",
+    "nameZh": "风景照片",
+    "nameEn": "Landscape photo",
+    "category": "video-audio-image",
+    "version": "653275f2ad8a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-007-r321-revision3a",
+    "sourceStatus": "development-samples",
+    "url": "/library/samples/video-audio-image-sample-3/653275f2ad8a.json"
+  },
+  {
+    "id": "space-sample-1",
+    "nameZh": "运载火箭",
+    "nameEn": "Rocket",
+    "category": "space",
+    "version": "898f6c0fe71a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/space-sample-1/898f6c0fe71a.json"
+  },
+  {
+    "id": "space-sample-2",
+    "nameZh": "带环行星",
+    "nameEn": "Ringed planet",
+    "category": "space",
+    "version": "a20538c761df",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/space-sample-2/a20538c761df.json"
+  },
+  {
+    "id": "space-sample-3",
+    "nameZh": "月牙",
+    "nameEn": "Crescent moon",
+    "category": "space",
+    "version": "f5a733744072",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/space-sample-3/f5a733744072.json"
+  },
+  {
+    "id": "space2-sample-1",
+    "nameZh": "宇航员头盔",
+    "nameEn": "Astronaut helmet",
+    "category": "space2",
+    "version": "1f0b72d1b5eb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/space2-sample-1/1f0b72d1b5eb.json"
+  },
+  {
+    "id": "space2-sample-2",
+    "nameZh": "人造卫星",
+    "nameEn": "Satellite",
+    "category": "space2",
+    "version": "efe984beefeb",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/space2-sample-2/efe984beefeb.json"
+  },
+  {
+    "id": "space2-sample-3",
+    "nameZh": "月球着陆器",
+    "nameEn": "Lunar lander",
+    "category": "space2",
+    "version": "6f150718992a",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/space2-sample-3/6f150718992a.json"
+  },
+  {
+    "id": "sports-sample-1",
+    "nameZh": "足球",
+    "nameEn": "Football",
+    "category": "sports",
+    "version": "b5ed2389a064",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/sports-sample-1/b5ed2389a064.json"
+  },
+  {
+    "id": "sports-sample-2",
+    "nameZh": "篮球",
+    "nameEn": "Basketball",
+    "category": "sports",
+    "version": "eccfc61e51d7",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/sports-sample-2/eccfc61e51d7.json"
+  },
+  {
+    "id": "sports-sample-3",
+    "nameZh": "棒球",
+    "nameEn": "Baseball",
+    "category": "sports",
+    "version": "30a813cb6f37",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/sports-sample-3/30a813cb6f37.json"
+  },
+  {
+    "id": "sports2-sample-1",
+    "nameZh": "网球拍",
+    "nameEn": "Tennis racket",
+    "category": "sports2",
+    "version": "209cc56ae206",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/sports2-sample-1/209cc56ae206.json"
+  },
+  {
+    "id": "sports2-sample-2",
+    "nameZh": "乒乓球拍",
+    "nameEn": "Table tennis paddle",
+    "category": "sports2",
+    "version": "d3146cfb566d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/sports2-sample-2/d3146cfb566d.json"
+  },
+  {
+    "id": "sports2-sample-3",
+    "nameZh": "羽毛球",
+    "nameEn": "Shuttlecock",
+    "category": "sports2",
+    "version": "23da873545a4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/sports2-sample-3/23da873545a4.json"
+  },
+  {
+    "id": "telephone-sample-1",
+    "nameZh": "转盘电话",
+    "nameEn": "Rotary telephone",
+    "category": "telephone",
+    "version": "56ef08a5526e",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/telephone-sample-1/56ef08a5526e.json"
+  },
+  {
+    "id": "telephone-sample-2",
+    "nameZh": "无绳电话",
+    "nameEn": "Cordless phone",
+    "category": "telephone",
+    "version": "61739cfd4b98",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/telephone-sample-2/61739cfd4b98.json"
+  },
+  {
+    "id": "telephone-sample-3",
+    "nameZh": "电话亭",
+    "nameEn": "Phone booth",
+    "category": "telephone",
+    "version": "a10c8f18b6b8",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/telephone-sample-3/a10c8f18b6b8.json"
+  },
+  {
+    "id": "search-sample-1",
+    "nameZh": "放大镜",
+    "nameEn": "Magnifying glass",
+    "category": "search",
+    "version": "1d6e8e2995ab",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/search-sample-1/1d6e8e2995ab.json"
+  },
+  {
+    "id": "search-sample-2",
+    "nameZh": "单筒望远镜",
+    "nameEn": "Telescope",
+    "category": "search",
+    "version": "ce6ab45e6616",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/search-sample-2/ce6ab45e6616.json"
+  },
+  {
+    "id": "search-sample-3",
+    "nameZh": "双筒望远镜",
+    "nameEn": "Binoculars",
+    "category": "search",
+    "version": "20a2b0f131f4",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/search-sample-3/20a2b0f131f4.json"
+  },
+  {
+    "id": "wedding-sample-1",
+    "nameZh": "婚礼对戒",
+    "nameEn": "Wedding rings",
+    "category": "wedding",
+    "version": "7ad7f809ff85",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/wedding-sample-1/7ad7f809ff85.json"
+  },
+  {
+    "id": "wedding-sample-2",
+    "nameZh": "双层婚礼蛋糕",
+    "nameEn": "Wedding cake",
+    "category": "wedding",
+    "version": "60ff85977646",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/wedding-sample-2/60ff85977646.json"
+  },
+  {
+    "id": "wedding-sample-3",
+    "nameZh": "婚礼花束",
+    "nameEn": "Wedding bouquet",
+    "category": "wedding",
+    "version": "ff54aae6258d",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/wedding-sample-3/ff54aae6258d.json"
+  },
+  {
+    "id": "vr-sample-1",
+    "nameZh": "VR头显",
+    "nameEn": "VR headset",
+    "category": "vr",
+    "version": "e546026f91af",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/vr-sample-1/e546026f91af.json"
+  },
+  {
+    "id": "vr-sample-2",
+    "nameZh": "VR手柄",
+    "nameEn": "VR controller",
+    "category": "vr",
+    "version": "b21147a955bd",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/vr-sample-2/b21147a955bd.json"
+  },
+  {
+    "id": "vr-sample-3",
+    "nameZh": "体感手套",
+    "nameEn": "Haptic glove",
+    "category": "vr",
+    "version": "777f9c5514f8",
+    "styles": [
+      "linear",
+      "outline",
+      "bold",
+      "broken",
+      "bulk",
+      "twotone"
+    ],
+    "status": "development-sample",
+    "sourceBatch": "coverage-008-r321-revision2",
+    "sourceStatus": "released",
+    "url": "/library/samples/vr-sample-3/777f9c5514f8.json"
+  }
+]

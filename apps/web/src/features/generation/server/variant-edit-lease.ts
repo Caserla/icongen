@@ -15,11 +15,16 @@ export type ActiveVariantEdit = {
   updated_at: string;
 };
 
-export function isVariantEditLeaseStale(edit: ActiveVariantEdit, now = Date.now()) {
-  const timestamp = edit.status === "queued" ? edit.created_at : edit.updated_at;
-  const timeout = edit.status === "queued"
-    ? QUEUED_EDIT_DISPATCH_TIMEOUT_MS
-    : PROCESSING_EDIT_LEASE_TIMEOUT_MS;
+export function isVariantEditLeaseStale(
+  edit: ActiveVariantEdit,
+  now = Date.now(),
+) {
+  const timestamp =
+    edit.status === "queued" ? edit.created_at : edit.updated_at;
+  const timeout =
+    edit.status === "queued"
+      ? QUEUED_EDIT_DISPATCH_TIMEOUT_MS
+      : PROCESSING_EDIT_LEASE_TIMEOUT_MS;
   return now - new Date(timestamp).getTime() >= timeout;
 }
 

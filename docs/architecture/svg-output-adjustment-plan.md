@@ -2,7 +2,7 @@
 
 ## 目标与边界
 
-Bamboo IconGen 保留 GPT-Image-2 生成 PNG 的主链路，在 Worker 资产处理阶段派生 SVG。第一阶段只为以下任务提供 SVG：
+EASY DESIGN / ICON GEN 保留 GPT-Image-2 生成 PNG 的主链路，在 Worker 资产处理阶段派生 SVG。第一阶段只为以下任务提供 SVG：
 
 - App 交互图标：线性与面性结构；
 - App 图标：`minimal-logo`（极简标志）。

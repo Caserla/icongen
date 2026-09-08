@@ -78,7 +78,7 @@ flowchart LR
 
 - 本地开发：Web BFF 可以直接启动 Worker，使用 mock 或受控真实模型完成联调。
 - 短期测试：东京区域月付 4 GB VPS 合并运行 Caddy、生产构建的 Next.js Web/BFF、独立常驻 Worker、Sub2API及其专用PostgreSQL/Redis；配置2–4 GB swap，Worker和图片网关并发均为1，默认只开放每批1–3个主体。
-- 模型网关：Bamboo Worker通过私有容器网络、专用限额API Key和内部 `IMAGE_PROVIDER_BASE_URL` 调用同机Sub2API；Sub2API API、PostgreSQL和Redis不暴露公网。
+- 模型网关：EASY DESIGN / ICON GEN Worker通过私有容器网络、专用限额API Key和内部 `IMAGE_PROVIDER_BASE_URL` 调用同机Sub2API；Sub2API API、PostgreSQL和Redis不暴露公网。
 - 数据：业务数据继续使用Supabase Auth、PostgreSQL和私有Storage；VPS上的PostgreSQL只供Sub2API使用。Supabase项目区域尽量靠近VPS与主要测试用户，避免不必要的跨洲链路。
 - 正式生产候选：Vercel 承载 Web，生产 Worker 独立部署；公开上线前根据测试数据重新评估执行平台、队列、高可用和数据区域。
 - 监控：短期测试至少采集主机 CPU/内存/磁盘、Web/Worker 日志、成功率、P95 耗时和模型费用；正式生产再接入 Vercel Logs、Supabase Logs、Sentry 或等效服务。

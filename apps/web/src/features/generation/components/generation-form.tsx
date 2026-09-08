@@ -34,9 +34,9 @@ import {
   initialGenerationSubjectDrafts,
 } from "../generation-subject-drafts";
 
-const defaultAppIconPreset = ICON_STYLE_PRESETS.find(
-  (preset) => preset.id !== "line-icon",
-)?.id ?? "isometric-3d";
+const defaultAppIconPreset =
+  ICON_STYLE_PRESETS.find((preset) => preset.id !== "line-icon")?.id ??
+  "isometric-3d";
 const defaultStyle: IconStyle = {
   preset: defaultAppIconPreset,
   subjectSizePercent: DEFAULT_SUBJECT_SIZE_PERCENT,
@@ -57,7 +57,8 @@ function automaticSubjectBackground(
   return {
     enabled: true,
     container,
-    color: color ??
+    color:
+      color ??
       (mode === "gradient"
         ? {
             mode: "gradient",
@@ -143,7 +144,7 @@ export function GenerationForm() {
     setStyle(value);
   }
   function addSubject() {
-    dispatchSubjectDraft({ type: "add", maxSubjects: MAX_SUBJECTS });
+    dispatchSubjectDraft({ type: "add", maxSubjects: MAX_SUBJECTS, backgroundMode: iconPurpose === "interaction" ? "transparent" : "solid" });
   }
   function removeSubject(index: number) {
     dispatchSubjectDraft({ type: "remove", index });
@@ -213,7 +214,7 @@ export function GenerationForm() {
     // Kept as the job-level fallback for old readers. Every current subject also
     // carries its own backgroundOverride, which is what the worker prioritizes.
     const background = automaticSubjectBackground(
-      subjectDrafts[0]?.backgroundMode ?? "solid",
+      subjectDrafts[0]?.backgroundMode ?? "transparent",
       subjectDrafts[0]?.backgroundContainer ?? "rounded-square",
       subjectDrafts[0]?.backgroundCornerRadius ?? 22,
       iconPurpose === "interaction"
@@ -296,17 +297,33 @@ export function GenerationForm() {
                 iconStructure={iconStructure}
                 onIconStructureChange={setIconStructure}
                 subjectSizePercent={style.subjectSizePercent}
-                onSubjectSizePercentChange={(subjectSizePercent) => setStyle((current) => ({ ...current, subjectSizePercent }))}
+                onSubjectSizePercentChange={(subjectSizePercent) =>
+                  setStyle((current) => ({ ...current, subjectSizePercent }))
+                }
                 linearStrokeWidthPercent={style.linearStrokeWidthPercent}
-                onLinearStrokeWidthPercentChange={(linearStrokeWidthPercent) => setStyle((current) => ({ ...current, linearStrokeWidthPercent }))}
+                onLinearStrokeWidthPercentChange={(linearStrokeWidthPercent) =>
+                  setStyle((current) => ({
+                    ...current,
+                    linearStrokeWidthPercent,
+                  }))
+                }
                 subjectOpacityPercent={style.subjectOpacityPercent}
-                onSubjectOpacityPercentChange={(subjectOpacityPercent) => setStyle((current) => ({ ...current, subjectOpacityPercent }))}
+                onSubjectOpacityPercentChange={(subjectOpacityPercent) =>
+                  setStyle((current) => ({ ...current, subjectOpacityPercent }))
+                }
                 subjectColor={subjectColor}
                 onSubjectColorChange={setSubjectColor}
-                backgroundMode={subjectDrafts[0]?.backgroundMode ?? "solid"}
-                backgroundContainer={subjectDrafts[0]?.backgroundContainer ?? "rounded-square"}
+                backgroundMode={subjectDrafts[0]?.backgroundMode ?? "transparent"}
+                backgroundContainer={
+                  subjectDrafts[0]?.backgroundContainer ?? "rounded-square"
+                }
                 cornerRadius={subjectDrafts[0]?.backgroundCornerRadius ?? 22}
-                backgroundColor={subjectDrafts[0]?.backgroundColor ?? { mode: "solid", color: "#FFFFFF" }}
+                backgroundColor={
+                  subjectDrafts[0]?.backgroundColor ?? {
+                    mode: "solid",
+                    color: "#FFFFFF",
+                  }
+                }
               />
             ) : (
               <AppIconStyleSelector
@@ -326,14 +343,30 @@ export function GenerationForm() {
               onRemove={removeSubject}
               maxSubjects={MAX_SUBJECTS}
               locale={locale}
-              backgroundModes={subjectDrafts.map((draft) => draft.backgroundMode)}
+              backgroundModes={subjectDrafts.map(
+                (draft) => draft.backgroundMode,
+              )}
               onBackgroundModeChange={selectSubjectBackgroundMode}
-              backgroundContainers={subjectDrafts.map((draft) => draft.backgroundContainer)}
+              backgroundContainers={subjectDrafts.map(
+                (draft) => draft.backgroundContainer,
+              )}
               onBackgroundContainerChange={selectSubjectBackgroundContainer}
-              backgroundCornerRadii={subjectDrafts.map((draft) => draft.backgroundCornerRadius ?? 22)}
-              onBackgroundCornerRadiusChange={selectSubjectBackgroundCornerRadius}
-              backgroundColors={iconPurpose === "interaction" ? subjectDrafts.map((draft) => draft.backgroundColor) : undefined}
-              onBackgroundColorChange={iconPurpose === "interaction" ? selectSubjectBackgroundColor : undefined}
+              backgroundCornerRadii={subjectDrafts.map(
+                (draft) => draft.backgroundCornerRadius ?? 22,
+              )}
+              onBackgroundCornerRadiusChange={
+                selectSubjectBackgroundCornerRadius
+              }
+              backgroundColors={
+                iconPurpose === "interaction"
+                  ? subjectDrafts.map((draft) => draft.backgroundColor)
+                  : undefined
+              }
+              onBackgroundColorChange={
+                iconPurpose === "interaction"
+                  ? selectSubjectBackgroundColor
+                  : undefined
+              }
             />
             <ReferenceSizeSelector
               options={OUTPUT_SIZES}
@@ -358,12 +391,7 @@ export function GenerationForm() {
         </div>
       </section>
       {message ? (
-        <p
-          role="alert"
-          className="studio-notice studio-notice--error px-4 py-3 text-sm"
-        >
-          {message}
-        </p>
+        <Toast message={message} variant="error" />
       ) : null}
     </form>
   );

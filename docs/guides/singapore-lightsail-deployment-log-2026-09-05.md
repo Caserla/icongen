@@ -1,6 +1,6 @@
 # 新加坡 Lightsail 首次部署操作日志（2026-09-05）
 
-本文记录 `esdesign.men` 在 AWS Lightsail 新加坡节点完成的首次真实云基础设施及应用部署。它是实际操作日志，不替代[单台 4 GB VPS 合并部署操作手册](single-vps-deployment-runbook.md)。**该服务器和域名当前明确属于预发布环境，不代表产品已正式上线。** 当前实例只有 1 GB RAM，已以单并发、严格内存上限方式合并运行 Bamboo Web、Worker、Caddy、Sub2API 及其 PostgreSQL/Redis。四环境契约与资源限制见[环境分层与测试索引](environment-and-testing.md)。
+本文记录 `esdesign.men` 在 AWS Lightsail 新加坡节点完成的首次真实云基础设施及应用部署。它是实际操作日志，不替代[单台 4 GB VPS 合并部署操作手册](single-vps-deployment-runbook.md)。**该服务器和域名当前明确属于预发布环境，不代表产品已正式上线。** 初始实例为 1 GB RAM；2026-09-08 已通过快照迁移至 4 GB RAM / 2 vCPU / 80 GB SSD 的 Ubuntu-3，并继续合并运行 EASY DESIGN / ICON GEN Web、Worker、Caddy、Sub2API 及其 PostgreSQL/Redis。四环境契约与资源限制见[环境分层与测试索引](environment-and-testing.md)。
 
 ## 0. 环境级别与发布边界
 
@@ -48,7 +48,7 @@ Public launch: blocked
 | 根域名 HTTPS | `https://esdesign.men` | 已验证；非正式发布 |
 | `www` HTTPS | `https://www.esdesign.men` | 已配置 |
 | Sub2API HTTPS | `https://sub2api.esdesign.men` | 已部署并验证；仅供受控预发布使用 |
-| Bamboo Web / Worker | Docker Compose | 已部署，健康检查通过 |
+| EASY DESIGN / ICON GEN Web / Worker | Docker Compose | 已部署，健康检查通过 |
 | 业务数据库 | 独立预发布 Supabase | 27 个迁移已应用，就绪检查通过 |
 
 ## 2. 规格选择与限制记录
@@ -59,7 +59,7 @@ Public launch: blocked
 
 - Caddy；
 - Next.js Web/BFF 的预构建生产镜像；
-- `GENERATION_CONCURRENCY=1` 的 Bamboo Worker；
+- `GENERATION_CONCURRENCY=1` 的 EASY DESIGN / ICON GEN Worker；
 - 在持续监控下运行的轻量系统服务。
 
 当前确实已把 Sub2API、Sub2API PostgreSQL 和 Redis 合并运行，但这只是低流量预发布的临时方案，并不改变 4 GB 的推荐基线。运行态实测容器总内存约 287 MiB，主机可用内存约 276 MiB，Swap 已使用约 261 MiB；现场构建 Next.js 时会大量换页并导致 SSH 短暂超时。后续发布应在 CI 构建 amd64 镜像，服务器只拉取并运行。出现持续 Swap 增长、502、Worker 中断、Web 延迟或 OOM 时必须立即升级或拆分服务。
@@ -243,10 +243,10 @@ dig +short api.esdesign.men A
 创建目录：
 
 ```bash
-sudo install -d -m 0750 -o ubuntu -g ubuntu /opt/bamboo-stack/caddy
+sudo install -d -m 0750 -o ubuntu -g ubuntu /opt/easy-design-stack/caddy
 ```
 
-当前 `/opt/bamboo-stack/caddy/Caddyfile`：
+当前 `/opt/easy-design-stack/caddy/Caddyfile`：
 
 ```caddyfile
 esdesign.men, www.esdesign.men {
@@ -276,7 +276,7 @@ docker run -d \
   --cpus=0.25 \
   -p 80:80 \
   -p 443:443 \
-  -v /opt/bamboo-stack/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+  -v /opt/easy-design-stack/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
   -v caddy_data:/data \
   -v caddy_config:/config \
   caddy:2-alpine
@@ -287,7 +287,7 @@ docker run -d \
 - `https://esdesign.men`
 - `https://www.esdesign.men`
 
-2026-09-06 已将根域名从临时响应切换到 Bamboo Web，并确认根域名、健康接口、`robots.txt` 与 Sub2API 均通过 HTTPS 返回 200。Bamboo 响应包含 `X-Robots-Tag: noindex, nofollow, noarchive`。
+2026-09-06 已将根域名从临时响应切换到 EASY DESIGN / ICON GEN Web，并确认根域名、健康接口、`robots.txt` 与 Sub2API 均通过 HTTPS 返回 200。EASY DESIGN / ICON GEN 响应包含 `X-Robots-Tag: noindex, nofollow, noarchive`。
 
 ## 11. 当前安全边界
 
@@ -295,16 +295,16 @@ docker run -d \
 - 只有 Caddy 可以映射宿主机 `80/443`；未来 Next.js 只加入 Docker 私有网络，不公开 `3000`。
 - Sub2API 宿主机端口仅绑定 `127.0.0.1:8081`；其 PostgreSQL、Redis 只在 Docker 私网暴露，不映射公网端口。公开 Sub2API 域名仅由 Caddy 反代，长请求超时设置为 900 秒。
 - SSH 私钥、Supabase Service Role、模型 API Key 和 Sub2API 管理密钥不得写入 Git、聊天、截图或 `NEXT_PUBLIC_*` 环境变量。
-- Bamboo Web、Worker 和 Provider 基础链路已上线到预发布；认证、真实生成、扣点、失败返还和恢复仍须按回归清单继续验收，不能据此宣布生产上线。
+- EASY DESIGN / ICON GEN Web、Worker 和 Provider 基础链路已上线到预发布；认证、真实生成、扣点、失败返还和恢复仍须按回归清单继续验收，不能据此宣布生产上线。
 - 当前环境必须使用 `APP_ENV=preproduction`（或项目最终统一的等价变量），禁止伪装为 production 环境写入正式业务数据。
 
 ## 12. 2026-09-06 完整预发布部署操作记录
 
 1. 将本地 Sub2API PostgreSQL 数据与配置迁移到 `/opt/sub2api`，启动 `sub2api`、`sub2api-postgres`、`sub2api-redis`；本地容器停止后公网服务仍可独立运行。
-2. 创建外部 Docker 网络 `sub2api_sub2api-network`，让 Bamboo Worker 与 Caddy 加入该网络；Worker 使用 `http://sub2api:8080/v1`，不经公网回环。
-3. 在 Sub2API 创建 Bamboo 专用 API Key；服务器侧仅验证 `/v1/models` 返回 HTTP 200 和一个可用模型，不在日志中输出密钥。
+2. 创建外部 Docker 网络 `sub2api_sub2api-network`，让 EASY DESIGN / ICON GEN Worker 与 Caddy 加入该网络；Worker 使用 `http://sub2api:8080/v1`，不经公网回环。
+3. 在 Sub2API 创建 EASY DESIGN / ICON GEN 专用 API Key；服务器侧仅验证 `/v1/models` 返回 HTTP 200 和一个可用模型，不在日志中输出密钥。
 4. 配置独立预发布 Supabase，设置站点与回调 URL；生成并应用 27 个数据库迁移，验证 `generation_jobs`、`credit_ledger` 等核心表存在。
-5. 上传 Bamboo 源码到 `/opt/icongen`，使用 `.env.preproduction`（权限 `0600`）保存服务端配置。
+5. 上传 EASY DESIGN / ICON GEN 源码到 `/opt/icongen`，使用 `.env.preproduction`（权限 `0600`）保存服务端配置。
 6. 首次并行构建因两个镜像重复进行 Next.js 编译且 SSH 会话超时而中止；随后改为后台顺序构建。构建时发现 `APP_ENV` 未传入导致 `/robots.txt` 预渲染失败，已在 Dockerfile 和 Compose build args 中明确传入 `preproduction`。
 7. 构建并启动 `icongen-web-1` 与 `icongen-worker-1`。Web 首次只绑定容器主机名，导致 localhost 健康检查失败；已通过 `HOSTNAME=0.0.0.0`、`PORT=3000` 修正。
 8. 将独立 Caddy 加入 `icongen_default` 与 `sub2api_sub2api-network`，校验 Caddyfile 后重启并切换根域名流量。
@@ -314,9 +314,9 @@ docker run -d \
 
 | 服务 | 网络/端口 | 内存上限 | 状态 |
 | --- | --- | --- | --- |
-| `caddy` | 公网 `80/443`；加入 Bamboo 与 Sub2API 私网 | 96 MiB | 运行中 |
+| `caddy` | 公网 `80/443`；加入 EASY DESIGN / ICON GEN 与 Sub2API 私网 | 96 MiB | 运行中 |
 | `icongen-web-1` | 仅私网 `3000` | 400 MiB | healthy |
-| `icongen-worker-1` | Bamboo + Sub2API 私网；并发 1 | 384 MiB | healthy |
+| `icongen-worker-1` | EASY DESIGN / ICON GEN + Sub2API 私网；并发 1 | 384 MiB | healthy |
 | `sub2api` | 私网 `8080`；宿主机仅 `127.0.0.1:8081` | 256 MiB | healthy |
 | `sub2api-postgres` | 仅 Sub2API 私网 `5432` | 224 MiB | healthy |
 | `sub2api-redis` | 仅 Sub2API 私网 `6379` | 64 MiB | healthy |

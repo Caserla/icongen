@@ -9,7 +9,9 @@ for (const [databaseMessage, code, status] of [
   ["GENERATION_USER_DAILY_LIMIT", "GENERATION_DAILY_LIMIT_REACHED", 429],
 ] as const) {
   test(`maps ${databaseMessage} to a stable public response`, () => {
-    const result = generationRuntimeLimitError(`database error: ${databaseMessage}`);
+    const result = generationRuntimeLimitError(
+      `database error: ${databaseMessage}`,
+    );
     assert.equal(result?.code, code);
     assert.equal(result?.status, status);
   });

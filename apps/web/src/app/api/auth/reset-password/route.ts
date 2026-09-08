@@ -4,14 +4,39 @@ import { publicEnv } from "@/lib/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  const parsed = resetPasswordSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return apiError("VALIDATION_ERROR", "Use a password with at least 8 characters.", 400, parsed.error.flatten());
-  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey) return apiError("AUTH_SERVICE_UNAVAILABLE", "Password reset is temporarily unavailable. Please try again later.", 503);
+  const parsed = resetPasswordSchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success)
+    return apiError(
+      "VALIDATION_ERROR",
+      "Use a password with at least 8 characters.",
+      400,
+      parsed.error.flatten(),
+    );
+  if (!publicEnv.supabaseUrl || !publicEnv.supabaseAnonKey)
+    return apiError(
+      "AUTH_SERVICE_UNAVAILABLE",
+      "Password reset is temporarily unavailable. Please try again later.",
+      503,
+    );
 
   const supabase = await createServerSupabaseClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return apiError("RECOVERY_SESSION_REQUIRED", "This reset link is invalid or has expired. Request a new link to continue.", 401);
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return apiError("PASSWORD_RESET_FAILED", "We could not update your password.", 400);
+  if (!userData.user)
+    return apiError(
+      "RECOVERY_SESSION_REQUIRED",
+      "This reset link is invalid or has expired. Request a new link to continue.",
+      401,
+    );
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+  if (error)
+    return apiError(
+      "PASSWORD_RESET_FAILED",
+      "We could not update your password.",
+      400,
+    );
   return Response.json({ updated: true });
 }

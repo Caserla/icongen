@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, type PropsWithChildren } from "react";
 
-export function Reveal({ children, className = "", delay = 0 }: PropsWithChildren<{ className?: string; delay?: number }>) {
+export function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: PropsWithChildren<{ className?: string; delay?: number }>) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,5 +29,13 @@ export function Reveal({ children, className = "", delay = 0 }: PropsWithChildre
     return () => observer.disconnect();
   }, []);
 
-  return <div ref={ref} className={`motion-reveal ${className}`} style={{ "--motion-delay": `${delay}ms` } as React.CSSProperties}>{children}</div>;
+  return (
+    <div
+      ref={ref}
+      className={`motion-reveal ${className}`}
+      style={{ "--motion-delay": `${delay}ms` } as React.CSSProperties}
+    >
+      {children}
+    </div>
+  );
 }
