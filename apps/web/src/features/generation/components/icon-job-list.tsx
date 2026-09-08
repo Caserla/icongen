@@ -744,7 +744,7 @@ export function IconJobList({
         <PageState />
       ) : loadFailed ? (
         <PageState kind="error" onRetry={()=>void loadList(activeUsage,activeStyle,activeStatus,activeStructure,activeResult.page)} />
-      ) : activeResult.jobs.length === 0 ? <PageState kind="empty" title={activeStyle||activeStructure||activeStatus?(locale==="zh"?"暂无符合筛选条件的图标":"No matching icons"):undefined}/> : !activeStyle &&
+      ) : activeResult.jobs.length === 0 ? <PageState kind="empty"/> : !activeStyle &&
         !activeStructure ? (
         <div
           className={`icons-jobs-grid stagger-grid icons-list-swap mt-6 ${isLoading ? "is-updating" : ""}`}
