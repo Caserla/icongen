@@ -7,7 +7,7 @@ import {
 export const VARIANTS_PER_SUBJECT = 3 as const;
 export const MAX_SUBJECTS = 20 as const;
 export const MAX_SUBJECT_DESCRIPTION_LENGTH = 200 as const;
-export const OUTPUT_SIZES = [16, 32, 48, 64, 128, 256] as const;
+export const OUTPUT_SIZES = [24, 32, 48, 64, 128] as const;
 export const DEFAULT_SUBJECT_SIZE_PERCENT = 70 as const;
 export const DEFAULT_LINEAR_STROKE_WIDTH_PERCENT = 3.5 as const;
 const LEGACY_OUTPUT_SIZES = [

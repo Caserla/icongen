@@ -210,3 +210,9 @@ html[data-theme="light"] :is(.create-studio,.icons-studio) {
   --workspace-panel:#f8f8f6; --workspace-line:#d9dbd7; --workspace-hover:#e9eae8;
 }
 html[data-theme="light"] .icons-studio .icons-filter-option:not([aria-current="page"]) {background:transparent}
+.studio-shell > div:has(> .studio-main :is(.create-studio,.icons-studio)) {
+  width:calc(100% - 24px);max-width:1440px;padding-left:0;padding-right:0;
+}
+.studio-main:has(:is(.create-studio,.icons-studio)) {padding-left:0!important;padding-right:0!important}
+.create-studio .creation-workspace {width:100%;margin-left:0;margin-right:0}
+@media(max-width:640px){.studio-shell > div:has(> .studio-main :is(.create-studio,.icons-studio)){width:calc(100% - 16px)}}

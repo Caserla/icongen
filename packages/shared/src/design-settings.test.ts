@@ -20,10 +20,10 @@ test("generation UI exposes exactly the three approved background types", () => 
 });
 
 test("accepts a style-led multi-subject generation contract", () => {
-  const result = createGenerationJobSchema.safeParse({ ...base, purpose: "app-icon", subjects: [...base.subjects, { clientId: "delete", name: "Delete", description: "Remove content" }], background: { enabled: true, container: "rounded-square", color: { mode: "solid", color: "#FFFFFF" } }, sizes: [32, 64, 256] });
+  const result = createGenerationJobSchema.safeParse({ ...base, purpose: "app-icon", subjects: [...base.subjects, { clientId: "delete", name: "Delete", description: "Remove content" }], background: { enabled: true, container: "rounded-square", color: { mode: "solid", color: "#FFFFFF" } }, sizes: [32, 64, 128] });
   assert.equal(result.success, true); assert.equal(VARIANTS_PER_SUBJECT, 3);
   if (result.success) assert.equal(result.data.purpose, "app-icon");
-  assert.deepEqual(OUTPUT_SIZES, [16, 32, 48, 64, 128, 256]);
+  assert.deepEqual(OUTPUT_SIZES, [24, 32, 48, 64, 128]);
 });
 
 test("defaults and validates interaction geometry controls", () => {

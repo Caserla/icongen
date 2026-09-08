@@ -85,7 +85,7 @@ export function GenerationForm() {
     color: "#61666E",
   });
   const [style, setStyle] = useState<IconStyle>(defaultStyle);
-  const [sizes, setSizes] = useState<number[]>([64, 128, 256]);
+  const [sizes, setSizes] = useState<number[]>([24, 64, 128]);
   const [settings, setSettings] = useState<GenerationSettingsResponse | null>(
     null,
   );

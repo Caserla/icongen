@@ -20,7 +20,7 @@ test("returns the versioned icon-style catalog", () => {
       group.options.every((item) => !("promptToken" in item)),
     ),
   );
-  assert.deepEqual(settings.outputSizes, [16, 32, 48, 64, 128, 256]);
+  assert.deepEqual(settings.outputSizes, [24, 32, 48, 64, 128]);
   assert.deepEqual(settings.limits, {
     maxSubjects: 20,
     maxOutputSizes: 3,
