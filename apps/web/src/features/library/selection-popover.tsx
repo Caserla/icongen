@@ -7,15 +7,16 @@ export function useSelectionPopover() {
   const [open,setOpen]=useState(false);
   const root=useRef<HTMLDivElement>(null);
   const trigger=useRef<HTMLButtonElement>(null);
+  const portalRoot=useRef<HTMLDivElement>(null);
   const close=()=>{setOpen(false);trigger.current?.focus();};
   useEffect(()=>{
     if(!open)return;
-    const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))setOpen(false);};
+    const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node)&&!portalRoot.current?.contains(event.target as Node))setOpen(false);};
     document.addEventListener('pointerdown',outside);
     return()=>document.removeEventListener('pointerdown',outside);
   },[open]);
-  return {open,setOpen,root,trigger,close,rootProps:{
-    onBlur:(event:FocusEvent<HTMLDivElement>)=>{if(!event.currentTarget.contains(event.relatedTarget))setOpen(false);},
+  return {open,setOpen,root,trigger,portalRoot,close,rootProps:{
+    onBlur:(event:FocusEvent<HTMLDivElement>)=>{if(!root.current?.contains(event.relatedTarget)&&!portalRoot.current?.contains(event.relatedTarget))setOpen(false);},
     onKeyDown:(event:KeyboardEvent<HTMLDivElement>)=>{if(event.key==='Escape'&&open){event.preventDefault();event.stopPropagation();close();}},
   }};
 }

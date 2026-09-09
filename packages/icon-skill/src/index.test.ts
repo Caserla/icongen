@@ -40,7 +40,7 @@ test("interaction template includes visible interaction settings and excludes hi
   assert.match(result.prompt, /solid #61666E/);
   assert.match(result.prompt, /Subject opacity: 100%/);
   assert.match(result.prompt, /22% corner radius/);
-  assert.match(result.prompt, /#FFFFFF to #E8EEF8/);
+  assert.match(result.prompt, /#FFFFFF.*to #E8EEF8/);
   assert.doesNotMatch(result.prompt, /32, 64, 128px/);
   assert.doesNotMatch(result.prompt, /cute clay 3D/);
 });
@@ -161,23 +161,31 @@ test("app icon template includes app style and excludes hidden interaction setti
   );
 });
 
-test("an explicit no-background request overrides the default rounded colored background", () => {
+test("user transparency wording cannot override the configured background", () => {
   const result = compileIconPrompt({
     ...base,
     purpose: "app-icon",
     description: "房子入口，不需要背景",
   });
+  assert.equal(result.outputBackground, "opaque");
+  assert.ok(result.qualityContract);
+  assert.doesNotMatch(result.prompt, /不需要背景/);
+  assert.match(result.prompt, /one intentional full-bleed background/);
+});
+
+test("subject normalization removes user-authored transparency output rules", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "app-icon",
+    background: { enabled: false },
+    name: "FOLD原创咖啡品牌",
+    description:
+      "折纸屋檐的小亭与杯身F折叠标志呼应，等距微缩结构偏左下，柜台向右上延伸，铜橙、奶油黄、蓝灰色。真实透明背景，无底板、天空、地面或投影，主体和镂空间隙之外全部透明，保留4%透明边缘。",
+  });
+  assert.match(result.prompt, /折纸屋檐的小亭与杯身F折叠标志呼应/);
+  assert.match(result.prompt, /柜台向右上延伸/);
+  assert.doesNotMatch(result.prompt, /真实透明背景|无底板|全部透明|4%透明边缘/);
   assert.equal(result.outputBackground, "transparent");
-  assert.equal(result.qualityContract, undefined);
-  assert.match(result.prompt, /explicitly requested no background/);
-  assert.match(
-    result.prompt,
-    /native RGBA PNG icon file with a transparent background/,
-  );
-  assert.doesNotMatch(
-    result.prompt,
-    /The only visible content is the complete icon subject and one intentional/,
-  );
 });
 
 test("the app icon background controls are authoritative in the Image2 prompt", () => {
@@ -190,8 +198,9 @@ test("the app icon background controls are authoritative in the Image2 prompt", 
   assert.equal(transparent.qualityContract, undefined);
   assert.match(
     transparent.prompt,
-    /native RGBA PNG icon file with a transparent background/,
+    /only the requested object and its essential parts; no background/,
   );
+  assert.doesNotMatch(transparent.prompt, /full-bleed|background treatment fills|delivery pipeline applies.*mask|home screen, launcher, and app store/i);
 
   const solid = compileIconPrompt({
     ...base,
@@ -414,7 +423,9 @@ test("app icon style protocols preserve transparent, solid, gradient, rounded, c
     const prompts = backgrounds.map((background) =>
       compileIconPrompt({ ...base, purpose: "app-icon", background, style: { ...base.style, preset } }).prompt,
     );
-    assert.match(prompts[0], /transparent background/);
+    assert.match(prompts[0], /only the requested object and its essential parts; no background/);
+    assert.doesNotMatch(prompts[0], /full-bleed|background treatment fills|delivery pipeline applies.*mask/i);
+    assert.match(prompts[0], /keeps its walls, interior surfaces, dark parts, and self-shading/);
     assert.match(prompts[1], /14% rounded-square alpha mask/);
     assert.match(prompts[2], /centered circular alpha mask/);
     assert.match(prompts[2], /left-to-right gradient/);

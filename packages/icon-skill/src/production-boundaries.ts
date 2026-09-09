@@ -13,6 +13,12 @@ export const APP_ICON_CANVAS_SPEC = [
   "A transparent-background setting or an explicit no-background request removes the full-canvas background.",
 ].join(" ");
 
+export const TRANSPARENT_ICON_CANVAS_SPEC = [
+  "The canvas holds one isolated foreground asset with empty safety margins.",
+  "The foreground includes every structural surface of the subject, its attached symbols, and its style-defined outlines or light effects.",
+  "An object with depth keeps its walls, interior surfaces, dark parts, and self-shading; only empty space beyond or through the object belongs to the background.",
+].join(" ");
+
 export const INTERACTION_ASSET_SPEC = [
   "Treat the output as a production UI control asset, not an App Store icon or illustration board.",
   "Preserve open negative space and immediate recognition at the smallest requested size.",

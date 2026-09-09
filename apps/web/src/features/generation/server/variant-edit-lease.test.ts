@@ -67,14 +67,32 @@ test("reclaims a processing edit after five minutes without a heartbeat", () => 
   );
 });
 
-test("uses an explicit worker switch for production previews", () => {
+test("starts the local worker only for its explicitly bound Supabase project", () => {
   assert.equal(
     localVariantWorkerEnabled({
-      NODE_ENV: "production",
+      NODE_ENV: "development",
       LOCAL_GENERATION_WORKER_ENABLED: "true",
+      LOCAL_GENERATION_SUPABASE_PROJECT_REF: "development-ref",
+      NEXT_PUBLIC_SUPABASE_URL: "https://development-ref.supabase.co",
     }),
     true,
   );
-  assert.equal(localVariantWorkerEnabled({ NODE_ENV: "production" }), false);
-  assert.equal(localVariantWorkerEnabled({ NODE_ENV: "development" }), true);
+  assert.equal(
+    localVariantWorkerEnabled({
+      NODE_ENV: "development",
+      LOCAL_GENERATION_WORKER_ENABLED: "true",
+      LOCAL_GENERATION_SUPABASE_PROJECT_REF: "development-ref",
+      NEXT_PUBLIC_SUPABASE_URL: "https://production-ref.supabase.co",
+    }),
+    false,
+  );
+  assert.equal(
+    localVariantWorkerEnabled({
+      NODE_ENV: "development",
+      LOCAL_GENERATION_WORKER_ENABLED: "true",
+      NEXT_PUBLIC_SUPABASE_URL: "https://development-ref.supabase.co",
+    }),
+    false,
+  );
+  assert.equal(localVariantWorkerEnabled({ NODE_ENV: "development" }), false);
 });

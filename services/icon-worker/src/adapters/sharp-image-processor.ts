@@ -1,6 +1,13 @@
 import type { ImageProcessor } from "@icongen/backend-core";
 import sharp from "sharp";
 
+export function rasterDownscaleProfile(size: number) {
+  if (size <= 32) return { gamma: 2, sharpenSigma: 0.48 } as const;
+  if (size <= 64) return { gamma: 2.1, sharpenSigma: 0.52 } as const;
+  if (size <= 128) return { gamma: undefined, sharpenSigma: 0.5 } as const;
+  return { gamma: undefined, sharpenSigma: undefined } as const;
+}
+
 function repairDarkTransparentFringe(
   source: Buffer,
   width: number,
@@ -293,14 +300,22 @@ export class SharpImageProcessor implements ImageProcessor {
   async process(input: { bytes: Uint8Array; size: number; profile?: "icon" | "pixel-art" }) {
     const metadata = await sharp(input.bytes).metadata();
     const isDownscaling = Math.max(metadata.width ?? 0, metadata.height ?? 0) > input.size;
+    const downscaleProfile = rasterDownscaleProfile(input.size);
     let pipeline = sharp(input.bytes).resize(input.size, input.size, {
       fit: "contain",
       position: "centre",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
       kernel: input.profile === "pixel-art" ? sharp.kernel.nearest : sharp.kernel.lanczos3,
     });
-    if (input.profile !== "pixel-art" && isDownscaling && input.size <= 256) {
-      pipeline = pipeline.sharpen({ sigma: input.size <= 128 ? 0.5 : 0.65 });
+    if (input.profile !== "pixel-art" && isDownscaling) {
+      // Sharp performs resize and sharpen in premultiplied-alpha space, then
+      // unpremultiplies before output. Gamma-aware resampling retains perceived
+      // contrast, while size-specific sharpening keeps 24px silhouettes crisp
+      // without ringing around the larger derivatives.
+      if (downscaleProfile.gamma)
+        pipeline = pipeline.gamma(downscaleProfile.gamma);
+      if (downscaleProfile.sharpenSigma)
+        pipeline = pipeline.sharpen({ sigma: downscaleProfile.sharpenSigma });
     }
     const { data: resized, info } = await pipeline
       .ensureAlpha()

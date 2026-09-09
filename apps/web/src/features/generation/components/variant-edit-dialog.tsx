@@ -320,7 +320,7 @@ export function VariantEditDialog({
     <section
       role="region"
       aria-labelledby="variant-edit-title"
-      className={`variant-edit-studio mx-auto w-full max-w-4xl ${exitMotion ? `is-exiting-${exitMotion}` : ""}`}
+      className={`variant-edit-studio mx-auto w-full ${exitMotion ? `is-exiting-${exitMotion}` : ""}`}
     >
       <button
         type="button"
@@ -534,15 +534,7 @@ export function VariantEditDialog({
                       aria-pressed={selected}
                       data-selected={selected || undefined}
                       disabled={Boolean(busy)}
-                      onClick={() => {
-                        const update = () => setSelectedVersion(option.id);
-                        const documentWithTransitions = document as Document & {
-                          startViewTransition?: (callback: () => void) => void;
-                        };
-                        if (documentWithTransitions.startViewTransition)
-                          documentWithTransitions.startViewTransition(update);
-                        else update();
-                      }}
+                      onClick={() => setSelectedVersion(option.id)}
                       className="variant-version-option overflow-hidden p-1.5 text-left disabled:opacity-50"
                     >
                       <span className="relative block aspect-square overflow-hidden rounded-xl bg-transparent">

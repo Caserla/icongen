@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Brand } from "@/components/ui/brand";
 import { SignInDialog } from "@/components/auth/sign-in-dialog";
 import { LanguageSwitch } from "@/components/i18n/language-switch";
+import { ThemeSwitch } from "@/components/i18n/theme-switch";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { UserMenu } from "@/components/layouts/user-menu";
 import type { Viewer } from "@/lib/auth/viewer";
@@ -55,6 +56,7 @@ export function MarketingHeader({ viewer }: { viewer: Viewer | null }) {
               </Link>
             </nav>
           ) : null}
+          <ThemeSwitch />
           <LanguageSwitch />
           {activeViewer ? (
             <UserMenu viewer={activeViewer} />

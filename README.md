@@ -47,4 +47,6 @@ npm run typecheck
 npm run build
 ```
 
+生产构建默认使用 Webpack，以避开受限环境中 Turbopack PostCSS 子进程绑定端口失败的问题。保留 `npm run build:turbo --workspace=@icongen/web` 用于诊断。构建前需设置有效的 `APP_ENV` 与 `NEXT_PUBLIC_APP_ENV`；本地验证可使用 `APP_ENV=development NEXT_PUBLIC_APP_ENV=development npm run build`，线上应使用实际部署环境配置。
+
 当前已建立营销页、认证与账户页面、用户工作区、受角色保护的运营后台、BFF 路由、Supabase 数据层和图片生成核心。本地环境已支持由 BFF 启动 Worker 的真实图片生成、进度回显、结果下载链路；生产环境仍需配置服务端密钥与执行器。

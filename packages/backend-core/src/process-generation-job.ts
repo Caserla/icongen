@@ -126,6 +126,9 @@ export async function processGenerationJob(
             variantId: variant.id,
             prompt: compiled.prompt,
             outputBackground: compiled.outputBackground,
+            backgroundContainer: effectiveBackground.enabled
+              ? effectiveBackground.container
+              : undefined,
             purpose: job.spec.purpose,
             stylePreset: job.spec.style.preset,
             qualityContract: compiled.qualityContract,

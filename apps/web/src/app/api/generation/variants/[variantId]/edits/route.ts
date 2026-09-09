@@ -2,7 +2,10 @@ import { z } from "zod";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import { startLocalVariantEdit } from "@/features/generation/server/local-generation-runner";
+import {
+  getLocalWorkerReservation,
+  startLocalVariantEdit,
+} from "@/features/generation/server/local-generation-runner";
 import {
   isVariantEditLeaseStale,
   type ActiveVariantEdit,
@@ -291,12 +294,24 @@ export async function POST(
       });
       if (refund.error && refund.error.code !== "PGRST202") throw refund.error;
     }
-    const created = await client.rpc("create_variant_detail_edit_v2", {
-      p_user_id: user.id,
-      p_variant_id: variant.data.id,
-      p_instruction: body.data.instruction,
-      p_idempotency_key: body.data.idempotencyKey,
-    });
+    const localReservation = getLocalWorkerReservation();
+    const created = await client.rpc(
+      localReservation
+        ? "create_local_variant_detail_edit_v2"
+        : "create_variant_detail_edit_v2",
+      {
+        p_user_id: user.id,
+        p_variant_id: variant.data.id,
+        p_instruction: body.data.instruction,
+        p_idempotency_key: body.data.idempotencyKey,
+        ...(localReservation
+          ? {
+              p_worker_id: localReservation.workerId,
+              p_lease_seconds: localReservation.leaseSeconds,
+            }
+          : {}),
+      },
+    );
     if (created.error) {
       if (created.error.message.includes("INSUFFICIENT_CREDITS")) {
         const account = await client
@@ -319,7 +334,8 @@ export async function POST(
         );
       if (
         created.error.code === "PGRST202" ||
-        created.error.message.includes("create_variant_detail_edit_v2")
+        created.error.message.includes("create_variant_detail_edit_v2") ||
+        created.error.message.includes("create_local_variant_detail_edit_v2")
       )
         return apiError(
           "VARIANT_EDIT_DATABASE_MIGRATION_REQUIRED",
@@ -335,7 +351,7 @@ export async function POST(
       remainingDetailEdits: number;
       chargedCredits: number;
     };
-    startLocalVariantEdit(revision.id);
+    await startLocalVariantEdit(revision.id);
     return Response.json(revision, { status: 202 });
   } catch (error) {
     return (

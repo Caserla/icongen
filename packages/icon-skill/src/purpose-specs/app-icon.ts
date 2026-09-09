@@ -1,11 +1,12 @@
 import {
   APP_ICON_CANVAS_SPEC,
   SHARED_PRODUCTION_BOUNDARIES,
+  TRANSPARENT_ICON_CANVAS_SPEC,
 } from "../production-boundaries";
 import { getConfiguredBackgroundQualityContract } from "../background-contracts";
 import { getApprovedStyleReference } from "../style-specs/approved-style-references";
 import { getAppIconStyleProtocol } from "../style-specs/app-icon-style-protocols";
-import { inferIconCategory, normalizeSubjectDescription } from "../subject-normalizer";
+import { inferIconCategory, normalizeSubjectDescription, stripUserTransparencyRules } from "../subject-normalizer";
 import type { CompileIconPromptInput } from "../types";
 import {
   appIconRequestsNoBackground,
@@ -28,13 +29,11 @@ export function compileAppIconPrompt(
   const protocol = getAppIconStyleProtocol(input.style.preset);
   const approvedReference = getApprovedStyleReference(input.style.preset);
   const category = inferIconCategory(input.name, input.description);
-  const normalizedDescription = normalizeSubjectDescription(
-    input.name,
-    input.description,
-    category,
-  );
-  const normalizedInput = { ...input, description: normalizedDescription };
   const noBackground = appIconRequestsNoBackground(input);
+  const normalizedDescription = noBackground && category === "illustrative"
+    ? stripUserTransparencyRules(input.description) || input.name
+    : normalizeSubjectDescription(input.name, input.description, category);
+  const normalizedInput = { ...input, description: normalizedDescription };
   const qualityContract = getConfiguredBackgroundQualityContract(
     input.style.preset,
     input.background,
@@ -49,7 +48,11 @@ export function compileAppIconPrompt(
       ? `${automaticColorRule}Use a smooth ${input.background.enabled && input.background.color.mode === "gradient" ? input.background.color.direction : "top-left-to-bottom-right"} gradient from ${qualityContract.colors[0]} to ${qualityContract.colors[1]} across the whole square canvas. The gradient is continuous and even from edge to edge, with no isolated fog bank, smoke, cloudy patch, spotlight, vignette, texture, or secondary panel. Neon glow belongs only to the subject's luminous paths and may not alter the outer background field.`
       : `${automaticColorRule}Use exactly one uniform matte solid background color ${qualityContract?.color ?? "from the approved palette"}. Every background pixel not covered by the subject keeps the same RGB value. Material lighting, ambient occlusion, contact shadow, color bounce, texture, and tonal modeling apply only to the subject and never to the background. The background has no gradient, fog, wash, glow patch, vignette, noise, brush texture, independent circle, or secondary color panel.`;
   const categoryLanguage =
-    category === "functional" ? protocol.functional : protocol.illustrative;
+    category === "functional"
+      ? protocol.functional
+      : noBackground
+        ? protocol.foregroundIllustrative ?? protocol.illustrative
+        : protocol.illustrative;
   const functionalRule =
     category === "functional"
       ? `${functionalRendering(input.name)} Use only one or two uniform solid colors and do not add decorative expressions, stars, stickers, badges, or unrelated ornaments.`
@@ -72,14 +75,18 @@ export function compileAppIconPrompt(
       protocol.forbidden,
     ].join(" "),
     composition: `${setConsistency} Geometry integrity category: ${geometry.category}. ${geometry.prompt} ${
-      category === "functional"
+      noBackground
+        ? "Follow the subject's requested placement and camera. Keep the complete silhouette inside a 9%–14% empty safety margin, preserving the requested directional extension and clear visual hierarchy."
+        : category === "functional"
         ? "Use one familiar, direct symbol centered in the square canvas. Keep open negative space, optically balance the symbol, and preserve immediate recognition at launcher and UI-entry sizes."
         : "Use one dominant, memorable silhouette centered in the square canvas. Keep all defining features inside a balanced safe area, avoid accidental cropping, and reserve enough negative space for immediate recognition at launcher size."
     }`,
-    colorAndMaterial: `${noBackground ? "Do not add a background color because the user explicitly opted out of a background." : backgroundContract} Apply only the palette, material, lighting, and depth behavior defined by this style protocol. Never introduce effects belonging to another preset.`,
+    colorAndMaterial: `${noBackground ? "Apply color, material, lighting, and depth to the foreground subject only." : backgroundContract} Apply only the palette, material, lighting, and depth behavior defined by this style protocol. Never introduce effects belonging to another preset.`,
     edgeAndSmallSizeQuality:
-      `Use one clean closed outer silhouette, controlled detail, crisp color boundaries, and natural antialiasing. Do not create breaks, burrs, muddy edges, stray fragments, or isolated decorative marks. ${protocol.smallSize}`,
-    productionBoundary: `${APP_ICON_CANVAS_SPEC} ${SHARED_PRODUCTION_BOUNDARIES}`,
+      `Use one clean closed outer silhouette, controlled detail, crisp color boundaries, and ${noBackground && input.style.preset === "pixel-art" ? "hard pixel edges without antialiasing" : "natural antialiasing"}. Do not create breaks, burrs, muddy edges, stray fragments, or isolated decorative marks. ${protocol.smallSize}`,
+    productionBoundary: noBackground
+      ? TRANSPARENT_ICON_CANVAS_SPEC
+      : `${APP_ICON_CANVAS_SPEC} ${SHARED_PRODUCTION_BOUNDARIES}`,
     backgroundContract,
   });
 }

@@ -3,6 +3,7 @@ import type { IconStylePresetId } from "@icongen/shared";
 export type AppIconStyleProtocol = {
   palette: string;
   illustrative: string;
+  foregroundIllustrative?: string;
   functional: string;
   depth: string;
   forbidden: string;
@@ -21,6 +22,7 @@ export const APP_ICON_STYLE_PROTOCOLS: Partial<Record<IconStylePresetId, AppIcon
   "isometric-3d": {
     palette: "3–5 coordinated clean color blocks with controlled top, left, and right plane contrast",
     illustrative: "Construct one coherent miniature object or compact micro-scene on a consistent isometric grid with a stable three-quarter camera.",
+    foregroundIllustrative: "Construct one coherent miniature object or compact micro-scene with parallel projected edges and a stable three-quarter isometric camera.",
     functional: "Construct one familiar UI symbol as a compact isometric object using only the planes required to explain its meaning.",
     depth: "Use one consistent upper light source, physically coherent overlap, and short restrained contact shading.",
     forbidden: "No perspective distortion, floating fragments, crowded diorama scenery, inconsistent camera angles, or photorealistic materials.",

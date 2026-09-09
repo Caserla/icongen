@@ -125,8 +125,8 @@ export function GenerationForm() {
             draft.backgroundMode,
             draft.backgroundContainer,
             draft.backgroundCornerRadius ?? 22,
-            iconPurpose === "interaction" ? draft.backgroundColor : undefined,
-            iconPurpose !== "interaction",
+            draft.backgroundColor,
+            false,
           ),
         })),
       ),
@@ -217,10 +217,8 @@ export function GenerationForm() {
       subjectDrafts[0]?.backgroundMode ?? "transparent",
       subjectDrafts[0]?.backgroundContainer ?? "rounded-square",
       subjectDrafts[0]?.backgroundCornerRadius ?? 22,
-      iconPurpose === "interaction"
-        ? subjectDrafts[0]?.backgroundColor
-        : undefined,
-      iconPurpose !== "interaction",
+      subjectDrafts[0]?.backgroundColor,
+      false,
     );
     const parsed = createGenerationJobSchema.safeParse({
       idempotencyKey: crypto.randomUUID(),
@@ -357,16 +355,8 @@ export function GenerationForm() {
               onBackgroundCornerRadiusChange={
                 selectSubjectBackgroundCornerRadius
               }
-              backgroundColors={
-                iconPurpose === "interaction"
-                  ? subjectDrafts.map((draft) => draft.backgroundColor)
-                  : undefined
-              }
-              onBackgroundColorChange={
-                iconPurpose === "interaction"
-                  ? selectSubjectBackgroundColor
-                  : undefined
-              }
+              backgroundColors={subjectDrafts.map((draft) => draft.backgroundColor)}
+              onBackgroundColorChange={selectSubjectBackgroundColor}
             />
             <ReferenceSizeSelector
               options={OUTPUT_SIZES}

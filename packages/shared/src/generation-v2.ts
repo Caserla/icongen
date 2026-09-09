@@ -32,6 +32,11 @@ export const colorSettingSchema = z.discriminatedUnion("mode", [
     mode: z.literal("gradient"),
     colors: z.tuple([hexColorSchema, hexColorSchema]),
     direction: gradientDirectionSchema,
+    angle: z.number().min(0).max(359).optional(),
+    startOffset: z.number().min(0).max(100).optional(),
+    endOffset: z.number().min(0).max(100).optional(),
+    alpha: z.number().min(0).max(1).optional(),
+    endAlpha: z.number().min(0).max(1).optional(),
   }),
 ]);
 export const iconStyleSchema = z.object({

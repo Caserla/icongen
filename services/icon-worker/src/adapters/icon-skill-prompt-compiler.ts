@@ -19,6 +19,8 @@ export const iconSkillPromptCompiler: PromptCompiler = {
     const compiled = compileIconPrompt(input);
     if (!compiled.referenceImageAssetUrl) return compiled;
     const assetUrl = compiled.referenceImageAssetUrl;
+    // Retain the board for local reproduction checks. The OpenAI provider
+    // does not upload it or switch to editing for mode: generation.
     return {
       ...compiled,
       referenceImage: {

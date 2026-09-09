@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
-import { SharpImageProcessor } from "./sharp-image-processor";
+import {
+  rasterDownscaleProfile,
+  SharpImageProcessor,
+} from "./sharp-image-processor";
+
+test("uses progressively gentler sharpening for larger icon derivatives", () => {
+  assert.deepEqual(rasterDownscaleProfile(24), { gamma: 2, sharpenSigma: 0.48 });
+  assert.deepEqual(rasterDownscaleProfile(64), { gamma: 2.1, sharpenSigma: 0.52 });
+  assert.deepEqual(rasterDownscaleProfile(128), { gamma: undefined, sharpenSigma: 0.5 });
+  assert.deepEqual(rasterDownscaleProfile(256), { gamma: undefined, sharpenSigma: undefined });
+});
 
 test("derives a real square PNG at the requested size", async () => {
   const source = await sharp({ create: { width: 8, height: 8, channels: 4, background: { r: 103, g: 80, b: 232, alpha: 0.5 } } }).png().toBuffer();
@@ -35,6 +45,40 @@ test("keeps transparent PNG output while sharpening a downscaled icon", async ()
   assert.equal(metadata.width, 64);
   assert.equal(metadata.height, 64);
   assert.equal(metadata.hasAlpha, true);
+});
+
+test("does not introduce a dark matte into a transparent antialiased edge", async () => {
+  const source = await sharp({
+    create: {
+      width: 512,
+      height: 512,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{
+      input: Buffer.from('<svg width="512" height="512"><circle cx="256" cy="256" r="180" fill="#f36f32"/></svg>'),
+    }])
+    .png()
+    .toBuffer();
+  const result = await new SharpImageProcessor().process({
+    bytes: source,
+    size: 24,
+    profile: "icon",
+  });
+  const { data } = await sharp(result.bytes)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let checked = 0;
+  for (let offset = 0; offset < data.length; offset += 4) {
+    const alpha = data[offset + 3];
+    if (alpha < 8 || alpha > 247) continue;
+    checked += 1;
+    assert.ok(data[offset] > 120, "transparent orange edges should retain foreground RGB");
+    assert.ok(data[offset] > data[offset + 1], "edge color should remain orange rather than gray");
+  }
+  assert.ok(checked > 0, "fixture should contain antialiased edge pixels");
 });
 
 test("applies subject opacity by scaling the existing alpha channel", async () => {

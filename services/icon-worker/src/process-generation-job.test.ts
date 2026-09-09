@@ -463,7 +463,7 @@ test("does not regenerate a completed job", async () => {
   assert.equal(providerCalls, 0);
 });
 
-test("does not deliver a generated image with a painted transparency checkerboard", async () => {
+test("delivers painted-checkerboard results while transparency quality gates are non-blocking", async () => {
   let savedAssets = 0;
   let completedVariants = 0;
   const dependencies: ProcessGenerationJobDependencies = {
@@ -481,9 +481,7 @@ test("does not deliver a generated image with a painted transparency checkerboar
         completedVariants += 1;
       },
       async updateProgress() {},
-      async markCompleted() {
-        assert.fail("a checkerboard result must not complete");
-      },
+      async markCompleted() {},
       async markFailedAndRefund() {},
     },
     imageProvider: {
@@ -495,7 +493,12 @@ test("does not deliver a generated image with a painted transparency checkerboar
     },
     imageProcessor: {
       async inspect() {
-        return { width: 1024, height: 1024, hasAlpha: false };
+        return {
+          width: 1024,
+          height: 1024,
+          hasAlpha: true,
+          hasTransparency: true,
+        };
       },
       async process({ bytes, size }) {
         return {
@@ -503,7 +506,7 @@ test("does not deliver a generated image with a painted transparency checkerboar
           mimeType: "image/png",
           width: size,
           height: size,
-          hasAlpha: false,
+          hasAlpha: true,
         };
       },
     },
@@ -519,7 +522,7 @@ test("does not deliver a generated image with a painted transparency checkerboar
     },
     assetStore: {
       async put() {
-        return { bucket: "icons", objectPath: "must-not-save.png" };
+        return { bucket: "icons", objectPath: "checkerboard-warning.png" };
       },
     },
     promptCompiler: {
@@ -532,12 +535,9 @@ test("does not deliver a generated image with a painted transparency checkerboar
     logger: { info() {}, error() {} },
   };
 
-  await assert.rejects(
-    processGenerationJob("job-1", dependencies),
-    /painted transparency checkerboard/,
-  );
-  assert.equal(savedAssets, 0);
-  assert.equal(completedVariants, 0);
+  await processGenerationJob("job-1", dependencies);
+  assert.ok(savedAssets > 0);
+  assert.equal(completedVariants, 6);
 });
 
 test("records visual quality warnings without rejecting a deliverable image", async () => {

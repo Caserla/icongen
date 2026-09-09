@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { generateValidatedImage } from "./generate-validated-image";
 
-test("transparent generation falls back from native alpha to chroma key and normalizes the result", async () => {
+test("transparent quality warnings do not invoke chroma cleanup or block delivery", async () => {
   const strategies: Array<string | undefined> = [];
+  const prompts: string[] = [];
   let normalized = 0;
   let inspected = 0;
   const result = await generateValidatedImage(
@@ -14,6 +15,9 @@ test("transparent generation falls back from native alpha to chroma key and norm
         model: "test",
         async generate(input) {
           strategies.push(input.transparencyStrategy);
+          prompts.push(input.prompt);
+          assert.equal(input.background, "transparent");
+          assert.equal(input.chromaColor, undefined);
           return { bytes: new Uint8Array([strategies.length]), mimeType: "image/png" };
         },
       },
@@ -40,16 +44,21 @@ test("transparent generation falls back from native alpha to chroma key and norm
       logger: { info() {}, error() {} },
     },
   );
-  assert.deepEqual(strategies, ["native-alpha", "chroma-key"]);
-  assert.equal(normalized, 1);
-  assert.equal(inspected, 2);
-  assert.equal(result.image.bytes[0], 2);
+  assert.deepEqual(strategies, ["native-alpha"]);
+  assert.equal(prompts.length, 1);
+  assert.doesNotMatch(prompts.join("\n"), /#00FF00|CHROMA KEY/);
+  assert.equal(normalized, 0);
+  assert.equal(inspected, 1);
+  assert.equal(result.image.bytes[0], 1);
+  assert.ok(result.qualityWarnings.some((warning) =>
+    warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE" || warning.code === "MISSING_ALPHA_CHANNEL"
+  ));
 });
 
-test("transparent generation immediately uses chroma key when the provider rejects native alpha", async () => {
+test("unsupported transparency is reported without a conflicting chroma request", async () => {
   const strategies: Array<string | undefined> = [];
   let normalized = 0;
-  await generateValidatedImage(
+  await assert.rejects(generateValidatedImage(
     { jobId: "job", variantId: "variant", prompt: "filled bell", outputBackground: "transparent" },
     {
       imageProvider: {
@@ -68,9 +77,73 @@ test("transparent generation immediately uses chroma key when the provider rejec
       imageQualityGate: { async inspect() { return []; } },
       logger: { info() {}, error() {} },
     },
+  ), /Transparent background is not supported/);
+  assert.deepEqual(strategies, ["native-alpha"]);
+  assert.equal(normalized, 0);
+});
+
+test("opaque and painted-checkerboard results are returned with non-blocking warnings", async () => {
+  for (const paintedCheckerboard of [false, true]) {
+    let attempts = 0;
+    const result = await generateValidatedImage(
+      { jobId: "job", variantId: "variant", prompt: "coffee kiosk", outputBackground: "transparent" },
+      {
+        imageProvider: {
+          name: "test", model: "test",
+          async generate(input) {
+            attempts += 1;
+            assert.equal(input.transparencyStrategy, "native-alpha");
+            return { bytes: new Uint8Array([1]), mimeType: "image/png" };
+          },
+        },
+        imageProcessor: {
+          async inspect() { return { width: 1024, height: 1024, hasAlpha: true, hasTransparency: paintedCheckerboard }; },
+          async process({ bytes, size }) { return { bytes, mimeType: "image/png", width: size, height: size, hasAlpha: true }; },
+        },
+        imageQualityGate: { async inspect() {
+          return paintedCheckerboard ? [{ code: "FAKE_TRANSPARENCY_CHECKERBOARD" as const, message: "painted grid" }] : [];
+        } },
+        logger: { info() {}, error() {} },
+      },
+    );
+    assert.equal(attempts, 1);
+    assert.ok(result.qualityWarnings.some((warning) =>
+      warning.code === (paintedCheckerboard ? "FAKE_TRANSPARENCY_CHECKERBOARD" : "MISSING_ALPHA_CHANNEL")
+    ));
+  }
+});
+
+test("non-square source is blocked only for square and rounded-square backgrounds", async () => {
+  const dependencies = {
+    imageProvider: {
+      name: "test", model: "test",
+      async generate() { return { bytes: new Uint8Array([1]), mimeType: "image/png" as const }; },
+    },
+    imageProcessor: {
+      async inspect() { return { width: 1200, height: 900, hasAlpha: true, hasTransparency: true }; },
+      async process({ bytes, size }: { bytes: Uint8Array; size: number }) { return { bytes, mimeType: "image/png" as const, width: size, height: size, hasAlpha: true }; },
+    },
+    imageQualityGate: { async inspect() { return [{ code: "SOURCE_NOT_SQUARE" as const, message: "1200x900" }]; } },
+    logger: { info() {}, error() {} },
+  };
+  const transparent = await generateValidatedImage(
+    { jobId: "job", variantId: "transparent", prompt: "subject", outputBackground: "transparent" },
+    dependencies,
   );
-  assert.deepEqual(strategies, ["native-alpha", "chroma-key"]);
-  assert.equal(normalized, 1);
+  assert.equal(transparent.image.bytes[0], 1);
+  const circle = await generateValidatedImage(
+    { jobId: "job", variantId: "circle", prompt: "subject", outputBackground: "opaque", backgroundContainer: "circle" },
+    dependencies,
+  );
+  assert.equal(circle.image.bytes[0], 1);
+  await assert.rejects(generateValidatedImage(
+    { jobId: "job", variantId: "rounded", prompt: "subject", outputBackground: "opaque", backgroundContainer: "rounded-square" },
+    dependencies,
+  ), /not a square production asset/);
+  await assert.rejects(generateValidatedImage(
+    { jobId: "job", variantId: "square", prompt: "subject", outputBackground: "opaque", backgroundContainer: "square" },
+    dependencies,
+  ), /not a square production asset/);
 });
 
 test("unrelated provider errors are not hidden behind the transparency fallback", async () => {

@@ -5,7 +5,7 @@ import { getConfiguredBackgroundQualityContract } from "../background-contracts"
 
 const describeColor = (color: CompileIconPromptInput["color"]) => color.mode === "solid"
   ? `solid ${color.color}`
-  : `gradient ${color.colors.join(" to ")} ${color.direction}`;
+  : `gradient ${color.colors[0]} at ${color.startOffset ?? 0}% (opacity ${color.alpha ?? 1}) to ${color.colors[1]} at ${color.endOffset ?? 100}% (opacity ${color.endAlpha ?? 1}), ${color.direction === "radial" ? "radial" : color.angle === undefined ? color.direction : `${color.angle}deg CSS angle`}`;
 
 const describeBackground = (background: CompileIconPromptInput["background"]) => {
   if (!background.enabled) return "transparent canvas with a real alpha channel; no simulated transparency pattern";
@@ -30,6 +30,7 @@ export function compileInteractionPrompt(input: CompileIconPromptInput, directio
             configuredBackground.mode === "gradient"
               ? {
                   mode: "gradient" as const,
+                  ...(input.background.color.mode === "gradient" ? input.background.color : {}),
                   colors: configuredBackground.colors,
                   direction:
                     input.background.color.mode === "gradient"

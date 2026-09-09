@@ -4,24 +4,33 @@ import { hexToHsv, hsvToHex } from './color-math';
 import type { Appearance } from './core';
 import { useSelectionPopover } from './selection-popover';
 import css from './library.module.css';
+import { createPortal } from 'react-dom';
 
-export function LibraryColorPicker({value,onChange,zh}:{value:Appearance;onChange:(value:Appearance)=>void;zh:boolean}) {
-  const {open,setOpen,root,trigger,rootProps}=useSelectionPopover();
+export function LibraryColorPicker({value,onChange,zh,portal=false,gradientOnly=false}:{value:Appearance;onChange:(value:Appearance)=>void;zh:boolean;portal?:boolean;gradientOnly?:boolean}) {
+  const {open,setOpen,root,trigger,portalRoot,rootProps}=useSelectionPopover();
+  const [position,setPosition]=useState({left:12,top:12});
+  useLayoutEffect(()=>{
+    if(!open||!portal)return;
+    const update=()=>{const rect=trigger.current?.getBoundingClientRect();if(rect)setPosition({left:Math.max(12,Math.min(rect.left,window.innerWidth-324)),top:Math.max(12,Math.min(rect.bottom+8,window.innerHeight-430))});};
+    update();window.addEventListener('resize',update);window.addEventListener('scroll',update,true);
+    return()=>{window.removeEventListener('resize',update);window.removeEventListener('scroll',update,true);};
+  },[open,portal,trigger]);
   return <div ref={root} className={css.libraryColorRoot} {...rootProps}>
     <button type="button" ref={trigger} className={css.libraryColorTrigger} aria-label={zh?'颜色设置':'Color settings'} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span style={{background:value.mode==='solid'?value.color:`linear-gradient(90deg,${value.color},${value.endColor})`}}/><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}><path d="m6 9 6 6 6-6"/></svg></button>
-    {open&&<ColorPanel value={value} onChange={onChange} zh={zh}/>}
+    {open&&(portal?createPortal(<div data-library-color-popover ref={portalRoot} {...rootProps} style={{position:'fixed',...position,zIndex:1000,width:300,maxWidth:'calc(100vw - 24px)',maxHeight:'calc(100dvh - 24px)',overflowY:'auto'}}><ColorPanel gradientOnly={gradientOnly} inline value={value} onChange={onChange} zh={zh}/></div>,document.body):<ColorPanel gradientOnly={gradientOnly} value={value} onChange={onChange} zh={zh}/>)}
   </div>;
 }
-function ColorPanel({value,onChange,zh}:{value:Appearance;onChange:(value:Appearance)=>void;zh:boolean}) {
+export function ColorPanel({value,onChange,zh,inline=false,gradientOnly=false}:{value:Appearance;onChange:(value:Appearance)=>void;zh:boolean;inline?:boolean;gradientOnly?:boolean}) {
   const panel=useRef<HTMLDivElement>(null);
   const [top,setTop]=useState<number>();
   useLayoutEffect(()=>{
+    if(inline)return;
     const node=panel.current;
     if(!node)return;
     const anchor=node.parentElement!.getBoundingClientRect();
     // Reserve the taller gradient state so changing modes never moves the top.
     setTop(Math.max(8,anchor.top-410)-anchor.top);
-  },[]);
+  },[inline]);
   const [stop,setStop]=useState<0|1>(0);
   const [format,setFormat]=useState<'hex'|'rgba'>('hex');
   const [hue,setHue]=useState(hexToHsv(value.color).h);
@@ -39,8 +48,10 @@ function ColorPanel({value,onChange,zh}:{value:Appearance;onChange:(value:Appear
     const v=1-Math.max(0,Math.min(1,(event.clientY-r.top)/r.height));
     changeColor(hsvToHex(hue,s,v));
   };
-  return <div ref={panel} className={css.libraryColorPanel} style={top===undefined?undefined:{top,bottom:'auto'}} role="group" aria-label={zh?'拾色器':'Color picker'}>
+  return <div ref={panel} className={css.libraryColorPanel} style={inline?{position:'relative',top:'auto',bottom:'auto',width:'100%',maxWidth:'100%',boxShadow:'none'}:top===undefined?undefined:{top,bottom:'auto'}} role="group" aria-label={zh?'拾色器':'Color picker'}>
+    {!gradientOnly && <>
     <div className={`${css.paintTabs} ${css.paintModeTabs}`}><span className={css.paintModeIndicator} aria-hidden="true" style={{transform:gradient?'translateX(100%)':'translateX(0)'}}/>{[false,true].map(g=><button type="button" key={String(g)} aria-pressed={gradient===g} onClick={()=>{onChange({...value,mode:g?'linear':'solid'});if(!g)selectStop(0);}}>{g?(zh?'渐变':'Gradient'):(zh?'纯色':'Pure')}</button>)}</div>
+    </>}
     {gradient&&<><div className={css.gradientOptions}><div className={`${css.paintTabs} ${css.paintModeTabs}`}><span className={css.paintModeIndicator} aria-hidden="true" style={{transform:value.mode==='radial'?'translateX(100%)':'translateX(0)'}}/>{(['linear','radial'] as const).map(mode=><button type="button" key={mode} aria-pressed={value.mode===mode} onClick={()=>onChange({...value,mode})}>{zh?(mode==='linear'?'线性':'径向'):mode}</button>)}</div>{value.mode==='linear'&&<AngleDial value={value.angle} onChange={angle=>onChange({...value,angle})} zh={zh}/>}</div><GradientStops value={value} onChange={onChange} selected={stop} select={selectStop} zh={zh}/></>}
     <div className={css.saturation} role="slider" tabIndex={0} aria-label={zh?'饱和度与亮度':'Saturation and brightness'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(hsv.s*100)} aria-valuetext={`${Math.round(hsv.s*100)}%, ${Math.round(hsv.v*100)}%`} style={{backgroundColor:`hsl(${hue} 100% 50%)`}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);move(e);}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))move(e);}} onKeyDown={e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();changeColor(hsvToHex(hue,Math.max(0,Math.min(1,hsv.s+(e.key==='ArrowRight'?.01:e.key==='ArrowLeft'?-.01:0))),Math.max(0,Math.min(1,hsv.v+(e.key==='ArrowUp'?.01:e.key==='ArrowDown'?-.01:0)))));}}><span style={{left:`${hsv.s*100}%`,top:`${(1-hsv.v)*100}%`}}/></div>
     <input className={css.hueSlider} type="range" min="0" max="359" value={hue} aria-label={zh?'色相':'Hue'} onChange={e=>{const h=Number(e.target.value);setHue(h);changeColor(hsvToHex(h,hsv.s,hsv.v));}}/>

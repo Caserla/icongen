@@ -36,7 +36,7 @@ function SubjectColorEditor({
       onChange({ mode: "solid", color: color.toUpperCase() });
   }
   return (
-    <div className="mt-3 space-y-3">
+    <div className="mt-1.5 space-y-3">
       <StudioSegmentedControl
         className="studio-structure-tabs"
         value={value.mode}
@@ -72,7 +72,7 @@ function SubjectColorEditor({
           onAlphaChange={onOpacityChange}
         />
       ) : (
-        <p className="studio-notice px-4 py-3 text-sm text-muted">
+        <p className="studio-notice studio-auto-color-notice px-4 py-3 text-sm text-muted">
           {locale === "zh"
             ? "颜色将根据图标内容与所选风格自动生成。"
             : "Colors are generated automatically from the icon content and selected style."}
@@ -141,7 +141,7 @@ export function InteractionIconEditor(props: {
             <StudioSegmentedControl
               value={iconStructure}
               onChange={onIconStructureChange}
-              className="mt-2 studio-structure-tabs"
+              className="mt-1 studio-structure-tabs"
               options={
                 locale === "zh"
                   ? [

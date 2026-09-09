@@ -16,7 +16,6 @@ import {
 } from "@/features/generation/variant-preview-update";
 import {
   hasRepeatedPollingFailures,
-  isGenerationStalled,
 } from "@/features/generation/generation-timeout";
 import { VariantEditDialog } from "./variant-edit-dialog";
 import { FavoriteToggle } from "./favorites-drawer";
@@ -226,7 +225,6 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     0,
     Math.floor((now - lastUpdatedAt) / 1000),
   );
-  const generationStalled = isGenerationStalled(job, now);
   const pollingUnavailable = hasRepeatedPollingFailures(pollFailureCount);
   const variantStatusLabels: Record<string, [string, string]> = {
     queued: ["等待生成", "Waiting"],
@@ -235,19 +233,12 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     failed: ["生成失败", "Could not generate"],
   };
   function toggle(id: string) {
-    const update = () =>
-      setSelected((current) => {
-        const next = new Set(current);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
-    const documentWithTransitions = document as Document & {
-      startViewTransition?: (callback: () => void) => void;
-    };
-    if (documentWithTransitions.startViewTransition)
-      documentWithTransitions.startViewTransition(update);
-    else update();
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
   async function retryVariant(variantId: string) {
     setRevealedDuringGeneration(true);
@@ -378,7 +369,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
     );
   }
   return (
-    <div className="icon-results-studio space-y-8">
+    <div className="icon-results-studio space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           type="button"
@@ -389,7 +380,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
           {locale === "zh" ? "返回上一页" : "Back"}
         </button>
         <div className="ml-auto mr-6 flex min-w-0 items-center justify-end gap-3 text-right sm:mr-10">
-          <h1 className="truncate text-2xl font-black tracking-[-.03em] text-foreground sm:text-3xl">
+          <h1 className="truncate text-2xl font-black tracking-[-.03em] text-foreground">
             {locale === "zh" ? "图标详情" : "Icon details"}
           </h1>
           {effectiveJobStatus !== "completed" ? (
@@ -446,29 +437,20 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
           </div>
         </section>
       ) : null}
-      {!finished.has(job.status) &&
-      (generationStalled || pollingUnavailable) ? (
+      {!finished.has(job.status) && pollingUnavailable ? (
         <section
           role="alert"
           className="studio-notice studio-notice--warning p-4 text-sm"
         >
           <b>
             {locale === "zh"
-              ? pollingUnavailable
-                ? "暂时无法获取最新生成状态"
-                : "生成时间超过预期"
-              : pollingUnavailable
-                ? "Unable to retrieve the latest status"
-                : "Generation is taking longer than expected"}
+              ? "暂时无法获取最新生成状态"
+              : "Unable to retrieve the latest status"}
           </b>
           <p className="mt-1 leading-6">
             {locale === "zh"
-              ? pollingUnavailable
-                ? "页面会继续自动重试。请检查网络，或稍后手动刷新状态。"
-                : "图片服务可能暂时繁忙或不可用。任务仍会在后台处理；如果最终生成失败，消耗的点数会自动返还。"
-              : pollingUnavailable
-                ? "This page will keep retrying automatically. Check your connection or refresh the status later."
-                : "The image service may be busy or temporarily unavailable. Processing continues in the background, and credits are returned automatically if generation ultimately fails."}
+              ? "页面会继续自动重试。请检查网络，或稍后手动刷新状态。"
+              : "This page will keep retrying automatically. Check your connection or refresh the status later."}
           </p>
           <button
             type="button"
@@ -652,7 +634,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                       <div className="mt-3 flex items-stretch gap-2 overflow-visible">{job.supportsVariantEditing ? <button
                           type="button"
                           onClick={() => setEditing({ variant, subjectName: subject.name })}
-                          className="studio-button studio-button--secondary relative z-[1] min-w-0 basis-0 flex-1 shrink-0 px-4 py-2.5 text-sm font-bold"
+                          className="studio-button studio-button--secondary variant-light-action variant-adjust-button relative z-[1] min-w-0 flex-1 px-4 py-2.5 text-sm font-bold"
                         >{locale === "zh" ? "细节调整" : "Adjust details"}</button> : <span className="flex-1" />}<FavoriteToggle placement="action" item={{ variantId: variant.id, jobId: job.id, subjectName: subject.name, slot: variant.slot, previewUrl: previewUrl! }} /></div>
                     ) : null}
                   </article>
@@ -679,7 +661,7 @@ export function JobDetails({ initialJob }: { initialJob: GenerationJobV2 }) {
                     : new Set(available.map((variant) => variant.id)),
                 )
               }
-              className="studio-button studio-button--secondary px-4 py-3 text-sm font-bold"
+              className="studio-button studio-button--secondary variant-light-action px-4 py-3 text-sm font-bold"
             >
               {allAvailableSelected
                 ? locale === "zh"

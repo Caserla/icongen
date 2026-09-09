@@ -42,7 +42,9 @@ export async function generateValidatedDetailEdit(
       ? await selectChromaKey(input.sourceBytes)
       : undefined;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-    const transparencyStrategy = attempt === 1 ? "native-alpha" : "chroma-key";
+    const transparencyStrategy = input.outputBackground === "transparent"
+      ? "chroma-key"
+      : "native-alpha";
     const correction =
       attempt === 1
         ? ""
@@ -50,7 +52,7 @@ export async function generateValidatedDetailEdit(
               (warning) => warning.code === "EDIT_NO_VISIBLE_CHANGE",
             )
           ? `\n\nVISIBLE EDIT CORRECTION — RETRY ${attempt}\nThe previous output remained visually indistinguishable from the source. Apply the requested change clearly and observably to the named element while preserving every unspecified element. Do not return the source unchanged and do not limit the edit to antialiasing, compression, edge cleanup, or imperceptible pixel shifts. Diagnostics: ${lastWarnings.map((warning) => warning.message).join(" ")}`
-          : `\n\nTRANSPARENCY CORRECTION — RETRY ${attempt}\nThe previous native-alpha result failed the transparent-edge contract: ${lastWarnings.map((warning) => warning.message).join(" ")} Re-edit from the supplied source using one edge-connected pure ${chromaHex(chromaColor!)} working region outside the complete artwork. All four corners must be ${chromaHex(chromaColor!)}. Do not render black, white, gray, checkerboard, halo, shadow, glow or any opaque presentation canvas.`;
+          : `\n\nTRANSPARENCY CORRECTION — RETRY ${attempt}\nThe previous result failed the transparent-edge contract: ${lastWarnings.map((warning) => warning.message).join(" ")} Re-edit from the supplied source using one edge-connected pure ${chromaHex(chromaColor!)} working region outside the complete artwork. All four corners must be ${chromaHex(chromaColor!)}. Do not render black, white, gray, checkerboard, halo, shadow, glow or any opaque presentation canvas.`;
     let image: GeneratedImage;
     try {
       image = await dependencies.imageProvider.generate(

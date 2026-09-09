@@ -18,6 +18,10 @@
 - `APP_ENV`：Web 服务端和 Worker 使用。
 - `NEXT_PUBLIC_APP_ENV`：前端构建时固化，必须与 `APP_ENV` 相同。
 - `SUPABASE_ENVIRONMENT`：声明当前密钥所属环境，必须与 `APP_ENV` 相同。
+- `LOCAL_GENERATION_WORKER_ENABLED`：仅在需要由本地 Web 进程直接拉起生成 Worker 时设为 `true`。
+- `LOCAL_GENERATION_SUPABASE_PROJECT_REF`：本地 Worker 被允许访问的唯一 Supabase 项目 ID；必须与 `NEXT_PUBLIC_SUPABASE_URL` 的主机名完全匹配，否则本地 Worker 会拒绝启动。
+
+开发环境启用本地 Worker 前，必须先在对应的开发 Supabase 项目执行 `0031_local_worker_atomic_reservations.sql`。新建任务、失败方案重试和细节调整会在同一个数据库事务内绑定 `local-web-*` 租约，避免预发布或遗留常驻 Worker 抢占开发任务。预发布与生产环境保持 `LOCAL_GENERATION_WORKER_ENABLED=false`，继续使用各自的常驻 Worker。
 - `NEXT_PUBLIC_APP_URL`：预发布和生产必须为非本机 HTTPS URL。
 - `PUBLIC_SIGNUP_ENABLED`：预发布和生产默认关闭；只有明确设为 `true` 才开放注册。
 

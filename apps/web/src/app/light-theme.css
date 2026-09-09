@@ -47,14 +47,46 @@ html[data-theme="light"] .studio-range::before {background:#d5d5d5}
 html[data-theme="light"] .studio-range::after {background:#a3a3a3}
 html[data-theme="light"] ::selection {background:#cddcfa;color:#171717}
 html[data-theme="light"] :is(.favorites-float,.pagination-float,.favorite-toggle,.favorite-card-select) {background:#fff !important;color:#000000 !important;border-color:#e2e2e2 !important;box-shadow:0 6px 24px #20231818}
+html[data-theme="light"] .variant-adjust-button,
+html[data-theme="light"] .variant-adjust-button + .favorite-toggle.favorite-toggle--action {
+  border:1px solid #e2e2e2 !important;
+  box-shadow:none !important;
+}
 html[data-theme="light"] .studio-shell .creation-size-options button[aria-pressed="true"] {background:#000000 !important;color:#fff !important;border-color:#000000 !important}
 html[data-theme="light"] :is(.status-badge--completed) {color:#267a50 !important}
 html[data-theme="light"] :is(.status-badge--queued,.status-badge--processing) {color:#355ea9 !important}
 html[data-theme="light"] .status-badge--failed {color:#b84238 !important}
 html[data-theme="light"] .status-badge--partial {color:#936010 !important}
 
+/* Keep result-card hover quieter than the actions inside each option. */
+html[data-theme="light"] .icon-results-studio .studio-result-card:hover {
+  border-color:#d7d8d4 !important;
+  background:#f2f2ef !important;
+}
+html[data-theme="light"] .icon-results-studio .studio-result-card .studio-button--secondary:not(.variant-light-action) {
+  border-color:#d5d6d1 !important;
+  background:#e5e6e2 !important;
+  color:#171717 !important;
+}
+html[data-theme="light"] .icon-results-studio .studio-result-card .studio-button--secondary:not(.variant-light-action):hover {
+  border-color:#c8cac4 !important;
+  background:#dadcd6 !important;
+}
+html[data-theme="light"] .icon-results-studio .variant-light-action {
+  border-color:#e2e2e2 !important;
+  background:#fff !important;
+  color:#171717 !important;
+}
+html[data-theme="light"] .icon-results-studio .variant-light-action:hover {
+  border-color:#d4d5d1 !important;
+  background:#ededeb !important;
+}
+
 /* Neutral white surfaces and restrained elevation, matching the light reference. */
 html[data-theme="light"] :is(.studio-header,.studio-panel,.creation-side-card,.creation-control-panel) {box-shadow:none !important;background-clip:padding-box}
+html[data-theme="light"] .studio-auto-color-notice {
+  box-shadow:0 4px 14px rgb(32 35 24 / 5%) !important;
+}
 html[data-theme="light"] :is(.auth-sign-in-dialog,.favorites-drawer,.user-menu__panel) {box-shadow:0 12px 40px #00000008 !important}
 html[data-theme="light"] .auth-sign-in-dialog::backdrop {background:rgb(255 255 255 / 72%);backdrop-filter:blur(20px)}
 .creation-editor__canvas,.illustration-editor__canvas {border-radius:inherit}
@@ -82,7 +114,7 @@ html[data-theme="light"] .user-menu {
   --menu-danger:#b93832;
 }
 html .user-menu .user-menu__avatar {
-  background:var(--menu-avatar) !important;
+  background:transparent !important;
   color:var(--menu-ink) !important;
   border:1px solid var(--menu-line);
   border-radius:50%;
@@ -145,31 +177,43 @@ html[data-theme="light"] .creation-side-card--subjects :is(.icon-subject-input,.
 .studio-segmented.studio-structure-tabs {
   position:relative; isolation:isolate; display:grid; width:100%;
   grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px;
-  padding:6px !important; border:1px solid var(--ui-line-242424,#242424) !important;
-  border-radius:18px !important;
+  padding:5px !important; border:1px solid var(--ui-line-242424,#242424) !important;
+  border-radius:14px !important;
 }
 .studio-structure-tabs::before {
-  content:""; position:absolute; z-index:-1; top:6px; bottom:6px; left:6px;
-  width:calc((100% - 16px)/2); border-radius:12px;
+  content:""; position:absolute; z-index:-1; top:5px; bottom:5px; left:5px;
+  width:calc((100% - 14px)/2); border-radius:10px;
   background:var(--ui-surface-1d1d1d,#1d1d1d);
   box-shadow:inset 0 2px 0 #333;
   transition:transform 300ms cubic-bezier(.22,.8,.25,1);
 }
 .studio-structure-tabs:has(button:nth-child(2)[aria-pressed="true"])::before {transform:translateX(calc(100% + 4px))}
 .studio-segmented.studio-structure-tabs > .draft-option {
-  min-width:0; min-height:42px; border-radius:12px !important;
+  min-width:0; min-height:38px; border-radius:10px !important;
   background:transparent !important; border:0 !important;
 }
 html[data-theme="light"] .studio-segmented.studio-structure-tabs > .draft-option {border:0 !important}
 html[data-theme="light"] .studio-structure-tabs::before {background:#e3e3e3;box-shadow:inset 0 2px 0 #d1d1d1}
 @media(prefers-reduced-motion:reduce){.studio-structure-tabs::before{transition:none}}
+.studio-segmented.studio-structure-tabs--three {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.studio-structure-tabs--three::before {
+  width:calc((100% - 18px)/3);
+}
+.studio-structure-tabs--three:has(button:nth-child(3)[aria-pressed="true"])::before {
+  transform:translateX(calc(200% + 8px));
+}
+.studio-segmented.studio-structure-tabs--three > .draft-option {
+  padding-inline:8px;
+}
 .studio-segmented.studio-structure-tabs--vertical {
   grid-template-columns:minmax(0,1fr);
   grid-auto-flow:row;
-  grid-template-rows:repeat(2,minmax(42px,1fr));
+  grid-template-rows:repeat(2,minmax(38px,1fr));
 }
 .studio-structure-tabs--vertical::before {
-  right:6px; bottom:auto; width:auto; height:calc((100% - 16px)/2);
+  right:5px; bottom:auto; width:auto; height:calc((100% - 14px)/2);
 }
 .studio-structure-tabs--vertical:has(button:nth-child(2)[aria-pressed="true"])::before {
   transform:translateY(calc(100% + 4px));
@@ -216,3 +260,73 @@ html[data-theme="light"] .icons-studio .icons-filter-option:not([aria-current="p
 .studio-main:has(:is(.create-studio,.icons-studio)) {padding-left:0!important;padding-right:0!important}
 .create-studio .creation-workspace {width:100%;margin-left:0;margin-right:0}
 @media(max-width:640px){.studio-shell > div:has(> .studio-main :is(.create-studio,.icons-studio)){width:calc(100% - 16px)}}
+
+/* Global navigation follows the selected theme, never the current route. */
+html[data-theme="light"] .butter-marketing-header {
+  border-color:#e2e2e2 !important;
+  background:#f8f8f6 !important;
+  color:#171717 !important;
+  box-shadow:0 18px 54px #20231814 !important;
+}
+html[data-theme="light"] body:has(.butter-home),
+html[data-theme="light"] body:has(.butter-home) > div {
+  background:#f7f6f1 !important;
+}
+html[data-theme="light"]:has(.butter-home) {
+  background:#f7f6f1 !important;
+}
+html[data-theme="light"] .butter-marketing-header
+  :is(.focus-ring,.butter-nav-link,.language-switch__option) {
+  color:inherit !important;
+}
+html[data-theme="light"] :is(.butter-marketing-header,.studio-header)
+  .language-switch__option {
+  color:#808080 !important;
+  opacity:1;
+}
+html[data-theme="light"] :is(.butter-marketing-header,.studio-header)
+  .language-switch__option[aria-pressed="true"] {
+  color:#171717 !important;
+}
+html[data-theme="light"] .butter-marketing-header .language-switch > span {
+  background:rgba(15,15,15,.18);
+}
+html[data-theme="light"] .butter-marketing-header .marketing-sign-in {
+  border-color:#171717 !important;
+  background:#171717 !important;
+  color:#fff !important;
+}
+
+/* One quiet light palette shared by all legal documents. */
+html[data-theme="light"] :is(html,body):has(.policy-page) {
+  background:#efefec !important;
+}
+html[data-theme="light"] .policy-page {
+  background:#efefec !important;
+  color:#20211e !important;
+}
+html[data-theme="light"] .policy-card,
+html[data-theme="light"] .policy-card--hero {
+  border-color:#d5d6d1 !important;
+  background:#f8f8f6 !important;
+  color:#20211e !important;
+  box-shadow:none !important;
+}
+html[data-theme="light"] .policy-copy {
+  color:#5f625c !important;
+}
+html[data-theme="light"] :is(.policy-eyebrow,.policy-meta,.policy-index) {
+  color:#858880 !important;
+}
+/* Shared image placeholders, including portaled favorites and detail views. */
+html[data-theme="light"] body .skeleton-block {
+  background:#e3e5e0 !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+html[data-theme="light"] body .skeleton-block::after {
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.72),transparent) !important;
+}
+html[data-theme="light"] body [data-image-state] .skeleton-block {
+  border-radius:inherit !important;
+}

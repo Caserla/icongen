@@ -6,6 +6,39 @@ import { serverLogger } from "@/lib/security/server-log";
 
 const activeJobs = new Set<string>();
 const scheduledJobs = new Map<string, ReturnType<typeof setTimeout>>();
+const localWorkerId = `local-web-${process.pid}`;
+const localLeaseSeconds = 900;
+
+export function getLocalWorkerReservation() {
+  return localVariantWorkerEnabled(process.env)
+    ? { workerId: localWorkerId, leaseSeconds: localLeaseSeconds }
+    : null;
+}
+
+async function reserveLocalTask(
+  table: "generation_jobs" | "generation_variant_revisions",
+  id: string,
+) {
+  const now = new Date();
+  const expiresAt = new Date(
+    now.getTime() + localLeaseSeconds * 1000,
+  ).toISOString();
+  const result = await createAdminSupabaseClient()
+    .from(table)
+    .update({
+      worker_lease_owner: localWorkerId,
+      worker_lease_expires_at: expiresAt,
+      updated_at: now.toISOString(),
+    })
+    .eq("id", id)
+    .or(
+      `worker_lease_owner.is.null,worker_lease_expires_at.lt.${now.toISOString()},worker_lease_owner.eq.${localWorkerId}`,
+    )
+    .select("id")
+    .maybeSingle();
+  if (result.error) throw result.error;
+  return Boolean(result.data);
+}
 
 function spawnLocalGenerationJob(jobId: string, workspaceRoot: string) {
   scheduledJobs.delete(jobId);
@@ -27,6 +60,8 @@ function spawnLocalGenerationJob(jobId: string, workspaceRoot: string) {
       env: {
         ...process.env,
         SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        WORKER_INSTANCE_ID: localWorkerId,
+        WORKER_LEASE_SECONDS: String(localLeaseSeconds),
       },
       stdio: "inherit",
     },
@@ -49,8 +84,13 @@ function spawnLocalGenerationJob(jobId: string, workspaceRoot: string) {
   });
 }
 
-export function startLocalGenerationJob(jobId: string) {
+export async function startLocalGenerationJob(jobId: string) {
   if (!localVariantWorkerEnabled(process.env)) return;
+
+  if (!(await reserveLocalTask("generation_jobs", jobId))) {
+    serverLogger.error("local_generation_worker_reservation_failed", { jobId });
+    return;
+  }
 
   const workspaceRoot =
     process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
@@ -66,8 +106,14 @@ export function startLocalGenerationJob(jobId: string) {
   );
 }
 
-export function startLocalVariantEdit(editId: string) {
+export async function startLocalVariantEdit(editId: string) {
   if (!localVariantWorkerEnabled(process.env)) return;
+  if (!(await reserveLocalTask("generation_variant_revisions", editId))) {
+    serverLogger.error("local_variant_edit_worker_reservation_failed", {
+      editId,
+    });
+    return;
+  }
   const workspaceRoot =
     process.env.INIT_CWD ?? path.resolve(process.cwd(), "../..");
   const child = spawn(
@@ -78,6 +124,8 @@ export function startLocalVariantEdit(editId: string) {
       env: {
         ...process.env,
         SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        WORKER_INSTANCE_ID: localWorkerId,
+        WORKER_LEASE_SECONDS: String(localLeaseSeconds),
       },
       stdio: "inherit",
     },

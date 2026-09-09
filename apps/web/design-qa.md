@@ -21,6 +21,14 @@ final result: blocked
 
 ## 2026-09-09 follow-up verification
 
+### Additional findings and fixes
+
+- Reproduced Turbopack PostCSS worker failure (`binding to a port: Operation not permitted`) both before and after granting network access. Default `build` now explicitly uses Webpack; `build:turbo` preserves the diagnostic path. `APP_ENV=development NEXT_PUBLIC_APP_ENV=development npm run build` passed. A build without APP_ENV correctly fails environment validation; do not weaken that validation for deployment.
+- At 390 × 844 the library dialog was squeezed by desktop neighbor spacing, code tabs broke into individual characters, and the color picker was clipped. Mobile dialog now uses available width, three-column code tabs and a bounded picker. Rechecked light picker and dark loaded preview; clipping is resolved in these states.
+- At 390 × 844 account cards had square backgrounds behind their rounded surfaces. Removed the background from the section layout wrapper; screenshots in both themes confirm clean corners.
+- At 1440 × 900 the generated-icons favorites drawer displayed an empty message alongside a failed request. Added distinct loading/failure/empty states and an explicit retry action; verified failure no longer says no favorites.
+- Complete all-route/all-expanded-state acceptance is still outstanding. These verified fixes do not mark the whole-product matrix passed.
+
 - Automated checks: 192 tests passed; TypeScript check passed; production Webpack build passed (`next build --webpack`). This does not establish that the default Turbopack build passes.
 - Local browser, approximately 790 × 705: create page in light theme retains the preview grid, distinct page/panel surfaces and rounded corners; panel outer edges align with navigation. After reload, output choices are 24/32/48/64/128 (no 16/256).
 - My icons: inspected dark and light empty states; rounded background/border and `暂无图标` copy are present. At this narrow viewport controls wrap and the page scrolls; wide-screen and expanded-state acceptance remain outstanding.

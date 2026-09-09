@@ -29,7 +29,15 @@ export function isVariantEditLeaseStale(
 }
 
 export function localVariantWorkerEnabled(env: NodeJS.ProcessEnv) {
-  if (env.LOCAL_GENERATION_WORKER_ENABLED === "true") return true;
-  if (env.LOCAL_GENERATION_WORKER_ENABLED === "false") return false;
-  return env.NODE_ENV !== "production";
+  if (env.LOCAL_GENERATION_WORKER_ENABLED !== "true") return false;
+
+  const expectedProjectRef = env.LOCAL_GENERATION_SUPABASE_PROJECT_REF?.trim();
+  if (!expectedProjectRef) return false;
+
+  try {
+    const hostname = new URL(env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname;
+    return hostname === `${expectedProjectRef}.supabase.co`;
+  } catch {
+    return false;
+  }
 }

@@ -118,8 +118,22 @@
 .iconDetail .codeTabs button[aria-pressed=true]{background:transparent;box-shadow:none}
 @media(prefers-reduced-motion:reduce){.codeTabIndicator{transition:none}}
 .libraryColorRoot{position:relative}
+/* Reserve space for floating close/neighbor controls without squeezing mobile content. */
+@media(max-width:600px){
+  .dialog.iconDetail{width:calc(100vw - 32px);padding:14px;border-radius:22px}
+  .iconDetail .close{right:0;top:-22px;width:40px;height:40px}
+  .iconDetail .codeTabs{grid-template-columns:repeat(3,minmax(0,1fr));min-height:88px}
+  .iconDetail .codeTabs button{font-size:11px;white-space:normal;overflow-wrap:normal}
+  .iconDetail .codeTabIndicator{display:none}
+  .iconDetail .codeTabs button[aria-pressed=true]{background:var(--ui-surface-1d1d1d,#1d1d1d)}
+  .iconDetail .stage{min-width:0;padding:10px;min-height:220px;overflow:hidden}
+  .iconDetail .stage>*{max-width:100%;min-width:0}
+  .iconDetail .libraryColorPanel{width:min(300px,calc(100vw - 64px));max-width:calc(100vw - 64px);padding:14px}
+  .iconDetail .neighbor{top:auto;bottom:8px;height:40px}
+}
 .libraryColorTrigger{display:flex;align-items:center;gap:14px;height:48px;padding:0 16px;border:1px solid var(--ui-line-242424, #242424);border-radius:18px;background:var(--ui-surface-000, #000)}
 .libraryColorTrigger>span:first-child{width:24px;height:24px;border-radius:7px}
+:global(html:not([data-theme="light"])) :global(.icon-background-dialog) .libraryColorTrigger{background:#151515!important;color:#f5f5f5!important}
 .libraryColorTrigger>svg{display:block;flex-shrink:0;transition:transform 140ms ease}
 @media(prefers-reduced-motion:reduce){.libraryColorTrigger>svg{transition:none}}
 .libraryColorPanel{position:absolute;bottom:calc(100% + 12px);left:0;z-index:8;width:300px;max-width:calc(100vw - 80px);padding:18px;background:var(--ui-surface-000, #000);border:1px solid var(--ui-line-252525, #252525);border-radius:18px;box-shadow:0 14px 40px #0008;animation:sizeReveal 360ms ease-out}
@@ -152,8 +166,12 @@
 .colorFormat span{font-size:9px}
 @media(prefers-reduced-motion:reduce){.libraryColorPanel{animation:none}}
 .stopTrack{position:relative;height:18px;margin:6px 0 16px;border-radius:4px}
-.iconDetail .stopTrack button{position:absolute;top:50%;transform:translate(-50%,-50%)!important;width:20px;height:22px;min-width:0;min-height:0;margin:0;padding:0;border:2px solid white;border-radius:2px;touch-action:none;cursor:ew-resize;transition:none}
+.libraryColorPanel .stopTrack button{position:absolute;top:50%;transform:translate(-50%,-50%)!important;width:20px;height:22px;min-width:0;min-height:0;margin:0;padding:0;border:2px solid white;border-radius:2px;touch-action:none;cursor:ew-resize;transition:none}
 .stopTrack button[data-selected=true]{box-shadow:0 0 0 2px #1b5dff,0 0 5px #1b5dff}
+:global(html[data-theme="light"]) .libraryColorPanel .stopTrack{box-shadow:inset 0 0 0 1px #1717171f}
+:global(html[data-theme="light"]) .libraryColorPanel .stopTrack button{border-color:#555;box-shadow:0 0 0 1px #fff}
+:global(html[data-theme="light"]) .libraryColorPanel .stopTrack button[data-selected=true]{border-color:#171717;box-shadow:0 0 0 1px #fff,0 0 0 3px #2563eb}
+:global(html[data-theme="light"]) .libraryColorPanel .stopTrack button:focus-visible{outline:2px solid #2563eb;outline-offset:4px}
 .angleControl{position:relative}
 .angleReadout{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--ui-surface-101010, #101010);border:1px solid var(--ui-line-242424, #242424);border-radius:9px;font-size:13px!important;color:var(--ui-ink-fff, #fff)}
 .angleReadout span{color:var(--ui-ink-999, #999)}
@@ -226,7 +244,7 @@
 .library{flex:1;min-height:0;overflow:hidden;isolation:isolate;clip-path:inset(0 round 16px);background-clip:padding-box;grid-template-rows:minmax(0,1fr)}
 .sidebar{position:static;align-self:stretch;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
 .main{position:relative;min-height:0;display:flex;flex-direction:column;overflow:hidden;--toolbar-height:56px}
-.toolbar{position:absolute;inset:0 0 auto;z-index:5;flex-shrink:0;background:transparent;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.toolbar{position:absolute;inset:0 0 auto;z-index:5;flex-shrink:0;border-bottom:0;background:transparent;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .main>.grid{min-height:0;overflow-y:auto;overscroll-behavior:contain;align-content:start}
 .main>.empty{min-height:0;overflow:auto}
 @media(max-width:760px){.library{grid-template-rows:auto minmax(0,1fr)}.sidebar{max-height:72px;flex-shrink:0}}
@@ -277,16 +295,17 @@
 .browseCell[data-favorited=true] .cornerDots{display:none}
 .browseCell[data-favorited=true] img{opacity:1}
 .browseCell[data-favorited=true]:hover img{opacity:.5}
-.main>.grid{flex:1;grid-auto-rows:max-content;overflow-x:hidden;overflow-y:auto;touch-action:pan-y;padding-top:var(--toolbar-height);scroll-padding-top:var(--toolbar-height)}
+.main>.grid{flex:1;grid-auto-rows:max-content;overflow-x:hidden;overflow-y:auto;touch-action:pan-y;padding-top:calc(var(--toolbar-height) + 3px);scroll-padding-top:calc(var(--toolbar-height) + 3px);border-top:0;background-image:linear-gradient(var(--line),var(--line));background-position:0 calc(var(--toolbar-height) + 2px);background-size:100% 1px;background-repeat:no-repeat}
 .main>.empty{padding-top:calc(var(--toolbar-height) + 80px)}
 .loadMoreMarker{grid-column:1/-1;height:1px;pointer-events:none}
 .libraryLoading{grid-column:1/-1;min-height:0;width:100%;height:100%;background:var(--ui-surface-000, #000);border-radius:inherit}
 
 .libraryDrawer .favoriteGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px;flex:1}
-.libraryDrawer .favoriteItem{aspect-ratio:1;border-radius:22px;background:var(--ui-surface-0e0e0e, #0e0e0e);border:0}
-.libraryDrawer .favoriteItem:hover,.libraryDrawer .favoriteItem:focus-within{background:var(--ui-surface-1b1b1b, #1b1b1b)}
-.libraryDrawer .favoriteItem:has(.favoriteSelect[aria-pressed=true]){background:var(--ui-surface-1b1b1b, #1b1b1b)}
-.libraryDrawer .favoriteSelect{min-height:0;height:100%;padding:18px;gap:0;border-radius:22px}
+.libraryDrawer .favoriteItem{aspect-ratio:1;border-radius:22px;background:var(--favorite-surface,#1d1d1d);color:var(--favorite-ink,#f5f5f5);border:0}
+.libraryDrawer .favoriteItem:hover,.libraryDrawer .favoriteItem:focus-within{background:var(--favorite-hover,#292929)}
+.libraryDrawer .favoriteItem:has(.favoriteSelect[aria-pressed=true]){background:var(--favorite-hover,#292929)}
+.libraryDrawer .favoriteSelect{min-height:0;height:100%;padding:18px;gap:0;border-radius:22px;background:transparent;color:var(--favorite-ink,#f5f5f5)}
+.libraryDrawer .favoriteSelect small{color:var(--favorite-muted,#a1a1aa)}
 .libraryDrawer .favoriteSelect img{width:44px;height:44px;max-width:100%;object-fit:contain;transition:opacity 160ms ease;opacity:1}
 .libraryDrawer .favoriteItem:is(:hover,:focus-within) .favoriteSelect img{opacity:.5}
 .libraryDrawer .favoriteSelect>span:not(.selectionCheck),.libraryDrawer .favoriteSelect>small{display:none}
@@ -328,3 +347,6 @@
 .paintTabs{overflow:hidden;isolation:isolate}
 :global(html[data-theme="light"]) .toolbar .styleRail button{border:1px solid #e2e2e2}
 :global(html[data-theme="light"]) .toolbar .styleRail button[aria-pressed=true]{border-color:transparent}
+:global(html:not([data-theme="light"])) .libraryColorPanel{background:#1d1d1d!important}
+:global(html:not([data-theme="light"])) .libraryColorPanel .colorValues input{color:#f5f5f5!important;-webkit-text-fill-color:#f5f5f5!important;caret-color:#f5f5f5}
+:global(.icon-background-dialog) .libraryColorTrigger{border-radius:14px!important}

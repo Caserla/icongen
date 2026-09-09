@@ -6,7 +6,7 @@ import type {
 import { StudioRange } from "./studio-range";
 import { StudioColorField } from "./studio-color-field";
 import { StudioSegmentedControl } from "./studio-segmented-control";
-import { StudioDisclosure } from "./studio-disclosure";
+import { LibraryColorPicker } from "@/features/library/library-color-picker";
 
 export function AppIconBackgroundSettings({
   mode,
@@ -32,6 +32,8 @@ export function AppIconBackgroundSettings({
   return (
     <section>
       <StudioSegmentedControl
+        className="studio-structure-tabs studio-structure-tabs--three"
+        ariaLabel={locale === "zh" ? "背景类型" : "Background type"}
         value={mode}
         onChange={onModeChange}
         options={
@@ -51,10 +53,10 @@ export function AppIconBackgroundSettings({
       {mode !== "transparent" ? (
         <div className="mt-1 space-y-2">
           <StudioSegmentedControl
+            className="studio-structure-tabs studio-structure-tabs--three"
             value={container}
             onChange={onContainerChange}
             ariaLabel={locale === "zh" ? "背景形状" : "Background shape"}
-            size="small"
             options={
               locale === "zh"
                 ? [
@@ -83,7 +85,10 @@ export function AppIconBackgroundSettings({
             <BackgroundColorSettings
               mode={mode}
               value={color}
-              onChange={onColorChange}
+              onChange={(next) => {
+                onColorChange(next);
+                onModeChange(next.mode);
+              }}
               locale={locale}
             />
           ) : null}
@@ -101,29 +106,11 @@ export function AppIconBackgroundSettings({
 }
 
 const hexPattern = /^#[0-9A-Fa-f]{6}$/;
-const gradientDirections = [
-  "top-to-bottom",
-  "bottom-to-top",
-  "left-to-right",
-  "right-to-left",
-  "top-left-to-bottom-right",
-  "top-right-to-bottom-left",
-  "radial",
-] as const;
-const gradientDirectionLabels = {
-  "top-to-bottom": { zh: "从上到下", en: "Top to bottom" },
-  "bottom-to-top": { zh: "从下到上", en: "Bottom to top" },
-  "left-to-right": { zh: "从左到右", en: "Left to right" },
-  "right-to-left": { zh: "从右到左", en: "Right to left" },
-  "top-left-to-bottom-right": {
-    zh: "左上到右下",
-    en: "Top left to bottom right",
-  },
-  "top-right-to-bottom-left": {
-    zh: "右上到左下",
-    en: "Top right to bottom left",
-  },
-  radial: { zh: "径向", en: "Radial" },
+const gradientAngles = {
+  "top-to-bottom": 180, "bottom-to-top": 0,
+  "left-to-right": 90, "right-to-left": 270,
+  "top-left-to-bottom-right": 135, "top-right-to-bottom-left": 225,
+  radial: 135,
 } as const;
 
 function BackgroundColorSettings({
@@ -153,7 +140,7 @@ function BackgroundColorSettings({
     );
   }
   if (mode !== "gradient") return null;
-  const gradient =
+  const gradient: Extract<ColorSetting, { mode: "gradient" }> =
     value.mode === "gradient"
       ? value
       : {
@@ -161,59 +148,34 @@ function BackgroundColorSettings({
           colors: [value.color, "#A78BFA"] as [string, string],
           direction: "top-left-to-bottom-right" as const,
         };
-  const updateColor = (index: number, next: string) => {
-    if (!hexPattern.test(next)) return;
-    onChange({
-      ...gradient,
-      colors:
-        index === 0
-          ? [next.toUpperCase(), gradient.colors[1]]
-          : [gradient.colors[0], next.toUpperCase()],
-    });
-  };
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {gradient.colors.map((color, index) => {
-        const label =
-          locale === "zh"
-            ? index === 0
-              ? "起始颜色"
-              : "终点颜色"
-            : index === 0
-              ? "Start color"
-              : "End color";
-        return (
-          <StudioColorField
-            key={index}
-            label={label}
-            value={color}
-            onChange={(next) => updateColor(index, next)}
-            locale={locale}
-            variant="gradient"
-          />
-        );
-      })}
-      <StudioDisclosure
-        className="studio-gradient-direction col-span-2"
-        label={locale === "zh" ? "渐变方向" : "Gradient direction"}
-        value={gradientDirectionLabels[gradient.direction][locale]}
-      >
-        <div className="studio-gradient-direction__items">
-          {gradientDirections.map((direction) => (
-            <button
-              key={direction}
-              type="button"
-              aria-pressed={gradient.direction === direction}
-              onClick={(event) => {
-                onChange({ ...gradient, direction });
-                event.currentTarget.closest("details")?.removeAttribute("open");
-              }}
-            >
-              {gradientDirectionLabels[direction][locale]}
-            </button>
-          ))}
-        </div>
-      </StudioDisclosure>
-    </div>
+    <LibraryColorPicker
+      gradientOnly
+      portal
+      zh={locale === "zh"}
+      value={{
+        size: 24,
+        mode: gradient.direction === "radial" ? "radial" : "linear",
+        color: gradient.colors[0],
+        endColor: gradient.colors[1],
+        angle: gradient.angle ?? gradientAngles[gradient.direction],
+        startOffset: gradient.startOffset,
+        endOffset: gradient.endOffset,
+        alpha: gradient.alpha,
+        endAlpha: gradient.endAlpha,
+      }}
+      onChange={(next) => onChange(next.mode === "solid"
+        ? { mode: "solid", color: next.color }
+        : {
+            mode: "gradient",
+            colors: [next.color, next.endColor],
+            direction: next.mode === "radial" ? "radial" : "top-left-to-bottom-right",
+            angle: next.angle,
+            startOffset: next.startOffset,
+            endOffset: next.endOffset,
+            alpha: next.alpha,
+            endAlpha: next.endAlpha,
+          })}
+    />
   );
 }

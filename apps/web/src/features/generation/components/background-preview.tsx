@@ -15,12 +15,14 @@ const linearDirections = {
 
 function backgroundStyle(color: ColorSetting): CSSProperties {
   if (color.mode === "solid") return { background: color.color };
+  const rgba = (hex: string, alpha = 1) => `rgb(${[1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)).join(" ")} / ${alpha})`;
+  const stops = `${rgba(color.colors[0], color.alpha)} ${color.startOffset ?? 0}%, ${rgba(color.colors[1], color.endAlpha)} ${color.endOffset ?? 100}%`;
   if (color.direction === "radial")
     return {
-      background: `radial-gradient(circle, ${color.colors[0]}, ${color.colors[1]})`,
+      background: `radial-gradient(circle, ${stops})`,
     };
   return {
-    background: `linear-gradient(${linearDirections[color.direction]}, ${color.colors[0]}, ${color.colors[1]})`,
+    background: `linear-gradient(${color.angle === undefined ? linearDirections[color.direction] : `${color.angle}deg`}, ${stops})`,
   };
 }
 

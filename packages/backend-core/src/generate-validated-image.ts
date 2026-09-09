@@ -16,6 +16,7 @@ type GenerateValidatedImageInput = {
   variantId: string;
   prompt: string;
   outputBackground?: "transparent" | "opaque";
+  backgroundContainer?: "rounded-square" | "circle" | "square";
   purpose?: CreateGenerationJobInput["purpose"];
   stylePreset?: IconStyle["preset"];
   qualityContract?: BackgroundQualityContract;
@@ -52,13 +53,14 @@ type GenerateValidatedImageDependencies = {
   logger: AppLogger;
 };
 
-function isBlockingWarning(warning: ImageQualityWarning) {
+function isBlockingWarning(
+  warning: ImageQualityWarning,
+  backgroundContainer?: "rounded-square" | "circle" | "square",
+) {
   return (
-    warning.code === "FAKE_TRANSPARENCY_CHECKERBOARD" ||
-    warning.code === "MISSING_ALPHA_CHANNEL" ||
-    warning.code === "OPAQUE_TRANSPARENT_CANVAS_EDGE" ||
     warning.code === "REFERENCE_BOARD_REPRODUCTION" ||
-    warning.code === "SOURCE_NOT_SQUARE"
+    (warning.code === "SOURCE_NOT_SQUARE" &&
+      (backgroundContainer === "rounded-square" || backgroundContainer === "square"))
   );
 }
 
@@ -135,21 +137,18 @@ export async function generateValidatedImage(
 ): Promise<{ image: GeneratedImage; qualityWarnings: ImageQualityWarning[] }> {
   let image: GeneratedImage | undefined;
   let qualityWarnings: ImageQualityWarning[] = [];
-  let forceChromaFallback = false;
-
+  const isBlocking = (warning: ImageQualityWarning) =>
+    isBlockingWarning(warning, input.backgroundContainer);
   for (
     let qualityAttempt = 1;
     qualityAttempt <= QUALITY_RETRY_ATTEMPTS;
     qualityAttempt += 1
   ) {
-    const useChromaFallback = input.outputBackground === "transparent" &&
-      (forceChromaFallback || qualityAttempt > 1);
-    const chromaColor = { red: 0, green: 255, blue: 0 } as const;
     const previousBlockingCodes = qualityWarnings
-      .filter(isBlockingWarning)
+      .filter(isBlocking)
       .map((warning) => warning.code);
     const previousDiagnostics = qualityWarnings
-      .filter(isBlockingWarning)
+      .filter(isBlocking)
       .map((warning) => warning.message)
       .join(" ");
     const retryInstruction =
@@ -161,7 +160,7 @@ export async function generateValidatedImage(
               code === "OPAQUE_TRANSPARENT_CANVAS_EDGE" ||
               code === "FAKE_TRANSPARENCY_CHECKERBOARD",
             )
-          ? `\n\nTRANSPARENT CANVAS CORRECTION\nThe previous result violated the transparent-background contract. Diagnostics: ${previousDiagnostics} Start from a transparent square RGBA canvas. Keep every pixel outside the requested subject genuinely transparent. All four corners and the complete outer perimeter must have alpha 0. Do not paint white, black, gray, checkerboard, glow, shadow, halo, frame, backdrop, or any presentation canvas.`
+          ? `\n\nTRANSPARENT CANVAS CORRECTION\n${previousBlockingCodes.includes("FAKE_TRANSPARENCY_CHECKERBOARD") ? "The previous file contained a painted transparency preview pattern. Omit that pattern entirely." : "The previous file contained opaque background pixels instead of an empty alpha canvas."} Generate the subject as a separate foreground layer and export that layer directly to RGBA PNG without flattening. Preserve all subject surfaces, including dark materials and internal shading. Apply the final TRANSPARENT OUTPUT REQUIREMENT below.`
           : previousBlockingCodes.some((code) =>
               code === "SUBJECT_SCALE_INCONSISTENT" ||
               code === "SUBJECT_ALIGNMENT_INCONSISTENT" ||
@@ -176,47 +175,14 @@ export async function generateValidatedImage(
       prompt: `${input.prompt}${retryInstruction}`,
       background: input.outputBackground,
       referenceImage: input.referenceImage,
-      chromaColor,
     };
-    let generatedWithChroma = useChromaFallback;
-    try {
-      image = await dependencies.imageProvider.generate({
-        ...providerInput,
-        transparencyStrategy: useChromaFallback ? "chroma-key" : "native-alpha",
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const nativeTransparencyUnsupported =
-        input.outputBackground === "transparent" &&
-        !useChromaFallback &&
-        /transparent background is not supported|background[^\n]*transparent[^\n]*(unsupported|not supported)/i.test(message);
-      if (!nativeTransparencyUnsupported) throw error;
-      forceChromaFallback = true;
-      generatedWithChroma = true;
-      dependencies.logger.info("Falling back to chroma-key generation because native alpha is unsupported", {
-        jobId: input.jobId,
-        variantId: input.variantId,
-      });
-      image = await dependencies.imageProvider.generate({
-        ...providerInput,
-        transparencyStrategy: "chroma-key",
-      });
-    }
-    if (input.outputBackground === "transparent" && generatedWithChroma) {
-      if (dependencies.imageProcessor.normalizeTransparentBackground) {
-        image = await dependencies.imageProcessor.normalizeTransparentBackground({
-          bytes: image.bytes,
-          chromaColor,
-          tolerance: 72,
-        });
-      } else if (dependencies.imageProcessor.removeChromaBackground) {
-        image = await dependencies.imageProcessor.removeChromaBackground({
-          bytes: image.bytes,
-          color: chromaColor,
-          tolerance: 72,
-        });
-      }
-    }
+    // Keep initial generation and quality retries on the same alpha contract.
+    // Switching to a coloured matte would contradict the prompt and can leave
+    // that colour inside enclosed gaps or remove actual foreground material.
+    image = await dependencies.imageProvider.generate({
+      ...providerInput,
+      transparencyStrategy: "native-alpha",
+    });
     qualityWarnings =
       (await dependencies.imageQualityGate?.inspect({
         bytes: image.bytes,
@@ -246,7 +212,7 @@ export async function generateValidatedImage(
       }
     }
 
-    if (!qualityWarnings.some(isBlockingWarning))
+    if (!qualityWarnings.some(isBlocking))
       return { image, qualityWarnings };
 
     if (qualityAttempt < QUALITY_RETRY_ATTEMPTS) {

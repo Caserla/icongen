@@ -2,7 +2,10 @@ import { createGenerationJobSchema } from "@icongen/shared";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { authErrorResponse, apiError } from "@/lib/http/api-response";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { startLocalGenerationJob } from "@/features/generation/server/local-generation-runner";
+import {
+  getLocalWorkerReservation,
+  startLocalGenerationJob,
+} from "@/features/generation/server/local-generation-runner";
 import { generationRuntimeLimitError } from "@/features/generation/server/generation-create-error";
 import { serverLogger } from "@/lib/security/server-log";
 
@@ -22,12 +25,24 @@ export async function POST(request: Request) {
     const generationSpec = parsed.data;
     const user = await requireActiveUser();
     const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase.rpc("create_generation_job_v2", {
-      p_user_id: user.id,
-      p_spec: generationSpec,
-      p_skill_version: "default-ui-icon@0.9.1",
-      p_idempotency_key: generationSpec.idempotencyKey,
-    });
+    const localReservation = getLocalWorkerReservation();
+    const { data, error } = await supabase.rpc(
+      localReservation
+        ? "create_local_generation_job_v2"
+        : "create_generation_job_v2",
+      {
+        p_user_id: user.id,
+        p_spec: generationSpec,
+        p_skill_version: "default-ui-icon@0.9.1",
+        p_idempotency_key: generationSpec.idempotencyKey,
+        ...(localReservation
+          ? {
+              p_worker_id: localReservation.workerId,
+              p_lease_seconds: localReservation.leaseSeconds,
+            }
+          : {}),
+      },
+    );
     if (error) {
       serverLogger.error("generation_job_create_failed", {
         code: error.code,
@@ -37,7 +52,8 @@ export async function POST(request: Request) {
       });
       if (
         error.code === "PGRST202" ||
-        error.message.includes("create_generation_job_v2")
+        error.message.includes("create_generation_job_v2") ||
+        error.message.includes("create_local_generation_job_v2")
       ) {
         return apiError(
           "GENERATION_DATABASE_MIGRATION_REQUIRED",
@@ -90,7 +106,7 @@ export async function POST(request: Request) {
         500,
       );
     }
-    startLocalGenerationJob(data);
+    await startLocalGenerationJob(data);
     return Response.json({ id: data, status: "queued" }, { status: 201 });
   } catch (error) {
     return (
