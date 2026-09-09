@@ -3,15 +3,13 @@ import type {
   ImageQualityWarning,
   ProcessGenerationJobDependencies,
 } from "@icongen/backend-core";
+import { isTransparencyQualityWarning } from "@icongen/backend-core";
 import type { CreateGenerationJobInput, IconStyle } from "@icongen/shared";
 import { createDetailEditRequest } from "./detail-edit-request";
 import { chromaHex, selectChromaKey } from "./select-chroma-key";
 
 const MAX_ATTEMPTS = 3;
 const BLOCKING_CODES = new Set([
-  "FAKE_TRANSPARENCY_CHECKERBOARD",
-  "MISSING_ALPHA_CHANNEL",
-  "OPAQUE_TRANSPARENT_CANVAS_EDGE",
   "EDIT_NO_VISIBLE_CHANGE",
   "APP_ICON_DARK_OUTER_CORNERS",
   "SOURCE_NOT_SQUARE",
@@ -129,8 +127,10 @@ export async function generateValidatedDetailEdit(
           "The adjusted icon does not contain genuinely transparent pixels after chroma conversion.",
       });
     }
-    lastWarnings = warnings.filter((warning) =>
-      BLOCKING_CODES.has(warning.code),
+    lastWarnings = warnings.filter(
+      (warning) =>
+        !isTransparencyQualityWarning(warning) &&
+        BLOCKING_CODES.has(warning.code),
     );
     if (lastWarnings.length === 0) return image;
     dependencies.logger.info(

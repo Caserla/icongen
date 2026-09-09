@@ -8,6 +8,7 @@ import type {
   ImageQualityGate,
   ImageQualityWarning,
 } from "./ports";
+import { isTransparencyQualityWarning } from "./ports";
 
 const QUALITY_RETRY_ATTEMPTS = 3;
 
@@ -57,6 +58,7 @@ function isBlockingWarning(
   warning: ImageQualityWarning,
   backgroundContainer?: "rounded-square" | "circle" | "square",
 ) {
+  if (isTransparencyQualityWarning(warning)) return false;
   return (
     warning.code === "REFERENCE_BOARD_REPRODUCTION" ||
     (warning.code === "SOURCE_NOT_SQUARE" &&

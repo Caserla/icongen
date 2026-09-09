@@ -1,6 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { generateValidatedImage } from "./generate-validated-image";
+import {
+  isTransparencyQualityWarning,
+  TRANSPARENCY_QUALITY_WARNING_CODES,
+} from "./ports";
+
+test("all transparency quality diagnostics are permanently classified as non-blocking", () => {
+  assert.deepEqual(
+    [...TRANSPARENCY_QUALITY_WARNING_CODES].sort(),
+    [
+      "FAKE_TRANSPARENCY_CHECKERBOARD",
+      "MISSING_ALPHA_CHANNEL",
+      "OPAQUE_TRANSPARENT_CANVAS_EDGE",
+    ].sort(),
+  );
+  for (const code of TRANSPARENCY_QUALITY_WARNING_CODES)
+    assert.equal(isTransparencyQualityWarning({ code }), true);
+  assert.equal(
+    isTransparencyQualityWarning({ code: "REFERENCE_BOARD_REPRODUCTION" }),
+    false,
+  );
+});
 
 test("transparent quality warnings do not invoke chroma cleanup or block delivery", async () => {
   const strategies: Array<string | undefined> = [];

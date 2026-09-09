@@ -184,6 +184,21 @@ export type ImageQualityWarning = {
     | "GEOMETRY_SYMMETRY_BROKEN";
   message: string;
 };
+
+export const TRANSPARENCY_QUALITY_WARNING_CODES = new Set<
+  ImageQualityWarning["code"]
+>([
+  "FAKE_TRANSPARENCY_CHECKERBOARD",
+  "MISSING_ALPHA_CHANNEL",
+  "OPAQUE_TRANSPARENT_CANVAS_EDGE",
+]);
+
+/** Transparency diagnostics are informational and must never block delivery. */
+export function isTransparencyQualityWarning(
+  warning: Pick<ImageQualityWarning, "code">,
+) {
+  return TRANSPARENCY_QUALITY_WARNING_CODES.has(warning.code);
+}
 export type BackgroundQualityContract =
   | {
       mode: "solid";
