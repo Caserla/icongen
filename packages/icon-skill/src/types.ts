@@ -2,6 +2,8 @@ import type { ColorSetting, CreateGenerationJobInput, IconStyle } from "@icongen
 
 export type CompileIconPromptInput = {
   purpose?: CreateGenerationJobInput["purpose"];
+  illustrationSubset?: CreateGenerationJobInput["illustrationSubset"];
+  illustrationComposition?: CreateGenerationJobInput["subjects"][number]["illustrationComposition"];
   name: string;
   description: string;
   color: ColorSetting;

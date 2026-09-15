@@ -60,9 +60,26 @@ test("keeps each subject description and background settings together", () => {
       colors: ["#112233", "#AABBCC"],
       direction: "left-to-right",
     },
+    backgroundColorCustomized: true,
     backgroundContainer: "circle",
     backgroundCornerRadius: 30,
+    illustrationComposition: "centered",
   });
+});
+
+test("keeps illustration composition independent for every subject", () => {
+  let state = generationSubjectDraftReducer(initialGenerationSubjectDrafts, {
+    type: "add",
+    maxSubjects: 20,
+  });
+  state = generationSubjectDraftReducer(state, {
+    type: "set-illustration-composition",
+    index: 1,
+    value: "edge-anchored",
+  });
+
+  assert.equal(state[0]?.illustrationComposition, "centered");
+  assert.equal(state[1]?.illustrationComposition, "edge-anchored");
 });
 
 test("removing a subject cannot desynchronize its background settings", () => {
@@ -79,6 +96,21 @@ test("removing a subject cannot desynchronize its background settings", () => {
 
   assert.equal(state.length, 1);
   assert.equal(state[0]?.backgroundContainer, "square");
+});
+
+test("switches background color generation between automatic and manual", () => {
+  let state = generationSubjectDraftReducer(initialGenerationSubjectDrafts, {
+    type: "set-background-auto-color",
+    index: 0,
+    value: true,
+  });
+  assert.equal(state[0]?.backgroundColorCustomized, false);
+  state = generationSubjectDraftReducer(state, {
+    type: "set-background-auto-color",
+    index: 0,
+    value: false,
+  });
+  assert.equal(state[0]?.backgroundColorCustomized, true);
 });
 
 test("interaction jobs accept a different background override for every subject", () => {

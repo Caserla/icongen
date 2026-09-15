@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- supports authenticated and short-lived asset URLs */
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { SkeletonBlock } from "@/components/ui/page-skeletons";
 import { useLocale } from "@/components/i18n/locale-provider";
 
@@ -10,6 +10,8 @@ type Props = {
   fallbackSrc?: string;
   alt: string;
   className?: string;
+  style?: CSSProperties;
+  imageStyle?: CSSProperties;
   imageClassName?: string;
   loading?: "eager" | "lazy";
   failureLabel?: string;
@@ -36,6 +38,8 @@ export function ImageWithSkeleton({
   fallbackSrc,
   alt,
   className = "",
+  style,
+  imageStyle,
   imageClassName = "object-contain",
   loading = "lazy",
   failureLabel,
@@ -72,6 +76,7 @@ export function ImageWithSkeleton({
         failed ? "failed" : loaded && reveal ? "loaded" : "loading"
       }
       className={`relative block overflow-hidden ${className}`}
+      style={style}
     >
       {showSkeleton && (!loaded || !reveal) && !failed ? (
         <span className="absolute inset-0">
@@ -113,6 +118,7 @@ export function ImageWithSkeleton({
             onError?.();
           }}
           className={`relative z-[1] h-full w-full transition-opacity duration-200 ${loaded && reveal ? "opacity-100" : "opacity-0"} ${imageClassName}`}
+          style={imageStyle}
         />
       ) : null}
     </span>

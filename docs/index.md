@@ -6,6 +6,7 @@
 
 ## 产品
 
+- [App 内交互图标风格图鉴（离线 HTML）](design/app-icon-style-atlas.html)
 - [图标素材库与辅助网格预览实现方案](product/icon-library-implementation-plan.md)
 - [产品概览](product/overview.md)
 - [PRD 2.0：完整产品需求](product/product-requirements.md)

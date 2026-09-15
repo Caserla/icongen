@@ -1,4 +1,4 @@
-export const DESIGN_SETTINGS_VERSION = "icon-style-2026-08-25.23" as const;
+export const DESIGN_SETTINGS_VERSION = "icon-style-2026-09-10.2" as const;
 export const BACKGROUND_TYPE_OPTION_IDS = ["rounded-square", "circle", "square"] as const;
 
 export type LocalizedLabel = { en: string; zh: string };
@@ -11,15 +11,15 @@ const option = (id: string, en: string, zh: string) => ({ id, label: { en, zh } 
 
 // A preset is the primary user decision. It locks the rendering language for every icon in one batch.
 export const ICON_STYLE_PRESETS: readonly IconStylePreset[] = [
-  { id: "isometric-3d", label: { en: "Isometric 3D", zh: "等距 3D" }, description: { en: "Structured miniature scenes in isometric view", zh: "等距视角下的精致微缩场景" }, previewImage: "/images/icon-style-previews/hd-native/isometric-3d-observatory.png" },
-  { id: "neon", label: { en: "Neon", zh: "霓虹" }, description: { en: "Electric glow on a deep blue-to-violet field", zh: "深蓝至靛紫渐变场景中的高对比霓虹光效" }, previewImage: "/images/icon-style-previews/hd-native/neon-gradient-v3.png" },
-  { id: "low-poly", label: { en: "Low Poly", zh: "低多边形" }, description: { en: "Faceted geometry with bold dimensional color", zh: "鲜明切面结构与立体色彩" }, previewImage: "/images/icon-style-previews/hd-native/low-poly-v3.png" },
-  { id: "clay-3d", label: { en: "Clay 3D", zh: "黏土 3D" }, description: { en: "Soft handmade volume and tactile detail", zh: "柔和手作体积与细腻材质" }, previewImage: "/images/icon-style-previews/hd-native/clay-3d-elephant-gardener.png" },
-  { id: "flat-playful", label: { en: "Playful Flat", zh: "扁平活泼" }, description: { en: "Large rounded color planes with simple layered depth", zh: "大面积圆润色块与简洁分层深度" }, previewImage: "/images/icon-style-previews/hd-native/flat-playful-girl-fullbleed-v24.png" },
-  { id: "pixel-art", label: { en: "Pixel Art", zh: "像素艺术" }, description: { en: "Crisp retro pixels with readable silhouettes", zh: "清晰复古像素与易识别轮廓" }, previewImage: "/images/icon-style-previews/hd-native/pixel-art.png" },
-  { id: "flat-illustration", label: { en: "Flat Illus", zh: "扁平插画" }, description: { en: "Narrative scenes with clean graphic layers", zh: "清晰色块构成的叙事插画" }, previewImage: "/images/icon-style-previews/hd-native/flat-illustration-v3.png" },
-  { id: "cute-sticker", label: { en: "Cute Sticker", zh: "可爱贴纸" }, description: { en: "Friendly characters with a crisp sticker edge", zh: "亲和角色与清晰贴纸描边" }, previewImage: "/images/icon-style-previews/hd-native/cute-sticker-v3.png" },
-  { id: "minimal-logo", label: { en: "Minimal Logo", zh: "极简标志" }, description: { en: "Simple memorable marks with strong silhouettes", zh: "简洁易记且轮廓鲜明的标志" }, previewImage: "/images/icon-style-previews/hd-native/minimal-logo-v4.png" },
+  { id: "flat-illustration", label: { en: "Flat Illus", zh: "扁平插画" }, description: { en: "Narrative scenes with clean graphic layers", zh: "清晰色块构成的叙事插画" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/flat-illustration.png" },
+  { id: "cute-sticker", label: { en: "Cute Sticker", zh: "可爱贴纸" }, description: { en: "Friendly characters with a crisp sticker edge", zh: "亲和角色与清晰贴纸描边" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/cute-sticker.png" },
+  { id: "pixel-art", label: { en: "Pixel Art", zh: "像素艺术" }, description: { en: "Crisp retro pixels with readable silhouettes", zh: "清晰复古像素与易识别轮廓" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/pixel-art-questforge-variant3.png" },
+  { id: "neon", label: { en: "Neon", zh: "霓虹" }, description: { en: "Electric glow on a deep blue-to-violet field", zh: "深蓝至靛紫渐变场景中的高对比霓虹光效" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/neon.png" },
+  { id: "minimal-logo", label: { en: "Minimal Logo", zh: "极简标志" }, description: { en: "Simple memorable marks with strong silhouettes", zh: "简洁易记且轮廓鲜明的标志" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/minimal-logo-source.png" },
+  { id: "flat-playful", label: { en: "Playful Flat", zh: "扁平活泼" }, description: { en: "Large rounded color planes with simple layered depth", zh: "大面积圆润色块与简洁分层深度" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/flat-playful.png" },
+  { id: "low-poly", label: { en: "Low Poly", zh: "低多边形" }, description: { en: "Faceted geometry with bold dimensional color", zh: "鲜明切面结构与立体色彩" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/low-poly.png" },
+  { id: "isometric-3d", label: { en: "Isometric 3D", zh: "等距 3D" }, description: { en: "Structured miniature scenes in isometric view", zh: "等距视角下的精致微缩场景" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/isometric-3d-option2-padded.png" },
+  { id: "clay-3d", label: { en: "Clay 3D", zh: "黏土 3D" }, description: { en: "Soft handmade volume and tactile detail", zh: "柔和手作体积与细腻材质" }, previewImage: "/images/icon-style-previews/favorites-2026-09-10/clay-3d.png" },
   { id: "line-icon", label: { en: "Line Icon", zh: "线性图标" }, description: { en: "Bold monochrome outlines with consistent rounded strokes", zh: "稍粗单色线条构成的清晰轮廓" }, previewImage: "/images/icon-style-previews/hd-native/line-icon-home-v2.png" },
 ];
 

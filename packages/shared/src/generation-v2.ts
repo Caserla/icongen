@@ -6,10 +6,19 @@ import {
 
 export const VARIANTS_PER_SUBJECT = 3 as const;
 export const MAX_SUBJECTS = 20 as const;
-export const MAX_SUBJECT_DESCRIPTION_LENGTH = 200 as const;
+export const MAX_SUBJECT_DESCRIPTION_LENGTH = 400 as const;
 export const OUTPUT_SIZES = [24, 32, 48, 64, 128] as const;
 export const DEFAULT_SUBJECT_SIZE_PERCENT = 70 as const;
 export const DEFAULT_LINEAR_STROKE_WIDTH_PERCENT = 3.5 as const;
+export const ILLUSTRATION_SUBSET_IDS = ["general", "brand-illustration"] as const;
+export type IllustrationSubset = (typeof ILLUSTRATION_SUBSET_IDS)[number];
+export const ILLUSTRATION_COMPOSITION_IDS = [
+  "centered",
+  "edge-anchored",
+  "full-bleed-scene",
+] as const;
+export type IllustrationComposition =
+  (typeof ILLUSTRATION_COMPOSITION_IDS)[number];
 const LEGACY_OUTPUT_SIZES = [
   16, 20, 24, 32, 48, 64, 128, 256, 512, 1024,
 ] as const;
@@ -72,6 +81,9 @@ export const generationSubjectInputSchema = z.object({
   clientId: z.string().trim().min(1).max(64),
   name: z.string().trim().min(1).max(40),
   description: z.string().trim().min(1).max(MAX_SUBJECT_DESCRIPTION_LENGTH),
+  illustrationComposition: z
+    .enum(ILLUSTRATION_COMPOSITION_IDS)
+    .optional(),
   colorOverride: colorSettingSchema.optional(),
   backgroundOverride: backgroundSettingSchema.optional(),
 });
@@ -85,6 +97,7 @@ export const createGenerationJobSchema = z
     idempotencyKey: z.string().uuid(),
     settingsVersion: z.literal(DESIGN_SETTINGS_VERSION),
     purpose: z.enum(["interaction", "app-icon"]).optional(),
+    illustrationSubset: z.enum(ILLUSTRATION_SUBSET_IDS).default("general"),
     subjects: z.array(generationSubjectInputSchema).min(1).max(MAX_SUBJECTS),
     subjectColor: colorSettingSchema,
     background: backgroundSettingSchema,
@@ -161,6 +174,7 @@ export function parseStoredGenerationJobSpec(
   return {
     idempotencyKey: legacy.idempotencyKey,
     settingsVersion: DESIGN_SETTINGS_VERSION,
+    illustrationSubset: "general",
     subjects: legacy.subjects,
     subjectColor: legacy.subjectColor,
     background: legacy.background,

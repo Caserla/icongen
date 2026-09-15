@@ -27,7 +27,7 @@
 | 配置项 | 示例 | 说明 |
 | --- | --- | --- |
 | `IMAGE_PROVIDER` | `openai` | 图片模型供应商 |
-| `IMAGE_MODEL` | `gpt-image-2` | 使用的图片模型 |
+| `IMAGE_MODEL` | `gpt-image-2.5-flare` | 使用的图片模型 |
 | `IMAGE_QUALITY` | `high` | 平台统一使用的图片生成质量档位 |
 | `IMAGE_SIZE` | `2048x2048` | Image 2 高清母版生成尺寸 |
 | `IMAGE_PROVIDER_BASE_URL` | `http://sub2api:8080/v1` | 合并部署时Sub2API在私有容器网络中的OpenAI-compatible地址 |
@@ -71,7 +71,7 @@ services/icon-worker/.env
 
 ```env
 IMAGE_PROVIDER=openai
-IMAGE_MODEL=gpt-image-2
+IMAGE_MODEL=gpt-image-2.5-flare
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1
@@ -102,16 +102,16 @@ GENERATION_MAX_ATTEMPTS=3
 
 ### 4.4 Sub2API 图像调度检查
 
-`GET /v1/models` 能列出 `gpt-image-2` 并不代表该模型已可用于图片生成。Sub2API 还必须同时满足以下条件：
+`GET /v1/models` 能列出 `gpt-image-2.5-flare` 并不代表该模型已可用于图片生成。Sub2API 还必须同时满足以下条件：
 
 1. 至少一个有效的上游图像账号已启用调度。
-2. 该账号的模型白名单包含 `gpt-image-2`。
+2. 该账号的模型白名单包含 `gpt-image-2.5-flare`。
 3. 该账号已加入 EASY DESIGN / ICON GEN 使用的图像分组（当前为 `image-2`）。
 4. EASY DESIGN / ICON GEN 的专用 API Key 可访问该分组。
 
 若 Worker 返回 `503 No available compatible accounts`，优先在 Sub2API 管理端的「账号管理」检查以上四项；不要改用管理员密钥、不要把密钥写入前端，也不要仅因模型列表存在就切换 Worker 模型。
 
-本地验收基线：2026-09-01 已用 `gpt-image-2` 完成逐主体 `14%` rounded-square 背景任务，3 个方案均成功写入 Supabase Storage；每个母版为 1254px、带真实 Alpha 通道。
+旧模型历史验收基线：2026-09-01 已用 `gpt-image-2` 完成逐主体 `14%` rounded-square 背景任务，3 个方案均成功写入 Supabase Storage；每个母版为 1254px、带真实 Alpha 通道。当前默认模型已切换为 `gpt-image-2.5-flare`，需要单独完成本地上游验收。
 
 ## 5. 正式环境配置
 
@@ -121,7 +121,7 @@ GENERATION_MAX_ATTEMPTS=3
 
 ```text
 IMAGE_PROVIDER=openai
-IMAGE_MODEL=gpt-image-2
+IMAGE_MODEL=gpt-image-2.5-flare
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1
@@ -374,7 +374,7 @@ interface ImageProvider {
 
 ```env
 IMAGE_PROVIDER=openai
-IMAGE_MODEL=gpt-image-2
+IMAGE_MODEL=gpt-image-2.5-flare
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 ICON_SKILL=default-ui-icon

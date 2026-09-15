@@ -13,6 +13,12 @@ import {
   compileProductionAppIconPrompt,
 } from "./production-app-icon-template";
 import { getIconGeometryContract } from "../geometry-contracts";
+import { compileBrandIllustrationSubject } from "./brand-illustration-template";
+import {
+  compileIllustrationComposition,
+  compileIllustrationProductionBoundary,
+  compileIllustrationSubjectScale,
+} from "./illustration-composition";
 
 function functionalRendering(name: string) {
   if (/返回|后退|关闭|取消|更多|菜单|添加|新增|back|close|dismiss|more|menu|add/i.test(name))
@@ -34,6 +40,14 @@ export function compileAppIconPrompt(
     ? stripUserTransparencyRules(input.description) || input.name
     : normalizeSubjectDescription(input.name, input.description, category);
   const normalizedInput = { ...input, description: normalizedDescription };
+  const subjectInput =
+    input.illustrationSubset === "brand-illustration"
+      ? {
+          ...normalizedInput,
+          name: "Brand illustration",
+          description: compileBrandIllustrationSubject(normalizedInput),
+        }
+      : normalizedInput;
   const qualityContract = getConfiguredBackgroundQualityContract(
     input.style.preset,
     input.background,
@@ -60,9 +74,11 @@ export function compileAppIconPrompt(
   const setConsistency = input.iconSetConsistency?.enabled
     ? `This asset belongs to one coordinated set of ${input.iconSetConsistency.subjectCount} icons. Every subject in the batch must share the same optical scale, visual center, safe margins, silhouette density, and detail density. Fit the dominant subject to an optical bounding box occupying approximately ${input.iconSetConsistency.targetOccupancyPercent}% of the square canvas. Do not enlarge simple subjects or shrink complex subjects.`
     : "";
+  const subjectScaleRule = compileIllustrationSubjectScale(input);
   const geometry = getIconGeometryContract(input);
+  const illustrationComposition = compileIllustrationComposition(input);
 
-  return compileProductionAppIconPrompt(normalizedInput, direction, {
+  return compileProductionAppIconPrompt(subjectInput, direction, {
     approvedReferenceProfile:
       approvedReference?.visualSignature ??
       `Approved reference signature for ${input.style.preset}.`,
@@ -74,19 +90,25 @@ export function compileAppIconPrompt(
       functionalRule,
       protocol.forbidden,
     ].join(" "),
-    composition: `${setConsistency} Geometry integrity category: ${geometry.category}. ${geometry.prompt} ${
+    composition: `${setConsistency} ${subjectScaleRule} ${illustrationComposition} Geometry integrity category: ${geometry.category}. ${geometry.prompt} ${
       noBackground
         ? "Follow the subject's requested placement and camera. Keep the complete silhouette inside a 9%–14% empty safety margin, preserving the requested directional extension and clear visual hierarchy."
         : category === "functional"
         ? "Use one familiar, direct symbol centered in the square canvas. Keep open negative space, optically balance the symbol, and preserve immediate recognition at launcher and UI-entry sizes."
-        : "Use one dominant, memorable silhouette centered in the square canvas. Keep all defining features inside a balanced safe area, avoid accidental cropping, and reserve enough negative space for immediate recognition at launcher size."
+        : input.illustrationComposition === "edge-anchored" ||
+            input.illustrationComposition === "full-bleed-scene"
+          ? "Keep the essential subject and brand information readable while supporting scenery reaches or crosses the selected canvas edges."
+          : "Use one dominant, memorable silhouette centered in the square canvas. Keep all defining features inside a balanced safe area, avoid accidental cropping, and reserve enough negative space for immediate recognition at launcher size."
     }`,
     colorAndMaterial: `${noBackground ? "Apply color, material, lighting, and depth to the foreground subject only." : backgroundContract} Apply only the palette, material, lighting, and depth behavior defined by this style protocol. Never introduce effects belonging to another preset.`,
     edgeAndSmallSizeQuality:
       `Use one clean closed outer silhouette, controlled detail, crisp color boundaries, and ${noBackground && input.style.preset === "pixel-art" ? "hard pixel edges without antialiasing" : "natural antialiasing"}. Do not create breaks, burrs, muddy edges, stray fragments, or isolated decorative marks. ${protocol.smallSize}`,
     productionBoundary: noBackground
-      ? TRANSPARENT_ICON_CANVAS_SPEC
-      : `${APP_ICON_CANVAS_SPEC} ${SHARED_PRODUCTION_BOUNDARIES}`,
+      ? `${TRANSPARENT_ICON_CANVAS_SPEC} ${compileIllustrationProductionBoundary(input)}`
+      : `${APP_ICON_CANVAS_SPEC} ${SHARED_PRODUCTION_BOUNDARIES.replace(
+          "Keep every visible element complete, centered, uncropped, and inside balanced safe margins.",
+          compileIllustrationProductionBoundary(input),
+        )}`,
     backgroundContract,
   });
 }

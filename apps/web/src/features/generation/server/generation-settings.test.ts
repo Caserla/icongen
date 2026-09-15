@@ -8,8 +8,17 @@ test("returns the versioned icon-style catalog", () => {
   assert.equal(settings.stylePresets.length, 10);
   assert.ok(
     settings.stylePresets.every((preset) =>
-      preset.previewImage.startsWith("/images/icon-style-previews/hd-native/"),
+      preset.previewImage.startsWith("/images/icon-style-previews/"),
     ),
+  );
+  assert.equal(
+    settings.stylePresets.filter((preset) => preset.id !== "line-icon").every(
+      (preset) =>
+        preset.previewImage.startsWith(
+          "/images/icon-style-previews/favorites-2026-09-10/",
+        ),
+    ),
+    true,
   );
   assert.ok(
     settings.stylePresets.every((preset) => !("promptToken" in preset)),

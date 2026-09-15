@@ -14,6 +14,8 @@ import {
   type CreateGenerationJobInput,
   type GenerationSettingsResponse,
   type IconStyle,
+  type IllustrationSubset,
+  type IllustrationComposition,
 } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { Toast, type ToastVariant } from "@/components/ui/toast";
@@ -37,6 +39,179 @@ import {
 const defaultAppIconPreset =
   ICON_STYLE_PRESETS.find((preset) => preset.id !== "line-icon")?.id ??
   "isometric-3d";
+const illustrationBackgroundDefaults: Record<
+  Exclude<IconStyle["preset"], "line-icon">,
+  { solid: ColorSetting; gradient: ColorSetting }
+> = {
+  "isometric-3d": {
+    solid: { mode: "solid", color: "#344A5E" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#1E2B3A", "#536B78"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  neon: {
+    solid: { mode: "solid", color: "#101A46" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#07142F", "#3B176D"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "low-poly": {
+    solid: { mode: "solid", color: "#334C5A" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#1D2E38", "#526B75"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "clay-3d": {
+    solid: { mode: "solid", color: "#FFF1DA" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#FFF4E5", "#DDEBFF"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "flat-playful": {
+    solid: { mode: "solid", color: "#FFE59A" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#FFF4C7", "#FFD6DF"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "pixel-art": {
+    solid: { mode: "solid", color: "#5D557A" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#3B355E", "#78668F"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "flat-illustration": {
+    solid: { mode: "solid", color: "#FFF0C2" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#FFF6D8", "#D7F0E2"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "cute-sticker": {
+    solid: { mode: "solid", color: "#DFF4FF" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#EAF8FF", "#E8DEFF"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "minimal-logo": {
+    solid: { mode: "solid", color: "#FFF0D9" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#FFF5E8", "#DDEBFF"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+};
+
+// Edge-anchored previews occupy more of the canvas than the centered set, so
+// they use a quieter, composition-specific palette that supports their edge
+// contrast without competing with the subject. Manual colors are never
+// replaced by these defaults.
+const edgeAnchoredIllustrationBackgroundDefaults: Record<
+  Exclude<IconStyle["preset"], "line-icon">,
+  { solid: ColorSetting; gradient: ColorSetting }
+> = {
+  "isometric-3d": {
+    solid: { mode: "solid", color: "#263D59" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#17283D", "#3C5872"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  neon: {
+    solid: { mode: "solid", color: "#090F2D" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#070B24", "#25104A"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "low-poly": {
+    solid: { mode: "solid", color: "#24383B" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#17272C", "#35504E"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "clay-3d": {
+    solid: { mode: "solid", color: "#E8E1F5" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#F4EAF2", "#CBD4EE"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "flat-playful": {
+    solid: { mode: "solid", color: "#FFF0C7" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#FFF4D6", "#DDF3E9"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "pixel-art": {
+    solid: { mode: "solid", color: "#172B4D" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#0E1D38", "#294667"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "flat-illustration": {
+    solid: { mode: "solid", color: "#DCE8EE" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#EAF2F3", "#CFDFE9"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "cute-sticker": {
+    solid: { mode: "solid", color: "#DDF3F8" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#EAF8FA", "#E4E1F7"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+  "minimal-logo": {
+    solid: { mode: "solid", color: "#D6E9EC" },
+    gradient: {
+      mode: "gradient",
+      colors: ["#E5F3F3", "#C6DCE8"],
+      direction: "top-left-to-bottom-right",
+    },
+  },
+};
+
+function illustrationBackgroundDefault(
+  preset: IconStyle["preset"],
+  mode: "solid" | "gradient",
+  composition: IllustrationComposition = "centered",
+) {
+  const resolvedPreset: Exclude<IconStyle["preset"], "line-icon"> =
+    preset === "line-icon" ? "isometric-3d" : preset;
+  const defaults =
+    composition === "edge-anchored"
+      ? edgeAnchoredIllustrationBackgroundDefaults
+      : illustrationBackgroundDefaults;
+  return defaults[resolvedPreset][mode];
+}
 const defaultStyle: IconStyle = {
   preset: defaultAppIconPreset,
   subjectSizePercent: DEFAULT_SUBJECT_SIZE_PERCENT,
@@ -74,12 +249,16 @@ function automaticSubjectBackground(
 export function GenerationForm() {
   const { locale } = useLocale();
   const router = useRouter();
-  const [subjectDrafts, dispatchSubjectDraft] = useReducer(
-    generationSubjectDraftReducer,
-    initialGenerationSubjectDrafts,
-  );
+  const [interactionSubjectDrafts, dispatchInteractionSubjectDraft] =
+    useReducer(generationSubjectDraftReducer, initialGenerationSubjectDrafts);
+  const [illustrationSubjectDrafts, dispatchIllustrationSubjectDraft] =
+    useReducer(generationSubjectDraftReducer, initialGenerationSubjectDrafts);
   const [iconPurpose, setIconPurpose] = useState<IconPurpose>("interaction");
+  const [illustrationSubset, setIllustrationSubset] =
+    useState<IllustrationSubset>("general");
   const [iconStructure, setIconStructure] = useState<IconStructure>("linear");
+  const [interactionSubjectSizePercent, setInteractionSubjectSizePercent] =
+    useState<number>(DEFAULT_SUBJECT_SIZE_PERCENT);
   const [subjectColor, setSubjectColor] = useState<ColorSetting>({
     mode: "solid",
     color: "#61666E",
@@ -96,6 +275,14 @@ export function GenerationForm() {
     variant: ToastVariant;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const subjectDrafts =
+    iconPurpose === "interaction"
+      ? interactionSubjectDrafts
+      : illustrationSubjectDrafts;
+  const dispatchSubjectDraft =
+    iconPurpose === "interaction"
+      ? dispatchInteractionSubjectDraft
+      : dispatchIllustrationSubjectDraft;
 
   useEffect(() => {
     fetch("/api/generation/settings", { cache: "no-store" })
@@ -121,12 +308,13 @@ export function GenerationForm() {
         parseSubjectRows([draft.input]).map((subject) => ({
           ...subject,
           clientId: `subject-${index + 1}`,
+          illustrationComposition: draft.illustrationComposition,
           backgroundOverride: automaticSubjectBackground(
             draft.backgroundMode,
             draft.backgroundContainer,
             draft.backgroundCornerRadius ?? 22,
             draft.backgroundColor,
-            false,
+            !draft.backgroundColorCustomized,
           ),
         })),
       ),
@@ -142,9 +330,33 @@ export function GenerationForm() {
   }
   function selectAppStyle(value: IconStyle) {
     setStyle(value);
+    subjectDrafts.forEach((draft, index) => {
+      if (
+        draft.backgroundMode !== "transparent" &&
+        !draft.backgroundColorCustomized
+      )
+        dispatchSubjectDraft({
+          type: "set-background-color",
+          index,
+          value: illustrationBackgroundDefault(
+            value.preset,
+            draft.backgroundMode,
+            draft.illustrationComposition,
+          ),
+          customized: false,
+        });
+    });
   }
   function addSubject() {
-    dispatchSubjectDraft({ type: "add", maxSubjects: MAX_SUBJECTS, backgroundMode: iconPurpose === "interaction" ? "transparent" : "solid" });
+    dispatchSubjectDraft({
+      type: "add",
+      maxSubjects: MAX_SUBJECTS,
+      backgroundMode: iconPurpose === "interaction" ? "transparent" : "solid",
+      backgroundColor:
+        iconPurpose === "interaction"
+          ? undefined
+          : illustrationBackgroundDefault(style.preset, "solid", "centered"),
+    });
   }
   function removeSubject(index: number) {
     dispatchSubjectDraft({ type: "remove", index });
@@ -171,6 +383,19 @@ export function GenerationForm() {
   function selectSubjectBackgroundMode(index: number, mode: BackgroundMode) {
     dispatchSubjectDraft({ type: "set-background-mode", index, value: mode });
     const current = subjectDrafts[index]?.backgroundColor;
+    if (iconPurpose === "app-icon" && mode !== "transparent") {
+      dispatchSubjectDraft({
+        type: "set-background-color",
+        index,
+        value: illustrationBackgroundDefault(
+          style.preset,
+          mode,
+          subjectDrafts[index]?.illustrationComposition,
+        ),
+        customized: false,
+      });
+      return;
+    }
     if (mode === "solid" && current?.mode === "gradient")
       dispatchSubjectDraft({
         type: "set-background-color",
@@ -189,7 +414,19 @@ export function GenerationForm() {
       });
   }
   function selectSubjectBackgroundColor(index: number, value: ColorSetting) {
-    dispatchSubjectDraft({ type: "set-background-color", index, value });
+    dispatchSubjectDraft({
+      type: "set-background-color",
+      index,
+      value,
+      customized: true,
+    });
+  }
+  function selectSubjectBackgroundAutoColor(index: number, value: boolean) {
+    dispatchSubjectDraft({
+      type: "set-background-auto-color",
+      index,
+      value,
+    });
   }
   function selectSubjectBackgroundContainer(
     index: number,
@@ -208,6 +445,34 @@ export function GenerationForm() {
       value,
     });
   }
+  function selectIllustrationComposition(
+    index: number,
+    value: IllustrationComposition,
+  ) {
+    dispatchSubjectDraft({
+      type: "set-illustration-composition",
+      index,
+      value,
+    });
+    const draft = subjectDrafts[index];
+    if (
+      iconPurpose === "app-icon" &&
+      draft &&
+      draft.backgroundMode !== "transparent" &&
+      !draft.backgroundColorCustomized
+    ) {
+      dispatchSubjectDraft({
+        type: "set-background-color",
+        index,
+        value: illustrationBackgroundDefault(
+          style.preset,
+          draft.backgroundMode,
+          value,
+        ),
+        customized: false,
+      });
+    }
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
@@ -218,16 +483,25 @@ export function GenerationForm() {
       subjectDrafts[0]?.backgroundContainer ?? "rounded-square",
       subjectDrafts[0]?.backgroundCornerRadius ?? 22,
       subjectDrafts[0]?.backgroundColor,
-      false,
+      !(subjectDrafts[0]?.backgroundColorCustomized ?? false),
     );
     const parsed = createGenerationJobSchema.safeParse({
       idempotencyKey: crypto.randomUUID(),
       settingsVersion: DESIGN_SETTINGS_VERSION,
       purpose: iconPurpose,
+      illustrationSubset:
+        iconPurpose === "app-icon" ? illustrationSubset : "general",
       subjects,
       subjectColor,
       background,
-      style: { ...style, graphicStructure: iconStructure },
+      style: {
+        ...style,
+        graphicStructure: iconStructure,
+        subjectSizePercent:
+          iconPurpose === "interaction"
+            ? interactionSubjectSizePercent
+            : style.subjectSizePercent,
+      },
       sizes,
     });
     if (!parsed.success) {
@@ -287,6 +561,8 @@ export function GenerationForm() {
             value={iconPurpose}
             onChange={selectIconPurpose}
             locale={locale}
+            illustrationSubset={illustrationSubset}
+            onIllustrationSubsetChange={setIllustrationSubset}
           />
           <div className="creation-workspace__editor">
             {iconPurpose === "interaction" ? (
@@ -294,9 +570,9 @@ export function GenerationForm() {
                 locale={locale}
                 iconStructure={iconStructure}
                 onIconStructureChange={setIconStructure}
-                subjectSizePercent={style.subjectSizePercent}
+                subjectSizePercent={interactionSubjectSizePercent}
                 onSubjectSizePercentChange={(subjectSizePercent) =>
-                  setStyle((current) => ({ ...current, subjectSizePercent }))
+                  setInteractionSubjectSizePercent(subjectSizePercent)
                 }
                 linearStrokeWidthPercent={style.linearStrokeWidthPercent}
                 onLinearStrokeWidthPercentChange={(linearStrokeWidthPercent) =>
@@ -311,7 +587,9 @@ export function GenerationForm() {
                 }
                 subjectColor={subjectColor}
                 onSubjectColorChange={setSubjectColor}
-                backgroundMode={subjectDrafts[0]?.backgroundMode ?? "transparent"}
+                backgroundMode={
+                  subjectDrafts[0]?.backgroundMode ?? "transparent"
+                }
                 backgroundContainer={
                   subjectDrafts[0]?.backgroundContainer ?? "rounded-square"
                 }
@@ -330,12 +608,45 @@ export function GenerationForm() {
                 onChange={selectAppStyle}
                 loading={!settings}
                 locale={locale}
+                backgroundMode={
+                  subjectDrafts[0]?.backgroundMode ?? "transparent"
+                }
+                backgroundContainer={
+                  subjectDrafts[0]?.backgroundContainer ?? "rounded-square"
+                }
+                backgroundColor={
+                  subjectDrafts[0]?.backgroundColor ?? {
+                    mode: "solid",
+                    color: "#FFFFFF",
+                  }
+                }
+                cornerRadius={subjectDrafts[0]?.backgroundCornerRadius ?? 22}
+                illustrationComposition={
+                  subjectDrafts[0]?.illustrationComposition ?? "centered"
+                }
               />
             )}
           </div>
           <div className="creation-workspace__side">
             <IconSubjectEditor
+              subjectKind={
+                iconPurpose === "app-icon" ? illustrationSubset : "general"
+              }
               values={subjectDrafts.map((draft) => draft.input)}
+              subjectSizePercent={
+                iconPurpose === "app-icon"
+                  ? style.subjectSizePercent
+                  : undefined
+              }
+              onSubjectSizePercentChange={
+                iconPurpose === "app-icon"
+                  ? (subjectSizePercent) =>
+                      setStyle((current) => ({
+                        ...current,
+                        subjectSizePercent,
+                      }))
+                  : undefined
+              }
               onChange={updateSubject}
               onAdd={addSubject}
               onRemove={removeSubject}
@@ -355,8 +666,24 @@ export function GenerationForm() {
               onBackgroundCornerRadiusChange={
                 selectSubjectBackgroundCornerRadius
               }
-              backgroundColors={subjectDrafts.map((draft) => draft.backgroundColor)}
+              backgroundColors={subjectDrafts.map(
+                (draft) => draft.backgroundColor,
+              )}
               onBackgroundColorChange={selectSubjectBackgroundColor}
+              backgroundAutoColors={subjectDrafts.map(
+                (draft) => !draft.backgroundColorCustomized,
+              )}
+              onBackgroundAutoColorChange={selectSubjectBackgroundAutoColor}
+              illustrationCompositions={
+                iconPurpose === "app-icon"
+                  ? subjectDrafts.map((draft) => draft.illustrationComposition)
+                  : undefined
+              }
+              onIllustrationCompositionChange={
+                iconPurpose === "app-icon"
+                  ? selectIllustrationComposition
+                  : undefined
+              }
             />
             <ReferenceSizeSelector
               options={OUTPUT_SIZES}
@@ -380,9 +707,7 @@ export function GenerationForm() {
           </div>
         </div>
       </section>
-      {message ? (
-        <Toast message={message} variant="error" />
-      ) : null}
+      {message ? <Toast message={message} variant="error" /> : null}
     </form>
   );
 }

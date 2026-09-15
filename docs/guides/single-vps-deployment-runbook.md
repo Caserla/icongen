@@ -213,7 +213,7 @@ Worker配置：
 
 ```env
 IMAGE_PROVIDER=openai
-IMAGE_MODEL=gpt-image-2
+IMAGE_MODEL=gpt-image-2.5-flare
 IMAGE_QUALITY=high
 IMAGE_SIZE=2048x2048
 IMAGE_PROVIDER_BASE_URL=http://sub2api:8080/v1

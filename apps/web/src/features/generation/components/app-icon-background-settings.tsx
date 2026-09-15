@@ -1,4 +1,7 @@
-import type { ColorSetting } from "@icongen/shared";
+import type {
+  ColorSetting,
+  IllustrationComposition,
+} from "@icongen/shared";
 import type {
   BackgroundContainer,
   BackgroundMode,
@@ -18,6 +21,12 @@ export function AppIconBackgroundSettings({
   locale,
   color,
   onColorChange,
+  subjectSizePercent,
+  onSubjectSizePercentChange,
+  autoColor = false,
+  onAutoColorChange,
+  illustrationComposition,
+  onIllustrationCompositionChange,
 }: {
   mode: BackgroundMode;
   onModeChange: (mode: BackgroundMode) => void;
@@ -28,9 +37,53 @@ export function AppIconBackgroundSettings({
   locale: "en" | "zh";
   color?: ColorSetting;
   onColorChange?: (color: ColorSetting) => void;
+  subjectSizePercent?: number;
+  onSubjectSizePercentChange?: (value: number) => void;
+  autoColor?: boolean;
+  onAutoColorChange?: (value: boolean) => void;
+  illustrationComposition?: IllustrationComposition;
+  onIllustrationCompositionChange?: (value: IllustrationComposition) => void;
 }) {
   return (
     <section>
+      {subjectSizePercent !== undefined && onSubjectSizePercentChange ? (
+        <div className="mb-2">
+          <StudioRange
+            label={locale === "zh" ? "主体大小" : "Subject size"}
+            min={50}
+            max={85}
+            suffix="%"
+            value={subjectSizePercent}
+            onChange={onSubjectSizePercentChange}
+          />
+        </div>
+      ) : null}
+      {illustrationComposition && onIllustrationCompositionChange ? (
+        <div className="mb-2">
+          <span className="mb-2 block text-xs font-semibold text-muted">
+            {locale === "zh" ? "构图方式" : "Composition"}
+          </span>
+          <StudioSegmentedControl
+            className="studio-structure-tabs studio-structure-tabs--three"
+            value={illustrationComposition}
+            onChange={onIllustrationCompositionChange}
+            ariaLabel={locale === "zh" ? "构图方式" : "Composition"}
+            options={
+              locale === "zh"
+                ? [
+                    { value: "centered", label: "标准居中" },
+                    { value: "edge-anchored", label: "贴边构图" },
+                    { value: "full-bleed-scene", label: "场景满版" },
+                  ]
+                : [
+                    { value: "centered", label: "Centered" },
+                    { value: "edge-anchored", label: "Edge anchored" },
+                    { value: "full-bleed-scene", label: "Full scene" },
+                  ]
+            }
+          />
+        </div>
+      ) : null}
       <StudioSegmentedControl
         className="studio-structure-tabs studio-structure-tabs--three"
         ariaLabel={locale === "zh" ? "背景类型" : "Background type"}
@@ -81,16 +134,48 @@ export function AppIconBackgroundSettings({
               onChange={onCornerRadiusChange}
             />
           ) : null}
-          {color && onColorChange ? (
+          {onAutoColorChange ? (
+            <div>
+              <span className="mb-2 block text-xs font-semibold text-muted">
+                {locale === "zh" ? "颜色生成方式" : "Color generation"}
+              </span>
+              <StudioSegmentedControl
+                className="studio-structure-tabs"
+                size="small"
+                value={autoColor ? "automatic" : "manual"}
+                onChange={(value) => onAutoColorChange(value === "automatic")}
+                ariaLabel={locale === "zh" ? "颜色生成方式" : "Color generation"}
+                options={
+                  locale === "zh"
+                    ? [
+                        { value: "automatic", label: "自动生成" },
+                        { value: "manual", label: "手动设置" },
+                      ]
+                    : [
+                        { value: "automatic", label: "Automatic" },
+                        { value: "manual", label: "Manual" },
+                      ]
+                }
+              />
+            </div>
+          ) : null}
+          {!autoColor && color && onColorChange ? (
             <BackgroundColorSettings
               mode={mode}
               value={color}
               onChange={(next) => {
                 onColorChange(next);
-                onModeChange(next.mode);
+                if (next.mode !== mode) onModeChange(next.mode);
               }}
               locale={locale}
             />
+          ) : null}
+          {autoColor ? (
+            <p className="text-xs text-muted">
+              {locale === "zh"
+                ? "将根据图标内容与所选风格自动生成协调的背景配色。"
+                : "A coordinated background palette will be generated from the icon content and selected style."}
+            </p>
           ) : null}
         </div>
       ) : null}

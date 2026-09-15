@@ -155,6 +155,8 @@ async function run() {
     subjectRecord.backgroundOverride ?? job.spec.background;
   const compiled = dependencies.promptCompiler.compile({
     purpose: job.spec.purpose,
+    illustrationSubset: job.spec.illustrationSubset,
+    illustrationComposition: subjectRecord.illustrationComposition,
     name: subjectRecord.name,
     description: subjectRecord.description,
     color: subjectRecord.colorOverride ?? job.spec.subjectColor,

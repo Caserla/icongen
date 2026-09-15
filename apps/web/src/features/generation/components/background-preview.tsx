@@ -13,17 +13,28 @@ const linearDirections = {
   "top-right-to-bottom-left": "to bottom left",
 } as const;
 
-function backgroundStyle(color: ColorSetting): CSSProperties {
-  if (color.mode === "solid") return { background: color.color };
+export function backgroundPreviewStyle(color: ColorSetting): CSSProperties {
+  if (color.mode === "solid") return { backgroundColor: color.color };
   const rgba = (hex: string, alpha = 1) => `rgb(${[1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)).join(" ")} / ${alpha})`;
   const stops = `${rgba(color.colors[0], color.alpha)} ${color.startOffset ?? 0}%, ${rgba(color.colors[1], color.endAlpha)} ${color.endOffset ?? 100}%`;
   if (color.direction === "radial")
     return {
-      background: `radial-gradient(circle, ${stops})`,
+      backgroundImage: `radial-gradient(circle, ${stops})`,
     };
   return {
-    background: `linear-gradient(${color.angle === undefined ? linearDirections[color.direction] : `${color.angle}deg`}, ${stops})`,
+    backgroundImage: `linear-gradient(${color.angle === undefined ? linearDirections[color.direction] : `${color.angle}deg`}, ${stops})`,
   };
+}
+
+export function backgroundPreviewRadius(
+  container: BackgroundContainer,
+  cornerRadius: number,
+) {
+  return container === "circle"
+    ? "50%"
+    : container === "rounded-square"
+      ? `${cornerRadius}%`
+      : "0";
 }
 
 export function BackgroundPreview({
@@ -51,12 +62,7 @@ export function BackgroundPreview({
   locale: "en" | "zh";
   children?: ReactNode;
 }) {
-  const radius =
-    container === "circle"
-      ? "50%"
-      : container === "rounded-square"
-        ? `${cornerRadius}%`
-        : "0";
+  const radius = backgroundPreviewRadius(container, cornerRadius);
   const subjectPreviewColor =
     subjectColor.mode === "solid" ? subjectColor.color : subjectColor.colors[0];
   return (
@@ -77,7 +83,7 @@ export function BackgroundPreview({
             className="flex h-full w-full aspect-square items-center justify-center transition-all duration-200"
             style={
               enabled
-                ? { ...backgroundStyle(color), borderRadius: radius }
+                ? { ...backgroundPreviewStyle(color), borderRadius: radius }
                 : {
                     background: "transparent",
                     borderRadius: 0,

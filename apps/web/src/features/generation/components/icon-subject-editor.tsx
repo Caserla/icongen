@@ -6,6 +6,7 @@ import { AppIconBackgroundSettings } from "./app-icon-background-settings";
 import {
   MAX_SUBJECT_DESCRIPTION_LENGTH,
   type ColorSetting,
+  type IllustrationComposition,
 } from "@icongen/shared";
 import type {
   BackgroundContainer,
@@ -29,6 +30,13 @@ export function IconSubjectEditor({
   onBackgroundCornerRadiusChange,
   backgroundColors,
   onBackgroundColorChange,
+  subjectKind = "general",
+  subjectSizePercent,
+  onSubjectSizePercentChange,
+  backgroundAutoColors,
+  onBackgroundAutoColorChange,
+  illustrationCompositions,
+  onIllustrationCompositionChange,
 }: {
   values: string[];
   onChange: (index: number, value: string) => void;
@@ -47,6 +55,16 @@ export function IconSubjectEditor({
   onBackgroundCornerRadiusChange?: (index: number, value: number) => void;
   backgroundColors?: ColorSetting[];
   onBackgroundColorChange?: (index: number, value: ColorSetting) => void;
+  subjectKind?: "general" | "brand-illustration";
+  subjectSizePercent?: number;
+  onSubjectSizePercentChange?: (value: number) => void;
+  backgroundAutoColors?: boolean[];
+  onBackgroundAutoColorChange?: (index: number, value: boolean) => void;
+  illustrationCompositions?: IllustrationComposition[];
+  onIllustrationCompositionChange?: (
+    index: number,
+    value: IllustrationComposition,
+  ) => void;
 }) {
   const [expandedBackgroundIndex, setExpandedBackgroundIndex] = useState<
     number | null
@@ -117,7 +135,15 @@ export function IconSubjectEditor({
   return (
     <StudioSideCard
       className="creation-side-card--subjects"
-      title={locale === "zh" ? "图标主体" : "Icon subjects"}
+      title={
+        subjectKind === "brand-illustration"
+          ? locale === "zh"
+            ? "品牌插画主体"
+            : "Brand illustration subjects"
+          : locale === "zh"
+            ? "图标主体"
+            : "Icon subjects"
+      }
       meta={
         <span className="icon-subject-count">
           {values.length} / {maxSubjects}
@@ -172,9 +198,13 @@ export function IconSubjectEditor({
                     className={value.trim() ? "" : "icon-subject-placeholder"}
                   >
                     {value.trim() ||
-                      (locale === "zh"
-                        ? "输入你想生成的图标…"
-                        : "Type what you want to create…")}
+                      (subjectKind === "brand-illustration"
+                        ? locale === "zh"
+                          ? "品牌全称：产品/行业与核心功能特色…"
+                          : "Brand name: product, industry, and core benefit…"
+                        : locale === "zh"
+                          ? "输入你想生成的图标…"
+                          : "Type what you want to create…")}
                   </span>
                 </button>
               </div>
@@ -191,8 +221,8 @@ export function IconSubjectEditor({
                   aria-expanded={expandedBackgroundIndex === index}
                   aria-label={
                     locale === "zh"
-                      ? `设置第 ${index + 1} 个图标背景`
-                      : `Configure background for icon ${index + 1}`
+                      ? `打开第 ${index + 1} 个图标的更多设置`
+                      : `Open more settings for icon ${index + 1}`
                   }
                 >
                   <svg
@@ -243,9 +273,9 @@ export function IconSubjectEditor({
       backgroundCornerRadii &&
       onBackgroundCornerRadiusChange ? (
         <StudioDrawer
-          title={locale === "zh" ? "图标背景" : "Icon background"}
+          title={locale === "zh" ? "更多设置" : "More settings"}
           closeLabel={
-            locale === "zh" ? "关闭背景设置" : "Close background settings"
+            locale === "zh" ? "关闭更多设置" : "Close more settings"
           }
           onClose={() => setExpandedBackgroundIndex(null)}
           className={`icon-background-dialog--mode-${backgroundModes[expandedBackgroundIndex] ?? "solid"}${backgroundColors ? " icon-background-dialog--manual-colors" : ""}`}
@@ -271,6 +301,27 @@ export function IconSubjectEditor({
               onBackgroundColorChange
                 ? (value) =>
                     onBackgroundColorChange(expandedBackgroundIndex, value)
+                : undefined
+            }
+            subjectSizePercent={subjectSizePercent}
+            onSubjectSizePercentChange={onSubjectSizePercentChange}
+            autoColor={backgroundAutoColors?.[expandedBackgroundIndex] ?? false}
+            onAutoColorChange={
+              onBackgroundAutoColorChange
+                ? (value) =>
+                    onBackgroundAutoColorChange(expandedBackgroundIndex, value)
+                : undefined
+            }
+            illustrationComposition={
+              illustrationCompositions?.[expandedBackgroundIndex]
+            }
+            onIllustrationCompositionChange={
+              onIllustrationCompositionChange
+                ? (value) =>
+                    onIllustrationCompositionChange(
+                      expandedBackgroundIndex,
+                      value,
+                    )
                 : undefined
             }
           />
@@ -308,9 +359,13 @@ export function IconSubjectEditor({
                   onChange(expandedSubjectIndex, event.target.value)
                 }
                 placeholder={
-                  locale === "zh"
-                    ? "详细描述你想生成的图标…"
-                    : "Describe the icon you want to create…"
+                  subjectKind === "brand-illustration"
+                    ? locale === "zh"
+                      ? "品牌全称：描述品牌所属产品或行业、核心功能特色，以及希望融入品牌插画的代表性事物、动物、植物或工具…"
+                      : "Brand name: describe the product or industry, core benefit, and a representative object, animal, plant, or tool to integrate into the brand illustration…"
+                    : locale === "zh"
+                      ? "详细描述你想生成的图标…"
+                      : "Describe the icon you want to create…"
                 }
                 className="icon-subject-editor-textarea"
               />

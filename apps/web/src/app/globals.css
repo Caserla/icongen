@@ -3191,17 +3191,8 @@ html[data-theme="dark"] body:has(.butter-home)
   min-height: 0;
   flex: 1;
   place-items: center;
-  padding: 48px;
+  padding: 44px;
   padding-right: clamp(380px, 37%, 480px);
-}
-.illustration-editor__preview {
-  aspect-ratio: 1;
-  width: min(76%, 440px);
-  overflow: hidden;
-  border-radius: 24%;
-  background: transparent;
-  box-shadow: none;
-  animation: asset-reveal 0.42s cubic-bezier(0.2, 0.72, 0.2, 0.99) both;
 }
 .illustration-editor__controls {
   position: absolute;
@@ -3288,7 +3279,7 @@ html[data-theme="dark"] body:has(.butter-home)
     min-height: 520px;
   }
   .illustration-editor__stage {
-    padding-right: 48px;
+    padding-right: 44px;
   }
   .illustration-editor__controls {
     position: relative;
@@ -6125,7 +6116,8 @@ body:has(.studio-dark-page) .language-switch__option[aria-pressed="true"] {
 
 /* Loaded artwork is always presented without a colored plate underneath it. */
 [data-image-state="loaded"],
-.studio-shell *:has(> [data-image-state="loaded"]),
+.studio-shell
+  *:has(> [data-image-state="loaded"]):not(.illustration-background-preview),
 .pricing-studio *:has(> [data-image-state="loaded"]),
 .admin-studio *:has(> [data-image-state="loaded"]) {
   background-color: transparent !important;
@@ -6518,6 +6510,50 @@ html .theme-switch__icon > svg {
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+/* Edge-to-edge navigation for the black editorial landing page. */
+body:has(.butter-home) .butter-marketing-header {
+  top: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid #252525 !important;
+  border-radius: 0 !important;
+  background: rgba(5, 5, 5, 0.9) !important;
+  box-shadow: none !important;
+  color: #f5f5f2 !important;
+  backdrop-filter: blur(20px) saturate(120%);
+}
+body:has(.butter-home) .butter-marketing-header__inner {
+  width: 100%;
+  max-width: 1000px;
+  min-height: 64px;
+  margin: 0 auto;
+  padding-inline: 20px;
+}
+body:has(.butter-home)
+  .butter-marketing-header
+  :is(.focus-ring, .butter-nav-link, .language-switch__option) {
+  color: inherit !important;
+}
+body:has(.butter-home) .butter-marketing-header .butter-nav-link:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: #fff !important;
+}
+body:has(.butter-home) .butter-marketing-header .language-switch > span {
+  background: rgba(255, 255, 255, 0.18);
+}
+body:has(.butter-home) .butter-marketing-header .theme-switch {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f5f5f2;
+}
+
+/* The redesigned homepage must not become a scroll container; its wide
+   artwork is clipped by the individual media sections instead. */
+body:has(.butter-home) .butter-home {
+  overflow: visible;
 }
 
 /* Shared animated language indicator for every header variant. */

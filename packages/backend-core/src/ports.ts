@@ -18,6 +18,7 @@ export type GenerationSubjectRecord = {
   position: number;
   colorOverride?: ColorSetting;
   backgroundOverride?: CreateGenerationJobInput["background"];
+  illustrationComposition?: CreateGenerationJobInput["subjects"][number]["illustrationComposition"];
   variants: GenerationVariantRecord[];
 };
 
@@ -261,6 +262,8 @@ export interface PromptCompiler {
   readonly version: string;
   compile(input: {
     purpose?: CreateGenerationJobInput["purpose"];
+    illustrationSubset?: CreateGenerationJobInput["illustrationSubset"];
+    illustrationComposition?: CreateGenerationJobInput["subjects"][number]["illustrationComposition"];
     name: string;
     description: string;
     color: ColorSetting;

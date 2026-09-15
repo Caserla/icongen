@@ -106,6 +106,8 @@ export async function processGenerationJob(
           subject.backgroundOverride ?? job.spec.background;
         const compiled = dependencies.promptCompiler.compile({
           purpose: job.spec.purpose,
+          illustrationSubset: job.spec.illustrationSubset,
+          illustrationComposition: subject.illustrationComposition,
           name: subject.name,
           description: subject.description,
           color: subject.colorOverride ?? job.spec.subjectColor,

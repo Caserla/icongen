@@ -108,6 +108,8 @@ export class SupabaseGenerationRepository implements GenerationRepository {
           ? spec.subjects[subject.position]?.colorOverride
           : undefined,
         backgroundOverride: spec.subjects[subject.position]?.backgroundOverride,
+        illustrationComposition:
+          spec.subjects[subject.position]?.illustrationComposition,
         variants: variantRows
           .filter((variant) => variant.subject_id === subject.id)
           .map((variant) => ({

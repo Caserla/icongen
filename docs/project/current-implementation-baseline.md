@@ -30,7 +30,7 @@
 
 ## 2. 生成与资产链路
 
-- 当前模型适配器使用 OpenAI-compatible Image2，默认模型 `gpt-image-2`、质量 `high`、母版请求尺寸 `2048x2048`；实际返回母版尺寸以供应商响应为准。
+- 当前模型适配器使用 OpenAI-compatible Image2，默认模型 `gpt-image-2.5-flare`、质量 `high`、母版请求尺寸 `2048x2048`；实际返回母版尺寸以供应商响应为准。
 - App 插画图标的 9 种风格均有独立 style spec 和参考图资产；参考图作为视觉风格输入，提示词明确禁止复刻参考板主体或宫格布局。
 - Worker 以主体和方案为工作单元并发生成，保存 source、512px preview 和用户选择尺寸的 output PNG。
 - PNG 母版保留真实 RGBA/背景语义；普通缩放使用高质量采样和克制锐化，像素艺术使用最近邻。

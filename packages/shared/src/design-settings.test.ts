@@ -51,3 +51,84 @@ test("maps an existing queued legacy job to an equivalent icon design style", ()
   });
   assert.deepEqual(result.style, { preset: "minimal-logo", strokeWeight: "regular", cornerStyle: "soft", detailLevel: "standard", subjectSizePercent: 70, linearStrokeWidthPercent: 3.5, subjectOpacityPercent: 100 });
 });
+
+test("defaults legacy illustration requests and validates the brand illustration subset", () => {
+  const general = createGenerationJobSchema.parse({
+    ...base,
+    purpose: "app-icon",
+    background: { enabled: false },
+  });
+  assert.equal(general.illustrationSubset, "general");
+  assert.equal(
+    createGenerationJobSchema.parse({
+      ...base,
+      purpose: "app-icon",
+      illustrationSubset: "brand-illustration",
+      background: { enabled: false },
+    }).illustrationSubset,
+    "brand-illustration",
+  );
+  assert.equal(
+    createGenerationJobSchema.safeParse({
+      ...base,
+      illustrationSubset: "poster",
+      background: { enabled: false },
+    }).success,
+    false,
+  );
+});
+
+test("accepts and validates each illustration subject composition", () => {
+  const centered = createGenerationJobSchema.parse({
+    ...base,
+    purpose: "app-icon",
+    background: { enabled: false },
+  });
+  assert.equal(centered.subjects[0]?.illustrationComposition, undefined);
+  const edgeAnchored = createGenerationJobSchema.parse({
+    ...base,
+    purpose: "app-icon",
+    subjects: [
+      { ...base.subjects[0], illustrationComposition: "edge-anchored" },
+    ],
+    background: { enabled: false },
+  });
+  assert.equal(
+    edgeAnchored.subjects[0]?.illustrationComposition,
+    "edge-anchored",
+  );
+  assert.equal(
+    createGenerationJobSchema.safeParse({
+      ...base,
+      purpose: "app-icon",
+      subjects: [
+        { ...base.subjects[0], illustrationComposition: "repeat-pattern" },
+      ],
+      background: { enabled: false },
+    }).success,
+    false,
+  );
+});
+
+test("accepts subject descriptions up to 400 characters", () => {
+  assert.equal(
+    createGenerationJobSchema.safeParse({
+      ...base,
+      background: { enabled: false },
+      subjects: [
+        { ...base.subjects[0], description: "a".repeat(400) },
+      ],
+    }).success,
+    true,
+  );
+  assert.equal(
+    createGenerationJobSchema.safeParse({
+      ...base,
+      background: { enabled: false },
+      subjects: [
+        { ...base.subjects[0], description: "a".repeat(401) },
+      ],
+    }).success,
+    false,
+  );
+});

@@ -49,7 +49,7 @@ async function withImageApiMock(
     const address = server.address();
     assert.ok(address && typeof address !== "string");
     const provider = new OpenAIImageProvider(
-      "local-test-key", "gpt-image-2", "high", "2048x2048",
+      "local-test-key", "gpt-image-2.5-flare", "high", "2048x2048",
       `http://127.0.0.1:${address.port}/v1`, 5_000, 0,
     );
     await run(provider, requests);
@@ -75,7 +75,7 @@ test("new generation and retry always send JSON to images/generations, never ima
         assert.match(request.headers["content-type"] ?? "", /application\/json/);
         const body = JSON.parse(request.body.toString());
         assert.deepEqual(body, {
-          model: "gpt-image-2",
+          model: "gpt-image-2.5-flare",
           prompt: buildOpenAIImagePrompt({
             mode: "generation", prompt: subject, background,
             wantsTransparency: background === "transparent",
@@ -105,7 +105,7 @@ test("detail editing still sends the source to images/edits", async () => {
       const form = await new Response(new Uint8Array(request.body), {
         headers: { "content-type": request.headers["content-type"]! },
       }).formData();
-      assert.equal(form.get("model"), "gpt-image-2");
+      assert.equal(form.get("model"), "gpt-image-2.5-flare");
       assert.equal(form.get("quality"), "high");
       assert.equal(form.get("input_fidelity"), "high");
       assert.match(String(form.get("prompt")), /source image is the only editable artwork/i);

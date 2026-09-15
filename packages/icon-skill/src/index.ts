@@ -8,7 +8,7 @@ import { getApprovedStyleReferenceAssetUrl } from "./style-specs/approved-style-
 import { getIconGeometryContract } from "./geometry-contracts";
 
 export const ICON_SKILL_NAME = "default-ui-icon";
-export const ICON_SKILL_VERSION = "0.10.3";
+export const ICON_SKILL_VERSION = "0.11.0";
 
 export type { CompileIconPromptInput } from "./types";
 

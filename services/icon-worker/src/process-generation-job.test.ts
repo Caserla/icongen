@@ -11,6 +11,7 @@ const spec: GenerationJobRecord["spec"] = {
   idempotencyKey: "11111111-1111-4111-8111-111111111111",
   settingsVersion: DESIGN_SETTINGS_VERSION,
   purpose: "app-icon",
+  illustrationSubset: "general",
   subjects: [
     { clientId: "add", name: "Add", description: "Add a new item" },
     {
@@ -50,6 +51,7 @@ function job(
       position: subjectIndex,
       colorOverride: subject.colorOverride,
       backgroundOverride: subject.backgroundOverride,
+      illustrationComposition: subject.illustrationComposition,
       variants: ([1, 2, 3] as const).map((slot) => ({
         id: `variant-${subjectIndex + 1}-${slot}`,
         subjectId: `subject-${subjectIndex + 1}`,
@@ -136,11 +138,21 @@ test("creates SVG output only for supported icon tasks", async () => {
 test("generates exactly three variants for every subject", async () => {
   const completedVariants: string[] = [];
   const purposes: Array<string | undefined> = [];
+  const illustrationSubsets: Array<string | undefined> = [];
+  const illustrationCompositions: Array<string | undefined> = [];
+  const brandSpec: GenerationJobRecord["spec"] = {
+    ...spec,
+    illustrationSubset: "brand-illustration",
+    subjects: spec.subjects.map((subject) => ({
+      ...subject,
+      illustrationComposition: "edge-anchored" as const,
+    })),
+  };
   let completed = false;
   const dependencies: ProcessGenerationJobDependencies = {
     repository: {
       async getJob() {
-        return job();
+        return job("queued", brandSpec);
       },
       async markProcessing() {},
       async markVariantProcessing() {},
@@ -189,6 +201,8 @@ test("generates exactly three variants for every subject", async () => {
       version: "test",
       compile(input) {
         purposes.push(input.purpose);
+        illustrationSubsets.push(input.illustrationSubset);
+        illustrationCompositions.push(input.illustrationComposition);
         return { prompt: `${input.name}-${input.slot}`, skillVersion: "test" };
       },
     },
@@ -200,6 +214,14 @@ test("generates exactly three variants for every subject", async () => {
   assert.equal(new Set(completedVariants).size, 6);
   assert.equal(completed, true);
   assert.deepEqual(new Set(purposes), new Set(["app-icon"]));
+  assert.deepEqual(
+    new Set(illustrationSubsets),
+    new Set(["brand-illustration"]),
+  );
+  assert.deepEqual(
+    new Set(illustrationCompositions),
+    new Set(["edge-anchored"]),
+  );
 });
 
 test("runs up to three image generations in parallel", async () => {

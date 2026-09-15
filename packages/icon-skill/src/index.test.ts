@@ -452,3 +452,113 @@ test("the three slots request materially different design concepts", () => {
   );
   assert.equal(new Set(prompts).size, 3);
 });
+
+test("all nine illustration styles share the brand illustration semantic template", () => {
+  const illustrationPresets = ICON_STYLE_PRESET_IDS.filter(
+    (preset) => preset !== "line-icon",
+  );
+  assert.equal(illustrationPresets.length, 9);
+  for (const preset of illustrationPresets) {
+    const result = compileIconPrompt({
+      ...base,
+      purpose: "app-icon",
+      illustrationSubset: "brand-illustration",
+      name: "VAULT CLOUD",
+      description:
+        "Encrypted cloud storage represented by a secure vault and checked cloud.",
+      style: { ...base.style, preset },
+    });
+    assert.match(result.prompt, /BRAND ILLUSTRATION VERTICAL/);
+    assert.match(
+      result.prompt,
+      /real product, service, industry, or core functional benefit/,
+    );
+    assert.match(result.prompt, /VAULT CLOUD/);
+  }
+});
+
+test("general illustrations do not receive brand illustration constraints", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "app-icon",
+    illustrationSubset: "general",
+  });
+  assert.doesNotMatch(result.prompt, /BRAND ILLUSTRATION VERTICAL/);
+});
+
+test("illustration prompts enforce the selected subject size", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "app-icon",
+    illustrationSubset: "brand-illustration",
+    background: { enabled: false },
+    style: { ...base.style, subjectSizePercent: 82 },
+  });
+  assert.match(result.prompt, /SUBJECT SIZE PARAMETER \(MANDATORY\)/);
+  assert.match(result.prompt, /approximately 82% of the available canvas/);
+  assert.match(result.prompt, /Preserve the full silhouette without cropping/);
+});
+
+test("centered illustration composition preserves the complete safe-margin contract", () => {
+  const result = compileIconPrompt({
+    ...base,
+    purpose: "app-icon",
+    illustrationComposition: "centered",
+    style: { ...base.style, subjectSizePercent: 70 },
+  });
+  assert.match(result.prompt, /CENTERED COMPOSITION/);
+  assert.match(result.prompt, /approximately 70% of the available canvas/);
+  assert.match(result.prompt, /Preserve the full silhouette without cropping/);
+  assert.match(
+    result.prompt,
+    /Keep every visible element complete, centered, uncropped, and inside balanced safe margins/,
+  );
+  assert.doesNotMatch(result.prompt, /Do not recenter the composition/);
+  assert.doesNotMatch(result.prompt, /continue beyond one selected edge/);
+});
+
+test("all nine illustration styles share edge-anchored composition rules", () => {
+  const illustrationPresets = ICON_STYLE_PRESET_IDS.filter(
+    (preset) => preset !== "line-icon",
+  );
+  for (const preset of illustrationPresets) {
+    const result = compileIconPrompt({
+      ...base,
+      purpose: "app-icon",
+      illustrationComposition: "edge-anchored",
+      style: { ...base.style, preset },
+    });
+    assert.match(result.prompt, /EDGE-ANCHORED COMPOSITION \(MANDATORY\)/);
+    assert.match(result.prompt, /intentionally off-center visual balance/);
+    assert.match(result.prompt, /peripheral scenery may be naturally cropped/);
+    assert.match(result.prompt, /continue beyond one selected edge/);
+    assert.match(result.prompt, /Do not recenter the composition/);
+    assert.doesNotMatch(
+      result.prompt,
+      /Keep every visible element complete, centered, uncropped/,
+    );
+  }
+});
+
+test("all nine illustration styles share full-bleed scene rules", () => {
+  const illustrationPresets = ICON_STYLE_PRESET_IDS.filter(
+    (preset) => preset !== "line-icon",
+  );
+  for (const preset of illustrationPresets) {
+    const result = compileIconPrompt({
+      ...base,
+      purpose: "app-icon",
+      illustrationComposition: "full-bleed-scene",
+      style: { ...base.style, preset },
+    });
+    assert.match(result.prompt, /FULL-BLEED SCENE COMPOSITION \(MANDATORY\)/);
+    assert.match(result.prompt, /one cohesive illustrated scene/);
+    assert.match(result.prompt, /every edge and corner/);
+    assert.match(result.prompt, /Fill every edge and corner/);
+    assert.match(result.prompt, /Do not recenter the composition/);
+    assert.doesNotMatch(
+      result.prompt,
+      /Keep every visible element complete, centered, uncropped/,
+    );
+  }
+});
