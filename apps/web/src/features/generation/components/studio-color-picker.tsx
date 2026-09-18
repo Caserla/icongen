@@ -255,3 +255,42 @@ export function StudioColorPicker({
     </div>
   );
 }
+
+export function StudioInlineColorPicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  locale: "en" | "zh";
+}) {
+  const [draft, setDraft] = useState(value.toUpperCase());
+  const [editingHex, setEditingHex] = useState(false);
+  const hsv = hexToHsv(value);
+  const setSV = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const saturation = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const brightness = 1 - Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    onChange(hsvToHex(hsv.h, saturation, brightness));
+  };
+
+  return (
+    <div className="studio-inline-color-picker" aria-label={label}>
+      <div className="studio-inline-color-area">
+        <div className="studio-picker-saturation" style={{ backgroundColor: `hsl(${hsv.h} 100% 50%)` }} onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); setSV(event); }} onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) setSV(event); }}>
+          <span className="studio-picker-cursor" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }} />
+        </div>
+        <div className="studio-picker-hue-track">
+          <input aria-label={`${label} hue`} type="range" min="0" max="360" value={Math.round(hsv.h)} onChange={event => onChange(hsvToHex(Number(event.target.value), hsv.s, hsv.v))} className="studio-picker-hue" />
+          <span className="studio-picker-hue-cursor" style={{ left: `${hsv.h / 360 * 100}%`, backgroundColor: `hsl(${hsv.h} 100% 50%)` }} aria-hidden="true" />
+        </div>
+      </div>
+      <label className="studio-inline-hex-row">
+        <input aria-label={`${label} hex`} value={editingHex ? draft : value.toUpperCase()} onChange={event => setDraft(event.target.value.toUpperCase())} onFocus={event => { setDraft(value.toUpperCase()); setEditingHex(true); event.currentTarget.select(); }} onBlur={() => { if (HEX.test(draft)) onChange(draft); else setDraft(value.toUpperCase()); setEditingHex(false); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+        <span style={{ background: value }} aria-hidden="true" />
+      </label>
+    </div>
+  );
+}

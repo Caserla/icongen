@@ -6,6 +6,53 @@ import {
 
 export const VARIANTS_PER_SUBJECT = 3 as const;
 export const MAX_SUBJECTS = 20 as const;
+export const MAX_ICON_PROJECTS = 20 as const;
+export const MAX_CHINESE_PROJECT_NAME_CHARACTERS = 18 as const;
+export const MAX_ENGLISH_PROJECT_NAME_WORDS = 20 as const;
+export const MAX_CHINESE_PROJECT_DESCRIPTION_CHARACTERS = 300 as const;
+export const MAX_ENGLISH_PROJECT_DESCRIPTION_WORDS = 400 as const;
+export const iconProjectNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160)
+  .superRefine((name, context) => {
+    const containsChinese = /\p{Script=Han}/u.test(name);
+    if (containsChinese && Array.from(name).length > MAX_CHINESE_PROJECT_NAME_CHARACTERS)
+      context.addIssue({
+        code: "custom",
+        message: `Chinese project names can contain up to ${MAX_CHINESE_PROJECT_NAME_CHARACTERS} characters`,
+      });
+    if (!containsChinese && name.split(/\s+/u).length > MAX_ENGLISH_PROJECT_NAME_WORDS)
+      context.addIssue({
+        code: "custom",
+        message: `English project names can contain up to ${MAX_ENGLISH_PROJECT_NAME_WORDS} words`,
+      });
+  });
+export const iconProjectDescriptionSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(4000)
+  .superRefine((description, context) => {
+    const containsChinese = /\p{Script=Han}/u.test(description);
+    if (
+      containsChinese &&
+      Array.from(description).length > MAX_CHINESE_PROJECT_DESCRIPTION_CHARACTERS
+    )
+      context.addIssue({
+        code: "custom",
+        message: `Chinese project descriptions can contain up to ${MAX_CHINESE_PROJECT_DESCRIPTION_CHARACTERS} characters`,
+      });
+    if (
+      !containsChinese &&
+      description.split(/\s+/u).length > MAX_ENGLISH_PROJECT_DESCRIPTION_WORDS
+    )
+      context.addIssue({
+        code: "custom",
+        message: `English project descriptions can contain up to ${MAX_ENGLISH_PROJECT_DESCRIPTION_WORDS} words`,
+      });
+  });
 export const MAX_SUBJECT_DESCRIPTION_LENGTH = 400 as const;
 export const OUTPUT_SIZES = [24, 32, 48, 64, 128] as const;
 export const DEFAULT_SUBJECT_SIZE_PERCENT = 70 as const;
@@ -95,6 +142,7 @@ const legacyOutputSizeSchema = z.union(
 export const createGenerationJobSchema = z
   .object({
     idempotencyKey: z.string().uuid(),
+    projectId: z.string().uuid().optional(),
     settingsVersion: z.literal(DESIGN_SETTINGS_VERSION),
     purpose: z.enum(["interaction", "app-icon"]).optional(),
     illustrationSubset: z.enum(ILLUSTRATION_SUBSET_IDS).default("general"),

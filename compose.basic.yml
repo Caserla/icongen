@@ -17,8 +17,6 @@ services:
       APP_ENV: ${APP_ENV}
       NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV}
       SUPABASE_ENVIRONMENT: ${SUPABASE_ENVIRONMENT}
-      IMAGE_PROVIDER_API_KEY: ""
-      IMAGE_PROVIDER_BASE_URL: ""
     expose:
       - "3000"
     healthcheck:

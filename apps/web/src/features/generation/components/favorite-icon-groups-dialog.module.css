@@ -1,0 +1,45 @@
+.favoriteDialog { display: flex; width: min(920px, calc(100vw - 260px)); height: min(720px, calc(100dvh - 96px)); box-sizing: border-box; flex-direction: column; overflow: visible; }
+.favoriteDialog .categoryTabs.categoryTabs { grid-template-columns: repeat(2, minmax(0, 1fr)); min-height: 56px; margin: 0 0 22px; }
+.favoriteDialog .categoryTabs button { font-size: 13px; text-transform: none; }
+.grid { display: grid; min-height: 0; flex: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; overflow: auto; scrollbar-width: thin; }
+.libraryGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: max-content; align-content: start; }
+.card { min-width: 0; padding: 14px; border: 1px solid #242424; border-radius: 20px; background: #080808; }
+.libraryGrid .card { position: relative; align-self: start; padding-bottom: 10px; }
+.libraryCard { display: flex; width: 100%; min-height: 126px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; padding: 10px 14px 6px; border: 0; border-radius: 14px; background: transparent; color: var(--ui-ink-eee, #eee); cursor: pointer; }
+.libraryCard:hover { background: var(--ui-surface-1d1d1d, #1d1d1d); }
+.libraryCard:disabled { cursor: default; }
+.libraryCard img { width: 72px; height: 72px; object-fit: contain; }
+.libraryCard strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.libraryCard small { color: var(--ui-ink-888, #888); font-size: 11px; }
+.libraryRemove { position: absolute; top: 10px; right: 10px; display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid var(--ui-line-292929, #292929); border-radius: 50%; background: var(--ui-surface-181818, #181818); color: var(--ui-ink-eee, #eee); cursor: pointer; font-size: 19px; line-height: 1; }
+.libraryRemove:hover { background: var(--ui-surface-2a2a2a, #2a2a2a); }
+.libraryRemove:disabled { opacity: .5; cursor: wait; }
+.preview { display: grid; min-height: 150px; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; border: 1px solid #242424; border-radius: 16px; background: #111; }
+.preview span { display: grid; min-width: 0; aspect-ratio: 1; place-items: center; overflow: hidden; border-radius: 12px; background: #181818; }
+.preview img { width: 70%; height: 70%; object-fit: contain; }
+.preview .placeholder { background: linear-gradient(110deg, #151515 30%, #242424 48%, #151515 66%); background-size: 240% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { background-position-x: -240%; } }
+.meta { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 2px 12px; }
+.meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.meta span { flex-shrink: 0; color: #858585; font-size: 12px; }
+.actions { display: flex; align-items: center; gap: 8px; }
+.actions button { min-height: 38px; padding: 0 14px; border: 1px solid #292929; border-radius: 12px; background: #151515; color: #eee; cursor: pointer; font: inherit; font-size: 13px; }
+.actions button:hover { background: #222; }
+.actions .remove { display: grid; width: 38px; margin-left: auto; place-items: center; padding: 8px; color: #f6c344; }
+.remove svg, .empty svg { width: 21px; height: 21px; fill: currentColor; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.empty { display: grid; min-height: 0; flex: 1; place-items: center; align-content: center; gap: 10px; text-align: center; }
+.empty svg { width: 44px; height: 44px; color: #666; }
+.empty p { margin: 0; font-size: 17px; font-weight: 650; }
+.empty span { color: #858585; font-size: 13px; }
+.retry { padding: 8px 16px; border: 1px solid var(--ui-line-292929, #292929); border-radius: 10px; background: var(--ui-surface-181818, #181818); color: var(--ui-ink-eee, #eee); cursor: pointer; }
+:global(html[data-theme="light"]) .card { border-color: #dedfdd; background: #fff; }
+:global(html[data-theme="light"]) .libraryCard { color: #202124; }
+:global(html[data-theme="light"]) .libraryCard:hover { background: #eceeed; }
+:global(html[data-theme="light"]) .libraryRemove { border-color: #dedfdd; background: #e5e7e9; color: #202124; }
+:global(html[data-theme="light"]) .preview { border-color: #dedfdd; background: #eceeed; }
+:global(html[data-theme="light"]) .preview span { background: #fff; }
+:global(html[data-theme="light"]) .preview img { filter: brightness(0); }
+:global(html[data-theme="light"]) .actions button { border-color: #dedfdd; background: #e5e7e9; color: #202124; }
+@media (max-width: 900px) { .favoriteDialog { width: calc(100vw - 120px); } }
+@media (max-width: 640px) { .favoriteDialog { width: calc(100vw - 32px); height: calc(100dvh - 48px); } .grid { grid-template-columns: 1fr; } .libraryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .placeholder { animation: none; } }

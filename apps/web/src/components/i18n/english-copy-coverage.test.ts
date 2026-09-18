@@ -22,16 +22,18 @@ test("shared loading and image failure states follow the selected locale", async
   assert.match(image, /useLocale/);
 });
 
-test("admin navigation, panels, empty states, and errors provide English copy", async () => {
-  const [layout, header, dashboard] = await Promise.all([
+test("admin uses the shared workspace navigation and panels provide English copy", async () => {
+  const [layout, header, workspaceHeader, dashboard] = await Promise.all([
     source("app/(admin)/admin/layout.tsx"),
     source("features/admin/components/admin-header.tsx"),
+    source("components/layouts/workspace-header.tsx"),
     source("features/admin/components/admin-dashboard.tsx"),
   ]);
   assert.doesNotMatch(layout, /管理后台|返回产品/);
+  assert.match(header, /WorkspaceHeader/);
+  assert.match(workspaceHeader, /Workspace navigation/);
   for (const copy of [
-    "Admin console",
-    "Back to product",
+    "Library",
     "Operations console",
     "Refresh data",
     "Generation jobs",
@@ -40,7 +42,7 @@ test("admin navigation, panels, empty states, and errors provide English copy", 
     "Generate CD-Keys",
   ]) {
     assert.ok(
-      `${header}\n${dashboard}`.includes(copy),
+      `${workspaceHeader}\n${dashboard}`.includes(copy),
       `missing English admin copy: ${copy}`,
     );
   }

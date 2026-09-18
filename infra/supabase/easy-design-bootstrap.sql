@@ -2382,6 +2382,10 @@ create index if not exists generation_favorites_user_created_idx
 
 alter table public.generation_favorites enable row level security;
 
+drop policy if exists generation_favorites_select_own on public.generation_favorites;
+drop policy if exists generation_favorites_insert_own on public.generation_favorites;
+drop policy if exists generation_favorites_delete_own on public.generation_favorites;
+
 create policy generation_favorites_select_own
   on public.generation_favorites for select
   using (auth.uid() = user_id);
@@ -2401,5 +2405,1849 @@ create policy generation_favorites_insert_own
 create policy generation_favorites_delete_own
   on public.generation_favorites for delete
   using (auth.uid() = user_id);
+
+commit;
+
+-- ============================================================================
+-- 0029_library_favorites.sql
+-- ============================================================================
+
+begin;
+
+-- Versioned development-sample registry. This does not certify production assets.
+begin;
+create table if not exists public.library_assets (
+  id text primary key,
+  design_id text not null,
+  style text not null check (style in ('linear','outline','bold','broken','bulk','twotone')),
+  version text not null,
+  status text not null default 'development-sample',
+  available boolean not null default true,
+  unique(design_id,style,version)
+);
+create table if not exists public.library_favorites (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  asset_id text not null references public.library_assets(id),
+  created_at timestamptz not null default now(),
+  primary key(user_id,asset_id)
+);
+create index if not exists library_favorites_user_created_idx on public.library_favorites(user_id,created_at desc);
+alter table public.library_assets enable row level security;
+alter table public.library_favorites enable row level security;
+revoke all on public.library_assets, public.library_favorites from anon;
+grant select on public.library_assets to authenticated;
+grant select,insert,delete on public.library_favorites to authenticated;
+create policy library_assets_read on public.library_assets for select to authenticated using(available);
+create policy library_favorites_read on public.library_favorites for select to authenticated using(auth.uid()=user_id);
+create policy library_favorites_add on public.library_favorites for insert to authenticated with check(
+  auth.uid()=user_id and exists(select 1 from public.library_assets a where a.id=asset_id and a.available)
+);
+create policy library_favorites_remove on public.library_favorites for delete to authenticated using(auth.uid()=user_id);
+-- Registry seed appended below before commit.
+insert into public.library_assets(id,design_id,style,version) values
+('essential-sample-1:linear:b997df861a78','essential-sample-1','linear','b997df861a78'),
+('essential-sample-1:outline:b997df861a78','essential-sample-1','outline','b997df861a78'),
+('essential-sample-1:bold:b997df861a78','essential-sample-1','bold','b997df861a78'),
+('essential-sample-1:broken:b997df861a78','essential-sample-1','broken','b997df861a78'),
+('essential-sample-1:bulk:b997df861a78','essential-sample-1','bulk','b997df861a78'),
+('essential-sample-1:twotone:b997df861a78','essential-sample-1','twotone','b997df861a78'),
+('essential-sample-2:linear:73069cd713b9','essential-sample-2','linear','73069cd713b9'),
+('essential-sample-2:outline:73069cd713b9','essential-sample-2','outline','73069cd713b9'),
+('essential-sample-2:bold:73069cd713b9','essential-sample-2','bold','73069cd713b9'),
+('essential-sample-2:broken:73069cd713b9','essential-sample-2','broken','73069cd713b9'),
+('essential-sample-2:bulk:73069cd713b9','essential-sample-2','bulk','73069cd713b9'),
+('essential-sample-2:twotone:73069cd713b9','essential-sample-2','twotone','73069cd713b9'),
+('essential-sample-3:linear:0a37f8e798be','essential-sample-3','linear','0a37f8e798be'),
+('essential-sample-3:outline:0a37f8e798be','essential-sample-3','outline','0a37f8e798be'),
+('essential-sample-3:bold:0a37f8e798be','essential-sample-3','bold','0a37f8e798be'),
+('essential-sample-3:broken:0a37f8e798be','essential-sample-3','broken','0a37f8e798be'),
+('essential-sample-3:bulk:0a37f8e798be','essential-sample-3','bulk','0a37f8e798be'),
+('essential-sample-3:twotone:0a37f8e798be','essential-sample-3','twotone','0a37f8e798be'),
+('files-sample-1:linear:d3a25c690d88','files-sample-1','linear','d3a25c690d88'),
+('files-sample-1:outline:d3a25c690d88','files-sample-1','outline','d3a25c690d88'),
+('files-sample-1:bold:d3a25c690d88','files-sample-1','bold','d3a25c690d88'),
+('files-sample-1:broken:d3a25c690d88','files-sample-1','broken','d3a25c690d88'),
+('files-sample-1:bulk:d3a25c690d88','files-sample-1','bulk','d3a25c690d88'),
+('files-sample-1:twotone:d3a25c690d88','files-sample-1','twotone','d3a25c690d88'),
+('files-sample-2:linear:dd9f9357074a','files-sample-2','linear','dd9f9357074a'),
+('files-sample-2:outline:dd9f9357074a','files-sample-2','outline','dd9f9357074a'),
+('files-sample-2:bold:dd9f9357074a','files-sample-2','bold','dd9f9357074a'),
+('files-sample-2:broken:dd9f9357074a','files-sample-2','broken','dd9f9357074a'),
+('files-sample-2:bulk:dd9f9357074a','files-sample-2','bulk','dd9f9357074a'),
+('files-sample-2:twotone:dd9f9357074a','files-sample-2','twotone','dd9f9357074a'),
+('files-sample-3:linear:38921090775e','files-sample-3','linear','38921090775e'),
+('files-sample-3:outline:38921090775e','files-sample-3','outline','38921090775e'),
+('files-sample-3:bold:38921090775e','files-sample-3','bold','38921090775e'),
+('files-sample-3:broken:38921090775e','files-sample-3','broken','38921090775e'),
+('files-sample-3:bulk:38921090775e','files-sample-3','bulk','38921090775e'),
+('files-sample-3:twotone:38921090775e','files-sample-3','twotone','38921090775e'),
+('emoji-sample-1:linear:7f7faf600989','emoji-sample-1','linear','7f7faf600989'),
+('emoji-sample-1:outline:7f7faf600989','emoji-sample-1','outline','7f7faf600989'),
+('emoji-sample-1:bold:7f7faf600989','emoji-sample-1','bold','7f7faf600989'),
+('emoji-sample-1:broken:7f7faf600989','emoji-sample-1','broken','7f7faf600989'),
+('emoji-sample-1:bulk:7f7faf600989','emoji-sample-1','bulk','7f7faf600989'),
+('emoji-sample-1:twotone:7f7faf600989','emoji-sample-1','twotone','7f7faf600989'),
+('emoji-sample-2:linear:319ec268ced4','emoji-sample-2','linear','319ec268ced4'),
+('emoji-sample-2:outline:319ec268ced4','emoji-sample-2','outline','319ec268ced4'),
+('emoji-sample-2:bold:319ec268ced4','emoji-sample-2','bold','319ec268ced4'),
+('emoji-sample-2:broken:319ec268ced4','emoji-sample-2','broken','319ec268ced4'),
+('emoji-sample-2:bulk:319ec268ced4','emoji-sample-2','bulk','319ec268ced4'),
+('emoji-sample-2:twotone:319ec268ced4','emoji-sample-2','twotone','319ec268ced4'),
+('emoji-sample-3:linear:aa6e35f389aa','emoji-sample-3','linear','aa6e35f389aa'),
+('emoji-sample-3:outline:aa6e35f389aa','emoji-sample-3','outline','aa6e35f389aa'),
+('emoji-sample-3:bold:aa6e35f389aa','emoji-sample-3','bold','aa6e35f389aa'),
+('emoji-sample-3:broken:aa6e35f389aa','emoji-sample-3','broken','aa6e35f389aa'),
+('emoji-sample-3:bulk:aa6e35f389aa','emoji-sample-3','bulk','aa6e35f389aa'),
+('emoji-sample-3:twotone:aa6e35f389aa','emoji-sample-3','twotone','aa6e35f389aa'),
+('time-sample-1:linear:d23205648ee3','time-sample-1','linear','d23205648ee3'),
+('time-sample-1:outline:d23205648ee3','time-sample-1','outline','d23205648ee3'),
+('time-sample-1:bold:d23205648ee3','time-sample-1','bold','d23205648ee3'),
+('time-sample-1:broken:d23205648ee3','time-sample-1','broken','d23205648ee3'),
+('time-sample-1:bulk:d23205648ee3','time-sample-1','bulk','d23205648ee3'),
+('time-sample-1:twotone:d23205648ee3','time-sample-1','twotone','d23205648ee3'),
+('time-sample-2:linear:187c586f10bb','time-sample-2','linear','187c586f10bb'),
+('time-sample-2:outline:187c586f10bb','time-sample-2','outline','187c586f10bb'),
+('time-sample-2:bold:187c586f10bb','time-sample-2','bold','187c586f10bb'),
+('time-sample-2:broken:187c586f10bb','time-sample-2','broken','187c586f10bb'),
+('time-sample-2:bulk:187c586f10bb','time-sample-2','bulk','187c586f10bb'),
+('time-sample-2:twotone:187c586f10bb','time-sample-2','twotone','187c586f10bb'),
+('time-sample-3:linear:931fcc00e478','time-sample-3','linear','931fcc00e478'),
+('time-sample-3:outline:931fcc00e478','time-sample-3','outline','931fcc00e478'),
+('time-sample-3:bold:931fcc00e478','time-sample-3','bold','931fcc00e478'),
+('time-sample-3:broken:931fcc00e478','time-sample-3','broken','931fcc00e478'),
+('time-sample-3:bulk:931fcc00e478','time-sample-3','bulk','931fcc00e478'),
+('time-sample-3:twotone:931fcc00e478','time-sample-3','twotone','931fcc00e478'),
+('weather-sample-1:linear:d6aff14bbdf3','weather-sample-1','linear','d6aff14bbdf3'),
+('weather-sample-1:outline:d6aff14bbdf3','weather-sample-1','outline','d6aff14bbdf3'),
+('weather-sample-1:bold:d6aff14bbdf3','weather-sample-1','bold','d6aff14bbdf3'),
+('weather-sample-1:broken:d6aff14bbdf3','weather-sample-1','broken','d6aff14bbdf3'),
+('weather-sample-1:bulk:d6aff14bbdf3','weather-sample-1','bulk','d6aff14bbdf3'),
+('weather-sample-1:twotone:d6aff14bbdf3','weather-sample-1','twotone','d6aff14bbdf3'),
+('weather-sample-2:linear:ebb6018cdd12','weather-sample-2','linear','ebb6018cdd12'),
+('weather-sample-2:outline:ebb6018cdd12','weather-sample-2','outline','ebb6018cdd12'),
+('weather-sample-2:bold:ebb6018cdd12','weather-sample-2','bold','ebb6018cdd12'),
+('weather-sample-2:broken:ebb6018cdd12','weather-sample-2','broken','ebb6018cdd12'),
+('weather-sample-2:bulk:ebb6018cdd12','weather-sample-2','bulk','ebb6018cdd12'),
+('weather-sample-2:twotone:ebb6018cdd12','weather-sample-2','twotone','ebb6018cdd12'),
+('weather-sample-3:linear:c47614321184','weather-sample-3','linear','c47614321184'),
+('weather-sample-3:outline:c47614321184','weather-sample-3','outline','c47614321184'),
+('weather-sample-3:bold:c47614321184','weather-sample-3','bold','c47614321184'),
+('weather-sample-3:broken:c47614321184','weather-sample-3','broken','c47614321184'),
+('weather-sample-3:bulk:c47614321184','weather-sample-3','bulk','c47614321184'),
+('weather-sample-3:twotone:c47614321184','weather-sample-3','twotone','c47614321184'),
+('food-sample-1:linear:094754141f5b','food-sample-1','linear','094754141f5b'),
+('food-sample-1:outline:094754141f5b','food-sample-1','outline','094754141f5b'),
+('food-sample-1:bold:094754141f5b','food-sample-1','bold','094754141f5b'),
+('food-sample-1:broken:094754141f5b','food-sample-1','broken','094754141f5b'),
+('food-sample-1:bulk:094754141f5b','food-sample-1','bulk','094754141f5b'),
+('food-sample-1:twotone:094754141f5b','food-sample-1','twotone','094754141f5b'),
+('food-sample-2:linear:7a18e81dcef5','food-sample-2','linear','7a18e81dcef5'),
+('food-sample-2:outline:7a18e81dcef5','food-sample-2','outline','7a18e81dcef5'),
+('food-sample-2:bold:7a18e81dcef5','food-sample-2','bold','7a18e81dcef5'),
+('food-sample-2:broken:7a18e81dcef5','food-sample-2','broken','7a18e81dcef5'),
+('food-sample-2:bulk:7a18e81dcef5','food-sample-2','bulk','7a18e81dcef5'),
+('food-sample-2:twotone:7a18e81dcef5','food-sample-2','twotone','7a18e81dcef5'),
+('food-sample-3:linear:fd79f6242b4c','food-sample-3','linear','fd79f6242b4c'),
+('food-sample-3:outline:fd79f6242b4c','food-sample-3','outline','fd79f6242b4c'),
+('food-sample-3:bold:fd79f6242b4c','food-sample-3','bold','fd79f6242b4c'),
+('food-sample-3:broken:fd79f6242b4c','food-sample-3','broken','fd79f6242b4c'),
+('food-sample-3:bulk:fd79f6242b4c','food-sample-3','bulk','fd79f6242b4c'),
+('food-sample-3:twotone:fd79f6242b4c','food-sample-3','twotone','fd79f6242b4c'),
+('energy-sample-1:linear:1a5f637adac5','energy-sample-1','linear','1a5f637adac5'),
+('energy-sample-1:outline:1a5f637adac5','energy-sample-1','outline','1a5f637adac5'),
+('energy-sample-1:bold:1a5f637adac5','energy-sample-1','bold','1a5f637adac5'),
+('energy-sample-1:broken:1a5f637adac5','energy-sample-1','broken','1a5f637adac5'),
+('energy-sample-1:bulk:1a5f637adac5','energy-sample-1','bulk','1a5f637adac5'),
+('energy-sample-1:twotone:1a5f637adac5','energy-sample-1','twotone','1a5f637adac5'),
+('energy-sample-2:linear:b5b39c74d110','energy-sample-2','linear','b5b39c74d110'),
+('energy-sample-2:outline:b5b39c74d110','energy-sample-2','outline','b5b39c74d110'),
+('energy-sample-2:bold:b5b39c74d110','energy-sample-2','bold','b5b39c74d110'),
+('energy-sample-2:broken:b5b39c74d110','energy-sample-2','broken','b5b39c74d110'),
+('energy-sample-2:bulk:b5b39c74d110','energy-sample-2','bulk','b5b39c74d110'),
+('energy-sample-2:twotone:b5b39c74d110','energy-sample-2','twotone','b5b39c74d110'),
+('energy-sample-3:linear:ad9a323f8836','energy-sample-3','linear','ad9a323f8836'),
+('energy-sample-3:outline:ad9a323f8836','energy-sample-3','outline','ad9a323f8836'),
+('energy-sample-3:bold:ad9a323f8836','energy-sample-3','bold','ad9a323f8836'),
+('energy-sample-3:broken:ad9a323f8836','energy-sample-3','broken','ad9a323f8836'),
+('energy-sample-3:bulk:ad9a323f8836','energy-sample-3','bulk','ad9a323f8836'),
+('energy-sample-3:twotone:ad9a323f8836','energy-sample-3','twotone','ad9a323f8836'),
+('kitchen-sample-1:linear:e2ce98340674','kitchen-sample-1','linear','e2ce98340674'),
+('kitchen-sample-1:outline:e2ce98340674','kitchen-sample-1','outline','e2ce98340674'),
+('kitchen-sample-1:bold:e2ce98340674','kitchen-sample-1','bold','e2ce98340674'),
+('kitchen-sample-1:broken:e2ce98340674','kitchen-sample-1','broken','e2ce98340674'),
+('kitchen-sample-1:bulk:e2ce98340674','kitchen-sample-1','bulk','e2ce98340674'),
+('kitchen-sample-1:twotone:e2ce98340674','kitchen-sample-1','twotone','e2ce98340674'),
+('kitchen-sample-2:linear:9991921ca0aa','kitchen-sample-2','linear','9991921ca0aa'),
+('kitchen-sample-2:outline:9991921ca0aa','kitchen-sample-2','outline','9991921ca0aa'),
+('kitchen-sample-2:bold:9991921ca0aa','kitchen-sample-2','bold','9991921ca0aa'),
+('kitchen-sample-2:broken:9991921ca0aa','kitchen-sample-2','broken','9991921ca0aa'),
+('kitchen-sample-2:bulk:9991921ca0aa','kitchen-sample-2','bulk','9991921ca0aa'),
+('kitchen-sample-2:twotone:9991921ca0aa','kitchen-sample-2','twotone','9991921ca0aa'),
+('kitchen-sample-3:linear:32f0d9a87295','kitchen-sample-3','linear','32f0d9a87295'),
+('kitchen-sample-3:outline:32f0d9a87295','kitchen-sample-3','outline','32f0d9a87295'),
+('kitchen-sample-3:bold:32f0d9a87295','kitchen-sample-3','bold','32f0d9a87295'),
+('kitchen-sample-3:broken:32f0d9a87295','kitchen-sample-3','broken','32f0d9a87295'),
+('kitchen-sample-3:bulk:32f0d9a87295','kitchen-sample-3','bulk','32f0d9a87295'),
+('kitchen-sample-3:twotone:32f0d9a87295','kitchen-sample-3','twotone','32f0d9a87295')
+on conflict(id) do nothing;
+commit;
+
+commit;
+
+-- ============================================================================
+-- 0030_library_asset_catalog.sql
+-- ============================================================================
+
+begin;
+
+-- Synchronize all current library assets without deleting existing favorites.
+begin;
+insert into public.library_assets(id,design_id,style,version) values
+('essential-sample-1:linear:b997df861a78','essential-sample-1','linear','b997df861a78'),
+('essential-sample-1:outline:b997df861a78','essential-sample-1','outline','b997df861a78'),
+('essential-sample-1:bold:b997df861a78','essential-sample-1','bold','b997df861a78'),
+('essential-sample-1:broken:b997df861a78','essential-sample-1','broken','b997df861a78'),
+('essential-sample-1:bulk:b997df861a78','essential-sample-1','bulk','b997df861a78'),
+('essential-sample-1:twotone:b997df861a78','essential-sample-1','twotone','b997df861a78'),
+('essential-sample-2:linear:73069cd713b9','essential-sample-2','linear','73069cd713b9'),
+('essential-sample-2:outline:73069cd713b9','essential-sample-2','outline','73069cd713b9'),
+('essential-sample-2:bold:73069cd713b9','essential-sample-2','bold','73069cd713b9'),
+('essential-sample-2:broken:73069cd713b9','essential-sample-2','broken','73069cd713b9'),
+('essential-sample-2:bulk:73069cd713b9','essential-sample-2','bulk','73069cd713b9'),
+('essential-sample-2:twotone:73069cd713b9','essential-sample-2','twotone','73069cd713b9'),
+('essential-sample-3:linear:0a37f8e798be','essential-sample-3','linear','0a37f8e798be'),
+('essential-sample-3:outline:0a37f8e798be','essential-sample-3','outline','0a37f8e798be'),
+('essential-sample-3:bold:0a37f8e798be','essential-sample-3','bold','0a37f8e798be'),
+('essential-sample-3:broken:0a37f8e798be','essential-sample-3','broken','0a37f8e798be'),
+('essential-sample-3:bulk:0a37f8e798be','essential-sample-3','bulk','0a37f8e798be'),
+('essential-sample-3:twotone:0a37f8e798be','essential-sample-3','twotone','0a37f8e798be'),
+('files-sample-1:linear:d3a25c690d88','files-sample-1','linear','d3a25c690d88'),
+('files-sample-1:outline:d3a25c690d88','files-sample-1','outline','d3a25c690d88'),
+('files-sample-1:bold:d3a25c690d88','files-sample-1','bold','d3a25c690d88'),
+('files-sample-1:broken:d3a25c690d88','files-sample-1','broken','d3a25c690d88'),
+('files-sample-1:bulk:d3a25c690d88','files-sample-1','bulk','d3a25c690d88'),
+('files-sample-1:twotone:d3a25c690d88','files-sample-1','twotone','d3a25c690d88'),
+('files-sample-2:linear:dd9f9357074a','files-sample-2','linear','dd9f9357074a'),
+('files-sample-2:outline:dd9f9357074a','files-sample-2','outline','dd9f9357074a'),
+('files-sample-2:bold:dd9f9357074a','files-sample-2','bold','dd9f9357074a'),
+('files-sample-2:broken:dd9f9357074a','files-sample-2','broken','dd9f9357074a'),
+('files-sample-2:bulk:dd9f9357074a','files-sample-2','bulk','dd9f9357074a'),
+('files-sample-2:twotone:dd9f9357074a','files-sample-2','twotone','dd9f9357074a'),
+('files-sample-3:linear:38921090775e','files-sample-3','linear','38921090775e'),
+('files-sample-3:outline:38921090775e','files-sample-3','outline','38921090775e'),
+('files-sample-3:bold:38921090775e','files-sample-3','bold','38921090775e'),
+('files-sample-3:broken:38921090775e','files-sample-3','broken','38921090775e'),
+('files-sample-3:bulk:38921090775e','files-sample-3','bulk','38921090775e'),
+('files-sample-3:twotone:38921090775e','files-sample-3','twotone','38921090775e'),
+('emoji-sample-1:linear:7f7faf600989','emoji-sample-1','linear','7f7faf600989'),
+('emoji-sample-1:outline:7f7faf600989','emoji-sample-1','outline','7f7faf600989'),
+('emoji-sample-1:bold:7f7faf600989','emoji-sample-1','bold','7f7faf600989'),
+('emoji-sample-1:broken:7f7faf600989','emoji-sample-1','broken','7f7faf600989'),
+('emoji-sample-1:bulk:7f7faf600989','emoji-sample-1','bulk','7f7faf600989'),
+('emoji-sample-1:twotone:7f7faf600989','emoji-sample-1','twotone','7f7faf600989'),
+('emoji-sample-2:linear:319ec268ced4','emoji-sample-2','linear','319ec268ced4'),
+('emoji-sample-2:outline:319ec268ced4','emoji-sample-2','outline','319ec268ced4'),
+('emoji-sample-2:bold:319ec268ced4','emoji-sample-2','bold','319ec268ced4'),
+('emoji-sample-2:broken:319ec268ced4','emoji-sample-2','broken','319ec268ced4'),
+('emoji-sample-2:bulk:319ec268ced4','emoji-sample-2','bulk','319ec268ced4'),
+('emoji-sample-2:twotone:319ec268ced4','emoji-sample-2','twotone','319ec268ced4'),
+('emoji-sample-3:linear:aa6e35f389aa','emoji-sample-3','linear','aa6e35f389aa'),
+('emoji-sample-3:outline:aa6e35f389aa','emoji-sample-3','outline','aa6e35f389aa'),
+('emoji-sample-3:bold:aa6e35f389aa','emoji-sample-3','bold','aa6e35f389aa'),
+('emoji-sample-3:broken:aa6e35f389aa','emoji-sample-3','broken','aa6e35f389aa'),
+('emoji-sample-3:bulk:aa6e35f389aa','emoji-sample-3','bulk','aa6e35f389aa'),
+('emoji-sample-3:twotone:aa6e35f389aa','emoji-sample-3','twotone','aa6e35f389aa'),
+('time-sample-1:linear:d23205648ee3','time-sample-1','linear','d23205648ee3'),
+('time-sample-1:outline:d23205648ee3','time-sample-1','outline','d23205648ee3'),
+('time-sample-1:bold:d23205648ee3','time-sample-1','bold','d23205648ee3'),
+('time-sample-1:broken:d23205648ee3','time-sample-1','broken','d23205648ee3'),
+('time-sample-1:bulk:d23205648ee3','time-sample-1','bulk','d23205648ee3'),
+('time-sample-1:twotone:d23205648ee3','time-sample-1','twotone','d23205648ee3'),
+('time-sample-2:linear:187c586f10bb','time-sample-2','linear','187c586f10bb'),
+('time-sample-2:outline:187c586f10bb','time-sample-2','outline','187c586f10bb'),
+('time-sample-2:bold:187c586f10bb','time-sample-2','bold','187c586f10bb'),
+('time-sample-2:broken:187c586f10bb','time-sample-2','broken','187c586f10bb'),
+('time-sample-2:bulk:187c586f10bb','time-sample-2','bulk','187c586f10bb'),
+('time-sample-2:twotone:187c586f10bb','time-sample-2','twotone','187c586f10bb'),
+('time-sample-3:linear:931fcc00e478','time-sample-3','linear','931fcc00e478'),
+('time-sample-3:outline:931fcc00e478','time-sample-3','outline','931fcc00e478'),
+('time-sample-3:bold:931fcc00e478','time-sample-3','bold','931fcc00e478'),
+('time-sample-3:broken:931fcc00e478','time-sample-3','broken','931fcc00e478'),
+('time-sample-3:bulk:931fcc00e478','time-sample-3','bulk','931fcc00e478'),
+('time-sample-3:twotone:931fcc00e478','time-sample-3','twotone','931fcc00e478'),
+('weather-sample-1:linear:d6aff14bbdf3','weather-sample-1','linear','d6aff14bbdf3'),
+('weather-sample-1:outline:d6aff14bbdf3','weather-sample-1','outline','d6aff14bbdf3'),
+('weather-sample-1:bold:d6aff14bbdf3','weather-sample-1','bold','d6aff14bbdf3'),
+('weather-sample-1:broken:d6aff14bbdf3','weather-sample-1','broken','d6aff14bbdf3'),
+('weather-sample-1:bulk:d6aff14bbdf3','weather-sample-1','bulk','d6aff14bbdf3'),
+('weather-sample-1:twotone:d6aff14bbdf3','weather-sample-1','twotone','d6aff14bbdf3'),
+('weather-sample-2:linear:ebb6018cdd12','weather-sample-2','linear','ebb6018cdd12'),
+('weather-sample-2:outline:ebb6018cdd12','weather-sample-2','outline','ebb6018cdd12'),
+('weather-sample-2:bold:ebb6018cdd12','weather-sample-2','bold','ebb6018cdd12'),
+('weather-sample-2:broken:ebb6018cdd12','weather-sample-2','broken','ebb6018cdd12'),
+('weather-sample-2:bulk:ebb6018cdd12','weather-sample-2','bulk','ebb6018cdd12'),
+('weather-sample-2:twotone:ebb6018cdd12','weather-sample-2','twotone','ebb6018cdd12'),
+('weather-sample-3:linear:c47614321184','weather-sample-3','linear','c47614321184'),
+('weather-sample-3:outline:c47614321184','weather-sample-3','outline','c47614321184'),
+('weather-sample-3:bold:c47614321184','weather-sample-3','bold','c47614321184'),
+('weather-sample-3:broken:c47614321184','weather-sample-3','broken','c47614321184'),
+('weather-sample-3:bulk:c47614321184','weather-sample-3','bulk','c47614321184'),
+('weather-sample-3:twotone:c47614321184','weather-sample-3','twotone','c47614321184'),
+('food-sample-1:linear:094754141f5b','food-sample-1','linear','094754141f5b'),
+('food-sample-1:outline:094754141f5b','food-sample-1','outline','094754141f5b'),
+('food-sample-1:bold:094754141f5b','food-sample-1','bold','094754141f5b'),
+('food-sample-1:broken:094754141f5b','food-sample-1','broken','094754141f5b'),
+('food-sample-1:bulk:094754141f5b','food-sample-1','bulk','094754141f5b'),
+('food-sample-1:twotone:094754141f5b','food-sample-1','twotone','094754141f5b'),
+('food-sample-2:linear:7a18e81dcef5','food-sample-2','linear','7a18e81dcef5'),
+('food-sample-2:outline:7a18e81dcef5','food-sample-2','outline','7a18e81dcef5'),
+('food-sample-2:bold:7a18e81dcef5','food-sample-2','bold','7a18e81dcef5'),
+('food-sample-2:broken:7a18e81dcef5','food-sample-2','broken','7a18e81dcef5'),
+('food-sample-2:bulk:7a18e81dcef5','food-sample-2','bulk','7a18e81dcef5'),
+('food-sample-2:twotone:7a18e81dcef5','food-sample-2','twotone','7a18e81dcef5'),
+('food-sample-3:linear:fd79f6242b4c','food-sample-3','linear','fd79f6242b4c'),
+('food-sample-3:outline:fd79f6242b4c','food-sample-3','outline','fd79f6242b4c'),
+('food-sample-3:bold:fd79f6242b4c','food-sample-3','bold','fd79f6242b4c'),
+('food-sample-3:broken:fd79f6242b4c','food-sample-3','broken','fd79f6242b4c'),
+('food-sample-3:bulk:fd79f6242b4c','food-sample-3','bulk','fd79f6242b4c'),
+('food-sample-3:twotone:fd79f6242b4c','food-sample-3','twotone','fd79f6242b4c'),
+('energy-sample-1:linear:1a5f637adac5','energy-sample-1','linear','1a5f637adac5'),
+('energy-sample-1:outline:1a5f637adac5','energy-sample-1','outline','1a5f637adac5'),
+('energy-sample-1:bold:1a5f637adac5','energy-sample-1','bold','1a5f637adac5'),
+('energy-sample-1:broken:1a5f637adac5','energy-sample-1','broken','1a5f637adac5'),
+('energy-sample-1:bulk:1a5f637adac5','energy-sample-1','bulk','1a5f637adac5'),
+('energy-sample-1:twotone:1a5f637adac5','energy-sample-1','twotone','1a5f637adac5'),
+('energy-sample-2:linear:b5b39c74d110','energy-sample-2','linear','b5b39c74d110'),
+('energy-sample-2:outline:b5b39c74d110','energy-sample-2','outline','b5b39c74d110'),
+('energy-sample-2:bold:b5b39c74d110','energy-sample-2','bold','b5b39c74d110'),
+('energy-sample-2:broken:b5b39c74d110','energy-sample-2','broken','b5b39c74d110'),
+('energy-sample-2:bulk:b5b39c74d110','energy-sample-2','bulk','b5b39c74d110'),
+('energy-sample-2:twotone:b5b39c74d110','energy-sample-2','twotone','b5b39c74d110'),
+('energy-sample-3:linear:ad9a323f8836','energy-sample-3','linear','ad9a323f8836'),
+('energy-sample-3:outline:ad9a323f8836','energy-sample-3','outline','ad9a323f8836'),
+('energy-sample-3:bold:ad9a323f8836','energy-sample-3','bold','ad9a323f8836'),
+('energy-sample-3:broken:ad9a323f8836','energy-sample-3','broken','ad9a323f8836'),
+('energy-sample-3:bulk:ad9a323f8836','energy-sample-3','bulk','ad9a323f8836'),
+('energy-sample-3:twotone:ad9a323f8836','energy-sample-3','twotone','ad9a323f8836'),
+('kitchen-sample-1:linear:e2ce98340674','kitchen-sample-1','linear','e2ce98340674'),
+('kitchen-sample-1:outline:e2ce98340674','kitchen-sample-1','outline','e2ce98340674'),
+('kitchen-sample-1:bold:e2ce98340674','kitchen-sample-1','bold','e2ce98340674'),
+('kitchen-sample-1:broken:e2ce98340674','kitchen-sample-1','broken','e2ce98340674'),
+('kitchen-sample-1:bulk:e2ce98340674','kitchen-sample-1','bulk','e2ce98340674'),
+('kitchen-sample-1:twotone:e2ce98340674','kitchen-sample-1','twotone','e2ce98340674'),
+('kitchen-sample-2:linear:9991921ca0aa','kitchen-sample-2','linear','9991921ca0aa'),
+('kitchen-sample-2:outline:9991921ca0aa','kitchen-sample-2','outline','9991921ca0aa'),
+('kitchen-sample-2:bold:9991921ca0aa','kitchen-sample-2','bold','9991921ca0aa'),
+('kitchen-sample-2:broken:9991921ca0aa','kitchen-sample-2','broken','9991921ca0aa'),
+('kitchen-sample-2:bulk:9991921ca0aa','kitchen-sample-2','bulk','9991921ca0aa'),
+('kitchen-sample-2:twotone:9991921ca0aa','kitchen-sample-2','twotone','9991921ca0aa'),
+('kitchen-sample-3:linear:32f0d9a87295','kitchen-sample-3','linear','32f0d9a87295'),
+('kitchen-sample-3:outline:32f0d9a87295','kitchen-sample-3','outline','32f0d9a87295'),
+('kitchen-sample-3:bold:32f0d9a87295','kitchen-sample-3','bold','32f0d9a87295'),
+('kitchen-sample-3:broken:32f0d9a87295','kitchen-sample-3','broken','32f0d9a87295'),
+('kitchen-sample-3:bulk:32f0d9a87295','kitchen-sample-3','bulk','32f0d9a87295'),
+('kitchen-sample-3:twotone:32f0d9a87295','kitchen-sample-3','twotone','32f0d9a87295'),
+('archive-sample-1:linear:31ca397857eb','archive-sample-1','linear','31ca397857eb'),
+('archive-sample-1:outline:31ca397857eb','archive-sample-1','outline','31ca397857eb'),
+('archive-sample-1:bold:31ca397857eb','archive-sample-1','bold','31ca397857eb'),
+('archive-sample-1:broken:31ca397857eb','archive-sample-1','broken','31ca397857eb'),
+('archive-sample-1:bulk:31ca397857eb','archive-sample-1','bulk','31ca397857eb'),
+('archive-sample-1:twotone:31ca397857eb','archive-sample-1','twotone','31ca397857eb'),
+('archive-sample-2:linear:a0d4edfe33f6','archive-sample-2','linear','a0d4edfe33f6'),
+('archive-sample-2:outline:a0d4edfe33f6','archive-sample-2','outline','a0d4edfe33f6'),
+('archive-sample-2:bold:a0d4edfe33f6','archive-sample-2','bold','a0d4edfe33f6'),
+('archive-sample-2:broken:a0d4edfe33f6','archive-sample-2','broken','a0d4edfe33f6'),
+('archive-sample-2:bulk:a0d4edfe33f6','archive-sample-2','bulk','a0d4edfe33f6'),
+('archive-sample-2:twotone:a0d4edfe33f6','archive-sample-2','twotone','a0d4edfe33f6'),
+('archive-sample-3:linear:146a1f661879','archive-sample-3','linear','146a1f661879'),
+('archive-sample-3:outline:146a1f661879','archive-sample-3','outline','146a1f661879'),
+('archive-sample-3:bold:146a1f661879','archive-sample-3','bold','146a1f661879'),
+('archive-sample-3:broken:146a1f661879','archive-sample-3','broken','146a1f661879'),
+('archive-sample-3:bulk:146a1f661879','archive-sample-3','bulk','146a1f661879'),
+('archive-sample-3:twotone:146a1f661879','archive-sample-3','twotone','146a1f661879'),
+('beauty-sample-1:linear:ddb0933cef43','beauty-sample-1','linear','ddb0933cef43'),
+('beauty-sample-1:outline:ddb0933cef43','beauty-sample-1','outline','ddb0933cef43'),
+('beauty-sample-1:bold:ddb0933cef43','beauty-sample-1','bold','ddb0933cef43'),
+('beauty-sample-1:broken:ddb0933cef43','beauty-sample-1','broken','ddb0933cef43'),
+('beauty-sample-1:bulk:ddb0933cef43','beauty-sample-1','bulk','ddb0933cef43'),
+('beauty-sample-1:twotone:ddb0933cef43','beauty-sample-1','twotone','ddb0933cef43'),
+('beauty-sample-2:linear:e72363eaeed6','beauty-sample-2','linear','e72363eaeed6'),
+('beauty-sample-2:outline:e72363eaeed6','beauty-sample-2','outline','e72363eaeed6'),
+('beauty-sample-2:bold:e72363eaeed6','beauty-sample-2','bold','e72363eaeed6'),
+('beauty-sample-2:broken:e72363eaeed6','beauty-sample-2','broken','e72363eaeed6'),
+('beauty-sample-2:bulk:e72363eaeed6','beauty-sample-2','bulk','e72363eaeed6'),
+('beauty-sample-2:twotone:e72363eaeed6','beauty-sample-2','twotone','e72363eaeed6'),
+('beauty-sample-3:linear:1ebc900b67af','beauty-sample-3','linear','1ebc900b67af'),
+('beauty-sample-3:outline:1ebc900b67af','beauty-sample-3','outline','1ebc900b67af'),
+('beauty-sample-3:bold:1ebc900b67af','beauty-sample-3','bold','1ebc900b67af'),
+('beauty-sample-3:broken:1ebc900b67af','beauty-sample-3','broken','1ebc900b67af'),
+('beauty-sample-3:bulk:1ebc900b67af','beauty-sample-3','bulk','1ebc900b67af'),
+('beauty-sample-3:twotone:1ebc900b67af','beauty-sample-3','twotone','1ebc900b67af'),
+('booking-sample-1:linear:1313490aa2ca','booking-sample-1','linear','1313490aa2ca'),
+('booking-sample-1:outline:1313490aa2ca','booking-sample-1','outline','1313490aa2ca'),
+('booking-sample-1:bold:1313490aa2ca','booking-sample-1','bold','1313490aa2ca'),
+('booking-sample-1:broken:1313490aa2ca','booking-sample-1','broken','1313490aa2ca'),
+('booking-sample-1:bulk:1313490aa2ca','booking-sample-1','bulk','1313490aa2ca'),
+('booking-sample-1:twotone:1313490aa2ca','booking-sample-1','twotone','1313490aa2ca'),
+('booking-sample-2:linear:0b272fe748a4','booking-sample-2','linear','0b272fe748a4'),
+('booking-sample-2:outline:0b272fe748a4','booking-sample-2','outline','0b272fe748a4'),
+('booking-sample-2:bold:0b272fe748a4','booking-sample-2','bold','0b272fe748a4'),
+('booking-sample-2:broken:0b272fe748a4','booking-sample-2','broken','0b272fe748a4'),
+('booking-sample-2:bulk:0b272fe748a4','booking-sample-2','bulk','0b272fe748a4'),
+('booking-sample-2:twotone:0b272fe748a4','booking-sample-2','twotone','0b272fe748a4'),
+('booking-sample-3:linear:11842043d6f4','booking-sample-3','linear','11842043d6f4'),
+('booking-sample-3:outline:11842043d6f4','booking-sample-3','outline','11842043d6f4'),
+('booking-sample-3:bold:11842043d6f4','booking-sample-3','bold','11842043d6f4'),
+('booking-sample-3:broken:11842043d6f4','booking-sample-3','broken','11842043d6f4'),
+('booking-sample-3:bulk:11842043d6f4','booking-sample-3','bulk','11842043d6f4'),
+('booking-sample-3:twotone:11842043d6f4','booking-sample-3','twotone','11842043d6f4'),
+('computers-devices-electronics-sample-1:linear:9d988ae22daa','computers-devices-electronics-sample-1','linear','9d988ae22daa'),
+('computers-devices-electronics-sample-1:outline:9d988ae22daa','computers-devices-electronics-sample-1','outline','9d988ae22daa'),
+('computers-devices-electronics-sample-1:bold:9d988ae22daa','computers-devices-electronics-sample-1','bold','9d988ae22daa'),
+('computers-devices-electronics-sample-1:broken:9d988ae22daa','computers-devices-electronics-sample-1','broken','9d988ae22daa'),
+('computers-devices-electronics-sample-1:bulk:9d988ae22daa','computers-devices-electronics-sample-1','bulk','9d988ae22daa'),
+('computers-devices-electronics-sample-1:twotone:9d988ae22daa','computers-devices-electronics-sample-1','twotone','9d988ae22daa'),
+('computers-devices-electronics-sample-2:linear:b2e3fe1f3bb2','computers-devices-electronics-sample-2','linear','b2e3fe1f3bb2'),
+('computers-devices-electronics-sample-2:outline:b2e3fe1f3bb2','computers-devices-electronics-sample-2','outline','b2e3fe1f3bb2'),
+('computers-devices-electronics-sample-2:bold:b2e3fe1f3bb2','computers-devices-electronics-sample-2','bold','b2e3fe1f3bb2'),
+('computers-devices-electronics-sample-2:broken:b2e3fe1f3bb2','computers-devices-electronics-sample-2','broken','b2e3fe1f3bb2'),
+('computers-devices-electronics-sample-2:bulk:b2e3fe1f3bb2','computers-devices-electronics-sample-2','bulk','b2e3fe1f3bb2'),
+('computers-devices-electronics-sample-2:twotone:b2e3fe1f3bb2','computers-devices-electronics-sample-2','twotone','b2e3fe1f3bb2'),
+('computers-devices-electronics-sample-3:linear:d62fbc51eddf','computers-devices-electronics-sample-3','linear','d62fbc51eddf'),
+('computers-devices-electronics-sample-3:outline:d62fbc51eddf','computers-devices-electronics-sample-3','outline','d62fbc51eddf'),
+('computers-devices-electronics-sample-3:bold:d62fbc51eddf','computers-devices-electronics-sample-3','bold','d62fbc51eddf'),
+('computers-devices-electronics-sample-3:broken:d62fbc51eddf','computers-devices-electronics-sample-3','broken','d62fbc51eddf'),
+('computers-devices-electronics-sample-3:bulk:d62fbc51eddf','computers-devices-electronics-sample-3','bulk','d62fbc51eddf'),
+('computers-devices-electronics-sample-3:twotone:d62fbc51eddf','computers-devices-electronics-sample-3','twotone','d62fbc51eddf'),
+('email-sample-1:linear:a7a0a6319864','email-sample-1','linear','a7a0a6319864'),
+('email-sample-1:outline:a7a0a6319864','email-sample-1','outline','a7a0a6319864'),
+('email-sample-1:bold:a7a0a6319864','email-sample-1','bold','a7a0a6319864'),
+('email-sample-1:broken:a7a0a6319864','email-sample-1','broken','a7a0a6319864'),
+('email-sample-1:bulk:a7a0a6319864','email-sample-1','bulk','a7a0a6319864'),
+('email-sample-1:twotone:a7a0a6319864','email-sample-1','twotone','a7a0a6319864'),
+('email-sample-2:linear:b4a2a5bcf439','email-sample-2','linear','b4a2a5bcf439'),
+('email-sample-2:outline:b4a2a5bcf439','email-sample-2','outline','b4a2a5bcf439'),
+('email-sample-2:bold:b4a2a5bcf439','email-sample-2','bold','b4a2a5bcf439'),
+('email-sample-2:broken:b4a2a5bcf439','email-sample-2','broken','b4a2a5bcf439'),
+('email-sample-2:bulk:b4a2a5bcf439','email-sample-2','bulk','b4a2a5bcf439'),
+('email-sample-2:twotone:b4a2a5bcf439','email-sample-2','twotone','b4a2a5bcf439'),
+('email-sample-3:linear:476e27558ac0','email-sample-3','linear','476e27558ac0'),
+('email-sample-3:outline:476e27558ac0','email-sample-3','outline','476e27558ac0'),
+('email-sample-3:bold:476e27558ac0','email-sample-3','bold','476e27558ac0'),
+('email-sample-3:broken:476e27558ac0','email-sample-3','broken','476e27558ac0'),
+('email-sample-3:bulk:476e27558ac0','email-sample-3','bulk','476e27558ac0'),
+('email-sample-3:twotone:476e27558ac0','email-sample-3','twotone','476e27558ac0'),
+('medical-sample-1:linear:c5a029f30cd4','medical-sample-1','linear','c5a029f30cd4'),
+('medical-sample-1:outline:c5a029f30cd4','medical-sample-1','outline','c5a029f30cd4'),
+('medical-sample-1:bold:c5a029f30cd4','medical-sample-1','bold','c5a029f30cd4'),
+('medical-sample-1:broken:c5a029f30cd4','medical-sample-1','broken','c5a029f30cd4'),
+('medical-sample-1:bulk:c5a029f30cd4','medical-sample-1','bulk','c5a029f30cd4'),
+('medical-sample-1:twotone:c5a029f30cd4','medical-sample-1','twotone','c5a029f30cd4'),
+('medical-sample-2:linear:59d54c8d55ce','medical-sample-2','linear','59d54c8d55ce'),
+('medical-sample-2:outline:59d54c8d55ce','medical-sample-2','outline','59d54c8d55ce'),
+('medical-sample-2:bold:59d54c8d55ce','medical-sample-2','bold','59d54c8d55ce'),
+('medical-sample-2:broken:59d54c8d55ce','medical-sample-2','broken','59d54c8d55ce'),
+('medical-sample-2:bulk:59d54c8d55ce','medical-sample-2','bulk','59d54c8d55ce'),
+('medical-sample-2:twotone:59d54c8d55ce','medical-sample-2','twotone','59d54c8d55ce'),
+('medical-sample-3:linear:dae0765fa75b','medical-sample-3','linear','dae0765fa75b'),
+('medical-sample-3:outline:dae0765fa75b','medical-sample-3','outline','dae0765fa75b'),
+('medical-sample-3:bold:dae0765fa75b','medical-sample-3','bold','dae0765fa75b'),
+('medical-sample-3:broken:dae0765fa75b','medical-sample-3','broken','dae0765fa75b'),
+('medical-sample-3:bulk:dae0765fa75b','medical-sample-3','bulk','dae0765fa75b'),
+('medical-sample-3:twotone:dae0765fa75b','medical-sample-3','twotone','dae0765fa75b'),
+('security-sample-1:linear:15c9a9945077','security-sample-1','linear','15c9a9945077'),
+('security-sample-1:outline:15c9a9945077','security-sample-1','outline','15c9a9945077'),
+('security-sample-1:bold:15c9a9945077','security-sample-1','bold','15c9a9945077'),
+('security-sample-1:broken:15c9a9945077','security-sample-1','broken','15c9a9945077'),
+('security-sample-1:bulk:15c9a9945077','security-sample-1','bulk','15c9a9945077'),
+('security-sample-1:twotone:15c9a9945077','security-sample-1','twotone','15c9a9945077'),
+('security-sample-2:linear:b1ca09b9fd7e','security-sample-2','linear','b1ca09b9fd7e'),
+('security-sample-2:outline:b1ca09b9fd7e','security-sample-2','outline','b1ca09b9fd7e'),
+('security-sample-2:bold:b1ca09b9fd7e','security-sample-2','bold','b1ca09b9fd7e'),
+('security-sample-2:broken:b1ca09b9fd7e','security-sample-2','broken','b1ca09b9fd7e'),
+('security-sample-2:bulk:b1ca09b9fd7e','security-sample-2','bulk','b1ca09b9fd7e'),
+('security-sample-2:twotone:b1ca09b9fd7e','security-sample-2','twotone','b1ca09b9fd7e'),
+('security-sample-3:linear:8218d5ad7e72','security-sample-3','linear','8218d5ad7e72'),
+('security-sample-3:outline:8218d5ad7e72','security-sample-3','outline','8218d5ad7e72'),
+('security-sample-3:bold:8218d5ad7e72','security-sample-3','bold','8218d5ad7e72'),
+('security-sample-3:broken:8218d5ad7e72','security-sample-3','broken','8218d5ad7e72'),
+('security-sample-3:bulk:8218d5ad7e72','security-sample-3','bulk','8218d5ad7e72'),
+('security-sample-3:twotone:8218d5ad7e72','security-sample-3','twotone','8218d5ad7e72'),
+('location-sample-1:linear:4581d5e54289','location-sample-1','linear','4581d5e54289'),
+('location-sample-1:outline:4581d5e54289','location-sample-1','outline','4581d5e54289'),
+('location-sample-1:bold:4581d5e54289','location-sample-1','bold','4581d5e54289'),
+('location-sample-1:broken:4581d5e54289','location-sample-1','broken','4581d5e54289'),
+('location-sample-1:bulk:4581d5e54289','location-sample-1','bulk','4581d5e54289'),
+('location-sample-1:twotone:4581d5e54289','location-sample-1','twotone','4581d5e54289'),
+('location-sample-2:linear:61809684eccb','location-sample-2','linear','61809684eccb'),
+('location-sample-2:outline:61809684eccb','location-sample-2','outline','61809684eccb'),
+('location-sample-2:bold:61809684eccb','location-sample-2','bold','61809684eccb'),
+('location-sample-2:broken:61809684eccb','location-sample-2','broken','61809684eccb'),
+('location-sample-2:bulk:61809684eccb','location-sample-2','bulk','61809684eccb'),
+('location-sample-2:twotone:61809684eccb','location-sample-2','twotone','61809684eccb'),
+('location-sample-3:linear:6c201b6390b3','location-sample-3','linear','6c201b6390b3'),
+('location-sample-3:outline:6c201b6390b3','location-sample-3','outline','6c201b6390b3'),
+('location-sample-3:bold:6c201b6390b3','location-sample-3','bold','6c201b6390b3'),
+('location-sample-3:broken:6c201b6390b3','location-sample-3','broken','6c201b6390b3'),
+('location-sample-3:bulk:6c201b6390b3','location-sample-3','bulk','6c201b6390b3'),
+('location-sample-3:twotone:6c201b6390b3','location-sample-3','twotone','6c201b6390b3'),
+('home-sample-1:linear:6102760a2ffe','home-sample-1','linear','6102760a2ffe'),
+('home-sample-1:outline:6102760a2ffe','home-sample-1','outline','6102760a2ffe'),
+('home-sample-1:bold:6102760a2ffe','home-sample-1','bold','6102760a2ffe'),
+('home-sample-1:broken:6102760a2ffe','home-sample-1','broken','6102760a2ffe'),
+('home-sample-1:bulk:6102760a2ffe','home-sample-1','bulk','6102760a2ffe'),
+('home-sample-1:twotone:6102760a2ffe','home-sample-1','twotone','6102760a2ffe'),
+('home-sample-2:linear:1e51a859e95e','home-sample-2','linear','1e51a859e95e'),
+('home-sample-2:outline:1e51a859e95e','home-sample-2','outline','1e51a859e95e'),
+('home-sample-2:bold:1e51a859e95e','home-sample-2','bold','1e51a859e95e'),
+('home-sample-2:broken:1e51a859e95e','home-sample-2','broken','1e51a859e95e'),
+('home-sample-2:bulk:1e51a859e95e','home-sample-2','bulk','1e51a859e95e'),
+('home-sample-2:twotone:1e51a859e95e','home-sample-2','twotone','1e51a859e95e'),
+('home-sample-3:linear:bfc5d2d81662','home-sample-3','linear','bfc5d2d81662'),
+('home-sample-3:outline:bfc5d2d81662','home-sample-3','outline','bfc5d2d81662'),
+('home-sample-3:bold:bfc5d2d81662','home-sample-3','bold','bfc5d2d81662'),
+('home-sample-3:broken:bfc5d2d81662','home-sample-3','broken','bfc5d2d81662'),
+('home-sample-3:bulk:bfc5d2d81662','home-sample-3','bulk','bfc5d2d81662'),
+('home-sample-3:twotone:bfc5d2d81662','home-sample-3','twotone','bfc5d2d81662'),
+('clothes-sample-1:linear:14f9ff8c4f95','clothes-sample-1','linear','14f9ff8c4f95'),
+('clothes-sample-1:outline:14f9ff8c4f95','clothes-sample-1','outline','14f9ff8c4f95'),
+('clothes-sample-1:bold:14f9ff8c4f95','clothes-sample-1','bold','14f9ff8c4f95'),
+('clothes-sample-1:broken:14f9ff8c4f95','clothes-sample-1','broken','14f9ff8c4f95'),
+('clothes-sample-1:bulk:14f9ff8c4f95','clothes-sample-1','bulk','14f9ff8c4f95'),
+('clothes-sample-1:twotone:14f9ff8c4f95','clothes-sample-1','twotone','14f9ff8c4f95'),
+('clothes-sample-2:linear:b997073e09ff','clothes-sample-2','linear','b997073e09ff'),
+('clothes-sample-2:outline:b997073e09ff','clothes-sample-2','outline','b997073e09ff'),
+('clothes-sample-2:bold:b997073e09ff','clothes-sample-2','bold','b997073e09ff'),
+('clothes-sample-2:broken:b997073e09ff','clothes-sample-2','broken','b997073e09ff'),
+('clothes-sample-2:bulk:b997073e09ff','clothes-sample-2','bulk','b997073e09ff'),
+('clothes-sample-2:twotone:b997073e09ff','clothes-sample-2','twotone','b997073e09ff'),
+('clothes-sample-3:linear:9ebfeb3aa810','clothes-sample-3','linear','9ebfeb3aa810'),
+('clothes-sample-3:outline:9ebfeb3aa810','clothes-sample-3','outline','9ebfeb3aa810'),
+('clothes-sample-3:bold:9ebfeb3aa810','clothes-sample-3','bold','9ebfeb3aa810'),
+('clothes-sample-3:broken:9ebfeb3aa810','clothes-sample-3','broken','9ebfeb3aa810'),
+('clothes-sample-3:bulk:9ebfeb3aa810','clothes-sample-3','bulk','9ebfeb3aa810'),
+('clothes-sample-3:twotone:9ebfeb3aa810','clothes-sample-3','twotone','9ebfeb3aa810'),
+('stationery-sample-1:linear:517afa12a56b','stationery-sample-1','linear','517afa12a56b'),
+('stationery-sample-1:outline:517afa12a56b','stationery-sample-1','outline','517afa12a56b'),
+('stationery-sample-1:bold:517afa12a56b','stationery-sample-1','bold','517afa12a56b'),
+('stationery-sample-1:broken:517afa12a56b','stationery-sample-1','broken','517afa12a56b'),
+('stationery-sample-1:bulk:517afa12a56b','stationery-sample-1','bulk','517afa12a56b'),
+('stationery-sample-1:twotone:517afa12a56b','stationery-sample-1','twotone','517afa12a56b'),
+('stationery-sample-2:linear:42a187d4348c','stationery-sample-2','linear','42a187d4348c'),
+('stationery-sample-2:outline:42a187d4348c','stationery-sample-2','outline','42a187d4348c'),
+('stationery-sample-2:bold:42a187d4348c','stationery-sample-2','bold','42a187d4348c'),
+('stationery-sample-2:broken:42a187d4348c','stationery-sample-2','broken','42a187d4348c'),
+('stationery-sample-2:bulk:42a187d4348c','stationery-sample-2','bulk','42a187d4348c'),
+('stationery-sample-2:twotone:42a187d4348c','stationery-sample-2','twotone','42a187d4348c'),
+('stationery-sample-3:linear:727ab453f7d2','stationery-sample-3','linear','727ab453f7d2'),
+('stationery-sample-3:outline:727ab453f7d2','stationery-sample-3','outline','727ab453f7d2'),
+('stationery-sample-3:bold:727ab453f7d2','stationery-sample-3','bold','727ab453f7d2'),
+('stationery-sample-3:broken:727ab453f7d2','stationery-sample-3','broken','727ab453f7d2'),
+('stationery-sample-3:bulk:727ab453f7d2','stationery-sample-3','bulk','727ab453f7d2'),
+('stationery-sample-3:twotone:727ab453f7d2','stationery-sample-3','twotone','727ab453f7d2'),
+('design-sample-1:linear:d622ce37ad1f','design-sample-1','linear','d622ce37ad1f'),
+('design-sample-1:outline:d622ce37ad1f','design-sample-1','outline','d622ce37ad1f'),
+('design-sample-1:bold:d622ce37ad1f','design-sample-1','bold','d622ce37ad1f'),
+('design-sample-1:broken:d622ce37ad1f','design-sample-1','broken','d622ce37ad1f'),
+('design-sample-1:bulk:d622ce37ad1f','design-sample-1','bulk','d622ce37ad1f'),
+('design-sample-1:twotone:d622ce37ad1f','design-sample-1','twotone','d622ce37ad1f'),
+('design-sample-2:linear:f9b36a8e5820','design-sample-2','linear','f9b36a8e5820'),
+('design-sample-2:outline:f9b36a8e5820','design-sample-2','outline','f9b36a8e5820'),
+('design-sample-2:bold:f9b36a8e5820','design-sample-2','bold','f9b36a8e5820'),
+('design-sample-2:broken:f9b36a8e5820','design-sample-2','broken','f9b36a8e5820'),
+('design-sample-2:bulk:f9b36a8e5820','design-sample-2','bulk','f9b36a8e5820'),
+('design-sample-2:twotone:f9b36a8e5820','design-sample-2','twotone','f9b36a8e5820'),
+('design-sample-3:linear:51fcb7b8a49f','design-sample-3','linear','51fcb7b8a49f'),
+('design-sample-3:outline:51fcb7b8a49f','design-sample-3','outline','51fcb7b8a49f'),
+('design-sample-3:bold:51fcb7b8a49f','design-sample-3','bold','51fcb7b8a49f'),
+('design-sample-3:broken:51fcb7b8a49f','design-sample-3','broken','51fcb7b8a49f'),
+('design-sample-3:bulk:51fcb7b8a49f','design-sample-3','bulk','51fcb7b8a49f'),
+('design-sample-3:twotone:51fcb7b8a49f','design-sample-3','twotone','51fcb7b8a49f'),
+('school-learning-sample-1:linear:79ee7f273f77','school-learning-sample-1','linear','79ee7f273f77'),
+('school-learning-sample-1:outline:79ee7f273f77','school-learning-sample-1','outline','79ee7f273f77'),
+('school-learning-sample-1:bold:79ee7f273f77','school-learning-sample-1','bold','79ee7f273f77'),
+('school-learning-sample-1:broken:79ee7f273f77','school-learning-sample-1','broken','79ee7f273f77'),
+('school-learning-sample-1:bulk:79ee7f273f77','school-learning-sample-1','bulk','79ee7f273f77'),
+('school-learning-sample-1:twotone:79ee7f273f77','school-learning-sample-1','twotone','79ee7f273f77'),
+('school-learning-sample-2:linear:3d929ae89c0a','school-learning-sample-2','linear','3d929ae89c0a'),
+('school-learning-sample-2:outline:3d929ae89c0a','school-learning-sample-2','outline','3d929ae89c0a'),
+('school-learning-sample-2:bold:3d929ae89c0a','school-learning-sample-2','bold','3d929ae89c0a'),
+('school-learning-sample-2:broken:3d929ae89c0a','school-learning-sample-2','broken','3d929ae89c0a'),
+('school-learning-sample-2:bulk:3d929ae89c0a','school-learning-sample-2','bulk','3d929ae89c0a'),
+('school-learning-sample-2:twotone:3d929ae89c0a','school-learning-sample-2','twotone','3d929ae89c0a'),
+('school-learning-sample-3:linear:9e7e5fa6590b','school-learning-sample-3','linear','9e7e5fa6590b'),
+('school-learning-sample-3:outline:9e7e5fa6590b','school-learning-sample-3','outline','9e7e5fa6590b'),
+('school-learning-sample-3:bold:9e7e5fa6590b','school-learning-sample-3','bold','9e7e5fa6590b'),
+('school-learning-sample-3:broken:9e7e5fa6590b','school-learning-sample-3','broken','9e7e5fa6590b'),
+('school-learning-sample-3:bulk:9e7e5fa6590b','school-learning-sample-3','bulk','9e7e5fa6590b'),
+('school-learning-sample-3:twotone:9e7e5fa6590b','school-learning-sample-3','twotone','9e7e5fa6590b'),
+('money-sample-1:linear:d0ea22802567','money-sample-1','linear','d0ea22802567'),
+('money-sample-1:outline:d0ea22802567','money-sample-1','outline','d0ea22802567'),
+('money-sample-1:bold:d0ea22802567','money-sample-1','bold','d0ea22802567'),
+('money-sample-1:broken:d0ea22802567','money-sample-1','broken','d0ea22802567'),
+('money-sample-1:bulk:d0ea22802567','money-sample-1','bulk','d0ea22802567'),
+('money-sample-1:twotone:d0ea22802567','money-sample-1','twotone','d0ea22802567'),
+('money-sample-2:linear:c07caef25f6e','money-sample-2','linear','c07caef25f6e'),
+('money-sample-2:outline:c07caef25f6e','money-sample-2','outline','c07caef25f6e'),
+('money-sample-2:bold:c07caef25f6e','money-sample-2','bold','c07caef25f6e'),
+('money-sample-2:broken:c07caef25f6e','money-sample-2','broken','c07caef25f6e'),
+('money-sample-2:bulk:c07caef25f6e','money-sample-2','bulk','c07caef25f6e'),
+('money-sample-2:twotone:c07caef25f6e','money-sample-2','twotone','c07caef25f6e'),
+('money-sample-3:linear:1f11ce9dbf66','money-sample-3','linear','1f11ce9dbf66'),
+('money-sample-3:outline:1f11ce9dbf66','money-sample-3','outline','1f11ce9dbf66'),
+('money-sample-3:bold:1f11ce9dbf66','money-sample-3','bold','1f11ce9dbf66'),
+('money-sample-3:broken:1f11ce9dbf66','money-sample-3','broken','1f11ce9dbf66'),
+('money-sample-3:bulk:1f11ce9dbf66','money-sample-3','bulk','1f11ce9dbf66'),
+('money-sample-3:twotone:1f11ce9dbf66','money-sample-3','twotone','1f11ce9dbf66'),
+('shop-sample-1:linear:0c7dee938ed5','shop-sample-1','linear','0c7dee938ed5'),
+('shop-sample-1:outline:0c7dee938ed5','shop-sample-1','outline','0c7dee938ed5'),
+('shop-sample-1:bold:0c7dee938ed5','shop-sample-1','bold','0c7dee938ed5'),
+('shop-sample-1:broken:0c7dee938ed5','shop-sample-1','broken','0c7dee938ed5'),
+('shop-sample-1:bulk:0c7dee938ed5','shop-sample-1','bulk','0c7dee938ed5'),
+('shop-sample-1:twotone:0c7dee938ed5','shop-sample-1','twotone','0c7dee938ed5'),
+('shop-sample-2:linear:b5921ead84cb','shop-sample-2','linear','b5921ead84cb'),
+('shop-sample-2:outline:b5921ead84cb','shop-sample-2','outline','b5921ead84cb'),
+('shop-sample-2:bold:b5921ead84cb','shop-sample-2','bold','b5921ead84cb'),
+('shop-sample-2:broken:b5921ead84cb','shop-sample-2','broken','b5921ead84cb'),
+('shop-sample-2:bulk:b5921ead84cb','shop-sample-2','bulk','b5921ead84cb'),
+('shop-sample-2:twotone:b5921ead84cb','shop-sample-2','twotone','b5921ead84cb'),
+('shop-sample-3:linear:8b0d910fe2a0','shop-sample-3','linear','8b0d910fe2a0'),
+('shop-sample-3:outline:8b0d910fe2a0','shop-sample-3','outline','8b0d910fe2a0'),
+('shop-sample-3:bold:8b0d910fe2a0','shop-sample-3','bold','8b0d910fe2a0'),
+('shop-sample-3:broken:8b0d910fe2a0','shop-sample-3','broken','8b0d910fe2a0'),
+('shop-sample-3:bulk:8b0d910fe2a0','shop-sample-3','bulk','8b0d910fe2a0'),
+('shop-sample-3:twotone:8b0d910fe2a0','shop-sample-3','twotone','8b0d910fe2a0'),
+('notifications-sample-1:linear:87bf377b15fa','notifications-sample-1','linear','87bf377b15fa'),
+('notifications-sample-1:outline:87bf377b15fa','notifications-sample-1','outline','87bf377b15fa'),
+('notifications-sample-1:bold:87bf377b15fa','notifications-sample-1','bold','87bf377b15fa'),
+('notifications-sample-1:broken:87bf377b15fa','notifications-sample-1','broken','87bf377b15fa'),
+('notifications-sample-1:bulk:87bf377b15fa','notifications-sample-1','bulk','87bf377b15fa'),
+('notifications-sample-1:twotone:87bf377b15fa','notifications-sample-1','twotone','87bf377b15fa'),
+('notifications-sample-2:linear:2ca3d3abfaa2','notifications-sample-2','linear','2ca3d3abfaa2'),
+('notifications-sample-2:outline:2ca3d3abfaa2','notifications-sample-2','outline','2ca3d3abfaa2'),
+('notifications-sample-2:bold:2ca3d3abfaa2','notifications-sample-2','bold','2ca3d3abfaa2'),
+('notifications-sample-2:broken:2ca3d3abfaa2','notifications-sample-2','broken','2ca3d3abfaa2'),
+('notifications-sample-2:bulk:2ca3d3abfaa2','notifications-sample-2','bulk','2ca3d3abfaa2'),
+('notifications-sample-2:twotone:2ca3d3abfaa2','notifications-sample-2','twotone','2ca3d3abfaa2'),
+('notifications-sample-3:linear:e91e1a8d1e15','notifications-sample-3','linear','e91e1a8d1e15'),
+('notifications-sample-3:outline:e91e1a8d1e15','notifications-sample-3','outline','e91e1a8d1e15'),
+('notifications-sample-3:bold:e91e1a8d1e15','notifications-sample-3','bold','e91e1a8d1e15'),
+('notifications-sample-3:broken:e91e1a8d1e15','notifications-sample-3','broken','e91e1a8d1e15'),
+('notifications-sample-3:bulk:e91e1a8d1e15','notifications-sample-3','bulk','e91e1a8d1e15'),
+('notifications-sample-3:twotone:e91e1a8d1e15','notifications-sample-3','twotone','e91e1a8d1e15'),
+('animals-sample-1:linear:aba9d1855f8b','animals-sample-1','linear','aba9d1855f8b'),
+('animals-sample-1:outline:aba9d1855f8b','animals-sample-1','outline','aba9d1855f8b'),
+('animals-sample-1:bold:aba9d1855f8b','animals-sample-1','bold','aba9d1855f8b'),
+('animals-sample-1:broken:aba9d1855f8b','animals-sample-1','broken','aba9d1855f8b'),
+('animals-sample-1:bulk:aba9d1855f8b','animals-sample-1','bulk','aba9d1855f8b'),
+('animals-sample-1:twotone:aba9d1855f8b','animals-sample-1','twotone','aba9d1855f8b'),
+('animals-sample-2:linear:974a30fbce7c','animals-sample-2','linear','974a30fbce7c'),
+('animals-sample-2:outline:974a30fbce7c','animals-sample-2','outline','974a30fbce7c'),
+('animals-sample-2:bold:974a30fbce7c','animals-sample-2','bold','974a30fbce7c'),
+('animals-sample-2:broken:974a30fbce7c','animals-sample-2','broken','974a30fbce7c'),
+('animals-sample-2:bulk:974a30fbce7c','animals-sample-2','bulk','974a30fbce7c'),
+('animals-sample-2:twotone:974a30fbce7c','animals-sample-2','twotone','974a30fbce7c'),
+('animals-sample-3:linear:e9907361097f','animals-sample-3','linear','e9907361097f'),
+('animals-sample-3:outline:e9907361097f','animals-sample-3','outline','e9907361097f'),
+('animals-sample-3:bold:e9907361097f','animals-sample-3','bold','e9907361097f'),
+('animals-sample-3:broken:e9907361097f','animals-sample-3','broken','e9907361097f'),
+('animals-sample-3:bulk:e9907361097f','animals-sample-3','bulk','e9907361097f'),
+('animals-sample-3:twotone:e9907361097f','animals-sample-3','twotone','e9907361097f'),
+('baby-sample-1:linear:9a78fc9a817f','baby-sample-1','linear','9a78fc9a817f'),
+('baby-sample-1:outline:9a78fc9a817f','baby-sample-1','outline','9a78fc9a817f'),
+('baby-sample-1:bold:9a78fc9a817f','baby-sample-1','bold','9a78fc9a817f'),
+('baby-sample-1:broken:9a78fc9a817f','baby-sample-1','broken','9a78fc9a817f'),
+('baby-sample-1:bulk:9a78fc9a817f','baby-sample-1','bulk','9a78fc9a817f'),
+('baby-sample-1:twotone:9a78fc9a817f','baby-sample-1','twotone','9a78fc9a817f'),
+('baby-sample-2:linear:defab04ede6f','baby-sample-2','linear','defab04ede6f'),
+('baby-sample-2:outline:defab04ede6f','baby-sample-2','outline','defab04ede6f'),
+('baby-sample-2:bold:defab04ede6f','baby-sample-2','bold','defab04ede6f'),
+('baby-sample-2:broken:defab04ede6f','baby-sample-2','broken','defab04ede6f'),
+('baby-sample-2:bulk:defab04ede6f','baby-sample-2','bulk','defab04ede6f'),
+('baby-sample-2:twotone:defab04ede6f','baby-sample-2','twotone','defab04ede6f'),
+('baby-sample-3:linear:496b5e3ff3c5','baby-sample-3','linear','496b5e3ff3c5'),
+('baby-sample-3:outline:496b5e3ff3c5','baby-sample-3','outline','496b5e3ff3c5'),
+('baby-sample-3:bold:496b5e3ff3c5','baby-sample-3','bold','496b5e3ff3c5'),
+('baby-sample-3:broken:496b5e3ff3c5','baby-sample-3','broken','496b5e3ff3c5'),
+('baby-sample-3:bulk:496b5e3ff3c5','baby-sample-3','bulk','496b5e3ff3c5'),
+('baby-sample-3:twotone:496b5e3ff3c5','baby-sample-3','twotone','496b5e3ff3c5'),
+('building-sample-1:linear:140c59240f0a','building-sample-1','linear','140c59240f0a'),
+('building-sample-1:outline:140c59240f0a','building-sample-1','outline','140c59240f0a'),
+('building-sample-1:bold:140c59240f0a','building-sample-1','bold','140c59240f0a'),
+('building-sample-1:broken:140c59240f0a','building-sample-1','broken','140c59240f0a'),
+('building-sample-1:bulk:140c59240f0a','building-sample-1','bulk','140c59240f0a'),
+('building-sample-1:twotone:140c59240f0a','building-sample-1','twotone','140c59240f0a'),
+('building-sample-2:linear:799a340d928d','building-sample-2','linear','799a340d928d'),
+('building-sample-2:outline:799a340d928d','building-sample-2','outline','799a340d928d'),
+('building-sample-2:bold:799a340d928d','building-sample-2','bold','799a340d928d'),
+('building-sample-2:broken:799a340d928d','building-sample-2','broken','799a340d928d'),
+('building-sample-2:bulk:799a340d928d','building-sample-2','bulk','799a340d928d'),
+('building-sample-2:twotone:799a340d928d','building-sample-2','twotone','799a340d928d'),
+('building-sample-3:linear:212da4706a58','building-sample-3','linear','212da4706a58'),
+('building-sample-3:outline:212da4706a58','building-sample-3','outline','212da4706a58'),
+('building-sample-3:bold:212da4706a58','building-sample-3','bold','212da4706a58'),
+('building-sample-3:broken:212da4706a58','building-sample-3','broken','212da4706a58'),
+('building-sample-3:bulk:212da4706a58','building-sample-3','bulk','212da4706a58'),
+('building-sample-3:twotone:212da4706a58','building-sample-3','twotone','212da4706a58'),
+('business-sample-1:linear:fd76ae9c36ce','business-sample-1','linear','fd76ae9c36ce'),
+('business-sample-1:outline:fd76ae9c36ce','business-sample-1','outline','fd76ae9c36ce'),
+('business-sample-1:bold:fd76ae9c36ce','business-sample-1','bold','fd76ae9c36ce'),
+('business-sample-1:broken:fd76ae9c36ce','business-sample-1','broken','fd76ae9c36ce'),
+('business-sample-1:bulk:fd76ae9c36ce','business-sample-1','bulk','fd76ae9c36ce'),
+('business-sample-1:twotone:fd76ae9c36ce','business-sample-1','twotone','fd76ae9c36ce'),
+('business-sample-2:linear:a3eca4e26c3b','business-sample-2','linear','a3eca4e26c3b'),
+('business-sample-2:outline:a3eca4e26c3b','business-sample-2','outline','a3eca4e26c3b'),
+('business-sample-2:bold:a3eca4e26c3b','business-sample-2','bold','a3eca4e26c3b'),
+('business-sample-2:broken:a3eca4e26c3b','business-sample-2','broken','a3eca4e26c3b'),
+('business-sample-2:bulk:a3eca4e26c3b','business-sample-2','bulk','a3eca4e26c3b'),
+('business-sample-2:twotone:a3eca4e26c3b','business-sample-2','twotone','a3eca4e26c3b'),
+('business-sample-3:linear:4ce56636ffc2','business-sample-3','linear','4ce56636ffc2'),
+('business-sample-3:outline:4ce56636ffc2','business-sample-3','outline','4ce56636ffc2'),
+('business-sample-3:bold:4ce56636ffc2','business-sample-3','bold','4ce56636ffc2'),
+('business-sample-3:broken:4ce56636ffc2','business-sample-3','broken','4ce56636ffc2'),
+('business-sample-3:bulk:4ce56636ffc2','business-sample-3','bulk','4ce56636ffc2'),
+('business-sample-3:twotone:4ce56636ffc2','business-sample-3','twotone','4ce56636ffc2'),
+('call-sample-1:linear:f47221b76b24','call-sample-1','linear','f47221b76b24'),
+('call-sample-1:outline:f47221b76b24','call-sample-1','outline','f47221b76b24'),
+('call-sample-1:bold:f47221b76b24','call-sample-1','bold','f47221b76b24'),
+('call-sample-1:broken:f47221b76b24','call-sample-1','broken','f47221b76b24'),
+('call-sample-1:bulk:f47221b76b24','call-sample-1','bulk','f47221b76b24'),
+('call-sample-1:twotone:f47221b76b24','call-sample-1','twotone','f47221b76b24'),
+('call-sample-2:linear:aa53375d78d5','call-sample-2','linear','aa53375d78d5'),
+('call-sample-2:outline:aa53375d78d5','call-sample-2','outline','aa53375d78d5'),
+('call-sample-2:bold:aa53375d78d5','call-sample-2','bold','aa53375d78d5'),
+('call-sample-2:broken:aa53375d78d5','call-sample-2','broken','aa53375d78d5'),
+('call-sample-2:bulk:aa53375d78d5','call-sample-2','bulk','aa53375d78d5'),
+('call-sample-2:twotone:aa53375d78d5','call-sample-2','twotone','aa53375d78d5'),
+('call-sample-3:linear:f1ebf31deff7','call-sample-3','linear','f1ebf31deff7'),
+('call-sample-3:outline:f1ebf31deff7','call-sample-3','outline','f1ebf31deff7'),
+('call-sample-3:bold:f1ebf31deff7','call-sample-3','bold','f1ebf31deff7'),
+('call-sample-3:broken:f1ebf31deff7','call-sample-3','broken','f1ebf31deff7'),
+('call-sample-3:bulk:f1ebf31deff7','call-sample-3','bulk','f1ebf31deff7'),
+('call-sample-3:twotone:f1ebf31deff7','call-sample-3','twotone','f1ebf31deff7'),
+('car-sample-1:linear:fbf76f5c75a4','car-sample-1','linear','fbf76f5c75a4'),
+('car-sample-1:outline:fbf76f5c75a4','car-sample-1','outline','fbf76f5c75a4'),
+('car-sample-1:bold:fbf76f5c75a4','car-sample-1','bold','fbf76f5c75a4'),
+('car-sample-1:broken:fbf76f5c75a4','car-sample-1','broken','fbf76f5c75a4'),
+('car-sample-1:bulk:fbf76f5c75a4','car-sample-1','bulk','fbf76f5c75a4'),
+('car-sample-1:twotone:fbf76f5c75a4','car-sample-1','twotone','fbf76f5c75a4'),
+('car-sample-2:linear:5f466a9b6103','car-sample-2','linear','5f466a9b6103'),
+('car-sample-2:outline:5f466a9b6103','car-sample-2','outline','5f466a9b6103'),
+('car-sample-2:bold:5f466a9b6103','car-sample-2','bold','5f466a9b6103'),
+('car-sample-2:broken:5f466a9b6103','car-sample-2','broken','5f466a9b6103'),
+('car-sample-2:bulk:5f466a9b6103','car-sample-2','bulk','5f466a9b6103'),
+('car-sample-2:twotone:5f466a9b6103','car-sample-2','twotone','5f466a9b6103'),
+('car-sample-3:linear:b338e608bf10','car-sample-3','linear','b338e608bf10'),
+('car-sample-3:outline:b338e608bf10','car-sample-3','outline','b338e608bf10'),
+('car-sample-3:bold:b338e608bf10','car-sample-3','bold','b338e608bf10'),
+('car-sample-3:broken:b338e608bf10','car-sample-3','broken','b338e608bf10'),
+('car-sample-3:bulk:b338e608bf10','car-sample-3','bulk','b338e608bf10'),
+('car-sample-3:twotone:b338e608bf10','car-sample-3','twotone','b338e608bf10'),
+('car-service-sample-1:linear:5b61b93ab3b4','car-service-sample-1','linear','5b61b93ab3b4'),
+('car-service-sample-1:outline:5b61b93ab3b4','car-service-sample-1','outline','5b61b93ab3b4'),
+('car-service-sample-1:bold:5b61b93ab3b4','car-service-sample-1','bold','5b61b93ab3b4'),
+('car-service-sample-1:broken:5b61b93ab3b4','car-service-sample-1','broken','5b61b93ab3b4'),
+('car-service-sample-1:bulk:5b61b93ab3b4','car-service-sample-1','bulk','5b61b93ab3b4'),
+('car-service-sample-1:twotone:5b61b93ab3b4','car-service-sample-1','twotone','5b61b93ab3b4'),
+('car-service-sample-2:linear:6273560a739b','car-service-sample-2','linear','6273560a739b'),
+('car-service-sample-2:outline:6273560a739b','car-service-sample-2','outline','6273560a739b'),
+('car-service-sample-2:bold:6273560a739b','car-service-sample-2','bold','6273560a739b'),
+('car-service-sample-2:broken:6273560a739b','car-service-sample-2','broken','6273560a739b'),
+('car-service-sample-2:bulk:6273560a739b','car-service-sample-2','bulk','6273560a739b'),
+('car-service-sample-2:twotone:6273560a739b','car-service-sample-2','twotone','6273560a739b'),
+('car-service-sample-3:linear:3bc76d4ddf52','car-service-sample-3','linear','3bc76d4ddf52'),
+('car-service-sample-3:outline:3bc76d4ddf52','car-service-sample-3','outline','3bc76d4ddf52'),
+('car-service-sample-3:bold:3bc76d4ddf52','car-service-sample-3','bold','3bc76d4ddf52'),
+('car-service-sample-3:broken:3bc76d4ddf52','car-service-sample-3','broken','3bc76d4ddf52'),
+('car-service-sample-3:bulk:3bc76d4ddf52','car-service-sample-3','bulk','3bc76d4ddf52'),
+('car-service-sample-3:twotone:3bc76d4ddf52','car-service-sample-3','twotone','3bc76d4ddf52'),
+('casino-sample-1:linear:9a2f57b0a4ff','casino-sample-1','linear','9a2f57b0a4ff'),
+('casino-sample-1:outline:9a2f57b0a4ff','casino-sample-1','outline','9a2f57b0a4ff'),
+('casino-sample-1:bold:9a2f57b0a4ff','casino-sample-1','bold','9a2f57b0a4ff'),
+('casino-sample-1:broken:9a2f57b0a4ff','casino-sample-1','broken','9a2f57b0a4ff'),
+('casino-sample-1:bulk:9a2f57b0a4ff','casino-sample-1','bulk','9a2f57b0a4ff'),
+('casino-sample-1:twotone:9a2f57b0a4ff','casino-sample-1','twotone','9a2f57b0a4ff'),
+('casino-sample-2:linear:e769eabe019c','casino-sample-2','linear','e769eabe019c'),
+('casino-sample-2:outline:e769eabe019c','casino-sample-2','outline','e769eabe019c'),
+('casino-sample-2:bold:e769eabe019c','casino-sample-2','bold','e769eabe019c'),
+('casino-sample-2:broken:e769eabe019c','casino-sample-2','broken','e769eabe019c'),
+('casino-sample-2:bulk:e769eabe019c','casino-sample-2','bulk','e769eabe019c'),
+('casino-sample-2:twotone:e769eabe019c','casino-sample-2','twotone','e769eabe019c'),
+('casino-sample-3:linear:c7fc98acb50d','casino-sample-3','linear','c7fc98acb50d'),
+('casino-sample-3:outline:c7fc98acb50d','casino-sample-3','outline','c7fc98acb50d'),
+('casino-sample-3:bold:c7fc98acb50d','casino-sample-3','bold','c7fc98acb50d'),
+('casino-sample-3:broken:c7fc98acb50d','casino-sample-3','broken','c7fc98acb50d'),
+('casino-sample-3:bulk:c7fc98acb50d','casino-sample-3','bulk','c7fc98acb50d'),
+('casino-sample-3:twotone:c7fc98acb50d','casino-sample-3','twotone','c7fc98acb50d'),
+('christmas-sample-1:linear:78b299d6dc47','christmas-sample-1','linear','78b299d6dc47'),
+('christmas-sample-1:outline:78b299d6dc47','christmas-sample-1','outline','78b299d6dc47'),
+('christmas-sample-1:bold:78b299d6dc47','christmas-sample-1','bold','78b299d6dc47'),
+('christmas-sample-1:broken:78b299d6dc47','christmas-sample-1','broken','78b299d6dc47'),
+('christmas-sample-1:bulk:78b299d6dc47','christmas-sample-1','bulk','78b299d6dc47'),
+('christmas-sample-1:twotone:78b299d6dc47','christmas-sample-1','twotone','78b299d6dc47'),
+('christmas-sample-2:linear:dc83de257fb3','christmas-sample-2','linear','dc83de257fb3'),
+('christmas-sample-2:outline:dc83de257fb3','christmas-sample-2','outline','dc83de257fb3'),
+('christmas-sample-2:bold:dc83de257fb3','christmas-sample-2','bold','dc83de257fb3'),
+('christmas-sample-2:broken:dc83de257fb3','christmas-sample-2','broken','dc83de257fb3'),
+('christmas-sample-2:bulk:dc83de257fb3','christmas-sample-2','bulk','dc83de257fb3'),
+('christmas-sample-2:twotone:dc83de257fb3','christmas-sample-2','twotone','dc83de257fb3'),
+('christmas-sample-3:linear:cf21fb06b952','christmas-sample-3','linear','cf21fb06b952'),
+('christmas-sample-3:outline:cf21fb06b952','christmas-sample-3','outline','cf21fb06b952'),
+('christmas-sample-3:bold:cf21fb06b952','christmas-sample-3','bold','cf21fb06b952'),
+('christmas-sample-3:broken:cf21fb06b952','christmas-sample-3','broken','cf21fb06b952'),
+('christmas-sample-3:bulk:cf21fb06b952','christmas-sample-3','bulk','cf21fb06b952'),
+('christmas-sample-3:twotone:cf21fb06b952','christmas-sample-3','twotone','cf21fb06b952'),
+('clothes2-sample-1:linear:4cd480908611','clothes2-sample-1','linear','4cd480908611'),
+('clothes2-sample-1:outline:4cd480908611','clothes2-sample-1','outline','4cd480908611'),
+('clothes2-sample-1:bold:4cd480908611','clothes2-sample-1','bold','4cd480908611'),
+('clothes2-sample-1:broken:4cd480908611','clothes2-sample-1','broken','4cd480908611'),
+('clothes2-sample-1:bulk:4cd480908611','clothes2-sample-1','bulk','4cd480908611'),
+('clothes2-sample-1:twotone:4cd480908611','clothes2-sample-1','twotone','4cd480908611'),
+('clothes2-sample-2:linear:eb6827c8c64e','clothes2-sample-2','linear','eb6827c8c64e'),
+('clothes2-sample-2:outline:eb6827c8c64e','clothes2-sample-2','outline','eb6827c8c64e'),
+('clothes2-sample-2:bold:eb6827c8c64e','clothes2-sample-2','bold','eb6827c8c64e'),
+('clothes2-sample-2:broken:eb6827c8c64e','clothes2-sample-2','broken','eb6827c8c64e'),
+('clothes2-sample-2:bulk:eb6827c8c64e','clothes2-sample-2','bulk','eb6827c8c64e'),
+('clothes2-sample-2:twotone:eb6827c8c64e','clothes2-sample-2','twotone','eb6827c8c64e'),
+('clothes2-sample-3:linear:5e268087ac30','clothes2-sample-3','linear','5e268087ac30'),
+('clothes2-sample-3:outline:5e268087ac30','clothes2-sample-3','outline','5e268087ac30'),
+('clothes2-sample-3:bold:5e268087ac30','clothes2-sample-3','bold','5e268087ac30'),
+('clothes2-sample-3:broken:5e268087ac30','clothes2-sample-3','broken','5e268087ac30'),
+('clothes2-sample-3:bulk:5e268087ac30','clothes2-sample-3','bulk','5e268087ac30'),
+('clothes2-sample-3:twotone:5e268087ac30','clothes2-sample-3','twotone','5e268087ac30'),
+('coffe-sample-1:linear:7a44aaadcc2e','coffe-sample-1','linear','7a44aaadcc2e'),
+('coffe-sample-1:outline:7a44aaadcc2e','coffe-sample-1','outline','7a44aaadcc2e'),
+('coffe-sample-1:bold:7a44aaadcc2e','coffe-sample-1','bold','7a44aaadcc2e'),
+('coffe-sample-1:broken:7a44aaadcc2e','coffe-sample-1','broken','7a44aaadcc2e'),
+('coffe-sample-1:bulk:7a44aaadcc2e','coffe-sample-1','bulk','7a44aaadcc2e'),
+('coffe-sample-1:twotone:7a44aaadcc2e','coffe-sample-1','twotone','7a44aaadcc2e'),
+('coffe-sample-2:linear:4b776691c356','coffe-sample-2','linear','4b776691c356'),
+('coffe-sample-2:outline:4b776691c356','coffe-sample-2','outline','4b776691c356'),
+('coffe-sample-2:bold:4b776691c356','coffe-sample-2','bold','4b776691c356'),
+('coffe-sample-2:broken:4b776691c356','coffe-sample-2','broken','4b776691c356'),
+('coffe-sample-2:bulk:4b776691c356','coffe-sample-2','bulk','4b776691c356'),
+('coffe-sample-2:twotone:4b776691c356','coffe-sample-2','twotone','4b776691c356'),
+('coffe-sample-3:linear:553bdfbb4b99','coffe-sample-3','linear','553bdfbb4b99'),
+('coffe-sample-3:outline:553bdfbb4b99','coffe-sample-3','outline','553bdfbb4b99'),
+('coffe-sample-3:bold:553bdfbb4b99','coffe-sample-3','bold','553bdfbb4b99'),
+('coffe-sample-3:broken:553bdfbb4b99','coffe-sample-3','broken','553bdfbb4b99'),
+('coffe-sample-3:bulk:553bdfbb4b99','coffe-sample-3','bulk','553bdfbb4b99'),
+('coffe-sample-3:twotone:553bdfbb4b99','coffe-sample-3','twotone','553bdfbb4b99'),
+('furniture-sample-1:linear:7decfca72186','furniture-sample-1','linear','7decfca72186'),
+('furniture-sample-1:outline:7decfca72186','furniture-sample-1','outline','7decfca72186'),
+('furniture-sample-1:bold:7decfca72186','furniture-sample-1','bold','7decfca72186'),
+('furniture-sample-1:broken:7decfca72186','furniture-sample-1','broken','7decfca72186'),
+('furniture-sample-1:bulk:7decfca72186','furniture-sample-1','bulk','7decfca72186'),
+('furniture-sample-1:twotone:7decfca72186','furniture-sample-1','twotone','7decfca72186'),
+('furniture-sample-2:linear:c4dc3c0d663b','furniture-sample-2','linear','c4dc3c0d663b'),
+('furniture-sample-2:outline:c4dc3c0d663b','furniture-sample-2','outline','c4dc3c0d663b'),
+('furniture-sample-2:bold:c4dc3c0d663b','furniture-sample-2','bold','c4dc3c0d663b'),
+('furniture-sample-2:broken:c4dc3c0d663b','furniture-sample-2','broken','c4dc3c0d663b'),
+('furniture-sample-2:bulk:c4dc3c0d663b','furniture-sample-2','bulk','c4dc3c0d663b'),
+('furniture-sample-2:twotone:c4dc3c0d663b','furniture-sample-2','twotone','c4dc3c0d663b'),
+('furniture-sample-3:linear:1bbb3128d4d2','furniture-sample-3','linear','1bbb3128d4d2'),
+('furniture-sample-3:outline:1bbb3128d4d2','furniture-sample-3','outline','1bbb3128d4d2'),
+('furniture-sample-3:bold:1bbb3128d4d2','furniture-sample-3','bold','1bbb3128d4d2'),
+('furniture-sample-3:broken:1bbb3128d4d2','furniture-sample-3','broken','1bbb3128d4d2'),
+('furniture-sample-3:bulk:1bbb3128d4d2','furniture-sample-3','bulk','1bbb3128d4d2'),
+('furniture-sample-3:twotone:1bbb3128d4d2','furniture-sample-3','twotone','1bbb3128d4d2'),
+('game-sample-1:linear:3161794f95b4','game-sample-1','linear','3161794f95b4'),
+('game-sample-1:outline:3161794f95b4','game-sample-1','outline','3161794f95b4'),
+('game-sample-1:bold:3161794f95b4','game-sample-1','bold','3161794f95b4'),
+('game-sample-1:broken:3161794f95b4','game-sample-1','broken','3161794f95b4'),
+('game-sample-1:bulk:3161794f95b4','game-sample-1','bulk','3161794f95b4'),
+('game-sample-1:twotone:3161794f95b4','game-sample-1','twotone','3161794f95b4'),
+('game-sample-2:linear:a832ad2a4273','game-sample-2','linear','a832ad2a4273'),
+('game-sample-2:outline:a832ad2a4273','game-sample-2','outline','a832ad2a4273'),
+('game-sample-2:bold:a832ad2a4273','game-sample-2','bold','a832ad2a4273'),
+('game-sample-2:broken:a832ad2a4273','game-sample-2','broken','a832ad2a4273'),
+('game-sample-2:bulk:a832ad2a4273','game-sample-2','bulk','a832ad2a4273'),
+('game-sample-2:twotone:a832ad2a4273','game-sample-2','twotone','a832ad2a4273'),
+('game-sample-3:linear:ec22cc62c6b6','game-sample-3','linear','ec22cc62c6b6'),
+('game-sample-3:outline:ec22cc62c6b6','game-sample-3','outline','ec22cc62c6b6'),
+('game-sample-3:bold:ec22cc62c6b6','game-sample-3','bold','ec22cc62c6b6'),
+('game-sample-3:broken:ec22cc62c6b6','game-sample-3','broken','ec22cc62c6b6'),
+('game-sample-3:bulk:ec22cc62c6b6','game-sample-3','bulk','ec22cc62c6b6'),
+('game-sample-3:twotone:ec22cc62c6b6','game-sample-3','twotone','ec22cc62c6b6'),
+('nature-sample-1:linear:8f43b5403b86','nature-sample-1','linear','8f43b5403b86'),
+('nature-sample-1:outline:8f43b5403b86','nature-sample-1','outline','8f43b5403b86'),
+('nature-sample-1:bold:8f43b5403b86','nature-sample-1','bold','8f43b5403b86'),
+('nature-sample-1:broken:8f43b5403b86','nature-sample-1','broken','8f43b5403b86'),
+('nature-sample-1:bulk:8f43b5403b86','nature-sample-1','bulk','8f43b5403b86'),
+('nature-sample-1:twotone:8f43b5403b86','nature-sample-1','twotone','8f43b5403b86'),
+('nature-sample-2:linear:7e04e0e2194d','nature-sample-2','linear','7e04e0e2194d'),
+('nature-sample-2:outline:7e04e0e2194d','nature-sample-2','outline','7e04e0e2194d'),
+('nature-sample-2:bold:7e04e0e2194d','nature-sample-2','bold','7e04e0e2194d'),
+('nature-sample-2:broken:7e04e0e2194d','nature-sample-2','broken','7e04e0e2194d'),
+('nature-sample-2:bulk:7e04e0e2194d','nature-sample-2','bulk','7e04e0e2194d'),
+('nature-sample-2:twotone:7e04e0e2194d','nature-sample-2','twotone','7e04e0e2194d'),
+('nature-sample-3:linear:37627341d8d3','nature-sample-3','linear','37627341d8d3'),
+('nature-sample-3:outline:37627341d8d3','nature-sample-3','outline','37627341d8d3'),
+('nature-sample-3:bold:37627341d8d3','nature-sample-3','bold','37627341d8d3'),
+('nature-sample-3:broken:37627341d8d3','nature-sample-3','broken','37627341d8d3'),
+('nature-sample-3:bulk:37627341d8d3','nature-sample-3','bulk','37627341d8d3'),
+('nature-sample-3:twotone:37627341d8d3','nature-sample-3','twotone','37627341d8d3'),
+('pet-sample-1:linear:ce1ac7002fef','pet-sample-1','linear','ce1ac7002fef'),
+('pet-sample-1:outline:ce1ac7002fef','pet-sample-1','outline','ce1ac7002fef'),
+('pet-sample-1:bold:ce1ac7002fef','pet-sample-1','bold','ce1ac7002fef'),
+('pet-sample-1:broken:ce1ac7002fef','pet-sample-1','broken','ce1ac7002fef'),
+('pet-sample-1:bulk:ce1ac7002fef','pet-sample-1','bulk','ce1ac7002fef'),
+('pet-sample-1:twotone:ce1ac7002fef','pet-sample-1','twotone','ce1ac7002fef'),
+('pet-sample-2:linear:2261e8671182','pet-sample-2','linear','2261e8671182'),
+('pet-sample-2:outline:2261e8671182','pet-sample-2','outline','2261e8671182'),
+('pet-sample-2:bold:2261e8671182','pet-sample-2','bold','2261e8671182'),
+('pet-sample-2:broken:2261e8671182','pet-sample-2','broken','2261e8671182'),
+('pet-sample-2:bulk:2261e8671182','pet-sample-2','bulk','2261e8671182'),
+('pet-sample-2:twotone:2261e8671182','pet-sample-2','twotone','2261e8671182'),
+('pet-sample-3:linear:8cab3859322d','pet-sample-3','linear','8cab3859322d'),
+('pet-sample-3:outline:8cab3859322d','pet-sample-3','outline','8cab3859322d'),
+('pet-sample-3:bold:8cab3859322d','pet-sample-3','bold','8cab3859322d'),
+('pet-sample-3:broken:8cab3859322d','pet-sample-3','broken','8cab3859322d'),
+('pet-sample-3:bulk:8cab3859322d','pet-sample-3','bulk','8cab3859322d'),
+('pet-sample-3:twotone:8cab3859322d','pet-sample-3','twotone','8cab3859322d'),
+('travel-sample-1:linear:82d5c9700f41','travel-sample-1','linear','82d5c9700f41'),
+('travel-sample-1:outline:82d5c9700f41','travel-sample-1','outline','82d5c9700f41'),
+('travel-sample-1:bold:82d5c9700f41','travel-sample-1','bold','82d5c9700f41'),
+('travel-sample-1:broken:82d5c9700f41','travel-sample-1','broken','82d5c9700f41'),
+('travel-sample-1:bulk:82d5c9700f41','travel-sample-1','bulk','82d5c9700f41'),
+('travel-sample-1:twotone:82d5c9700f41','travel-sample-1','twotone','82d5c9700f41'),
+('travel-sample-2:linear:9af423b1a135','travel-sample-2','linear','9af423b1a135'),
+('travel-sample-2:outline:9af423b1a135','travel-sample-2','outline','9af423b1a135'),
+('travel-sample-2:bold:9af423b1a135','travel-sample-2','bold','9af423b1a135'),
+('travel-sample-2:broken:9af423b1a135','travel-sample-2','broken','9af423b1a135'),
+('travel-sample-2:bulk:9af423b1a135','travel-sample-2','bulk','9af423b1a135'),
+('travel-sample-2:twotone:9af423b1a135','travel-sample-2','twotone','9af423b1a135'),
+('travel-sample-3:linear:a31d6d388981','travel-sample-3','linear','a31d6d388981'),
+('travel-sample-3:outline:a31d6d388981','travel-sample-3','outline','a31d6d388981'),
+('travel-sample-3:bold:a31d6d388981','travel-sample-3','bold','a31d6d388981'),
+('travel-sample-3:broken:a31d6d388981','travel-sample-3','broken','a31d6d388981'),
+('travel-sample-3:bulk:a31d6d388981','travel-sample-3','bulk','a31d6d388981'),
+('travel-sample-3:twotone:a31d6d388981','travel-sample-3','twotone','a31d6d388981'),
+('delivery-sample-1:linear:174bd62b4c2d','delivery-sample-1','linear','174bd62b4c2d'),
+('delivery-sample-1:outline:174bd62b4c2d','delivery-sample-1','outline','174bd62b4c2d'),
+('delivery-sample-1:bold:174bd62b4c2d','delivery-sample-1','bold','174bd62b4c2d'),
+('delivery-sample-1:broken:174bd62b4c2d','delivery-sample-1','broken','174bd62b4c2d'),
+('delivery-sample-1:bulk:174bd62b4c2d','delivery-sample-1','bulk','174bd62b4c2d'),
+('delivery-sample-1:twotone:174bd62b4c2d','delivery-sample-1','twotone','174bd62b4c2d'),
+('delivery-sample-2:linear:d987aa78724d','delivery-sample-2','linear','d987aa78724d'),
+('delivery-sample-2:outline:d987aa78724d','delivery-sample-2','outline','d987aa78724d'),
+('delivery-sample-2:bold:d987aa78724d','delivery-sample-2','bold','d987aa78724d'),
+('delivery-sample-2:broken:d987aa78724d','delivery-sample-2','broken','d987aa78724d'),
+('delivery-sample-2:bulk:d987aa78724d','delivery-sample-2','bulk','d987aa78724d'),
+('delivery-sample-2:twotone:d987aa78724d','delivery-sample-2','twotone','d987aa78724d'),
+('delivery-sample-3:linear:3fbd7ffa4929','delivery-sample-3','linear','3fbd7ffa4929'),
+('delivery-sample-3:outline:3fbd7ffa4929','delivery-sample-3','outline','3fbd7ffa4929'),
+('delivery-sample-3:bold:3fbd7ffa4929','delivery-sample-3','bold','3fbd7ffa4929'),
+('delivery-sample-3:broken:3fbd7ffa4929','delivery-sample-3','broken','3fbd7ffa4929'),
+('delivery-sample-3:bulk:3fbd7ffa4929','delivery-sample-3','bulk','3fbd7ffa4929'),
+('delivery-sample-3:twotone:3fbd7ffa4929','delivery-sample-3','twotone','3fbd7ffa4929'),
+('design-tools-sample-1:linear:a17c62695cce','design-tools-sample-1','linear','a17c62695cce'),
+('design-tools-sample-1:outline:a17c62695cce','design-tools-sample-1','outline','a17c62695cce'),
+('design-tools-sample-1:bold:a17c62695cce','design-tools-sample-1','bold','a17c62695cce'),
+('design-tools-sample-1:broken:a17c62695cce','design-tools-sample-1','broken','a17c62695cce'),
+('design-tools-sample-1:bulk:a17c62695cce','design-tools-sample-1','bulk','a17c62695cce'),
+('design-tools-sample-1:twotone:a17c62695cce','design-tools-sample-1','twotone','a17c62695cce'),
+('design-tools-sample-2:linear:2871e465028e','design-tools-sample-2','linear','2871e465028e'),
+('design-tools-sample-2:outline:2871e465028e','design-tools-sample-2','outline','2871e465028e'),
+('design-tools-sample-2:bold:2871e465028e','design-tools-sample-2','bold','2871e465028e'),
+('design-tools-sample-2:broken:2871e465028e','design-tools-sample-2','broken','2871e465028e'),
+('design-tools-sample-2:bulk:2871e465028e','design-tools-sample-2','bulk','2871e465028e'),
+('design-tools-sample-2:twotone:2871e465028e','design-tools-sample-2','twotone','2871e465028e'),
+('design-tools-sample-3:linear:9a1ff7b53d24','design-tools-sample-3','linear','9a1ff7b53d24'),
+('design-tools-sample-3:outline:9a1ff7b53d24','design-tools-sample-3','outline','9a1ff7b53d24'),
+('design-tools-sample-3:bold:9a1ff7b53d24','design-tools-sample-3','bold','9a1ff7b53d24'),
+('design-tools-sample-3:broken:9a1ff7b53d24','design-tools-sample-3','broken','9a1ff7b53d24'),
+('design-tools-sample-3:bulk:9a1ff7b53d24','design-tools-sample-3','bulk','9a1ff7b53d24'),
+('design-tools-sample-3:twotone:9a1ff7b53d24','design-tools-sample-3','twotone','9a1ff7b53d24'),
+('device-sample-1:linear:8389d2fffd53','device-sample-1','linear','8389d2fffd53'),
+('device-sample-1:outline:8389d2fffd53','device-sample-1','outline','8389d2fffd53'),
+('device-sample-1:bold:8389d2fffd53','device-sample-1','bold','8389d2fffd53'),
+('device-sample-1:broken:8389d2fffd53','device-sample-1','broken','8389d2fffd53'),
+('device-sample-1:bulk:8389d2fffd53','device-sample-1','bulk','8389d2fffd53'),
+('device-sample-1:twotone:8389d2fffd53','device-sample-1','twotone','8389d2fffd53'),
+('device-sample-2:linear:69ad27479a86','device-sample-2','linear','69ad27479a86'),
+('device-sample-2:outline:69ad27479a86','device-sample-2','outline','69ad27479a86'),
+('device-sample-2:bold:69ad27479a86','device-sample-2','bold','69ad27479a86'),
+('device-sample-2:broken:69ad27479a86','device-sample-2','broken','69ad27479a86'),
+('device-sample-2:bulk:69ad27479a86','device-sample-2','bulk','69ad27479a86'),
+('device-sample-2:twotone:69ad27479a86','device-sample-2','twotone','69ad27479a86'),
+('device-sample-3:linear:64c17b457517','device-sample-3','linear','64c17b457517'),
+('device-sample-3:outline:64c17b457517','device-sample-3','outline','64c17b457517'),
+('device-sample-3:bold:64c17b457517','device-sample-3','bold','64c17b457517'),
+('device-sample-3:broken:64c17b457517','device-sample-3','broken','64c17b457517'),
+('device-sample-3:bulk:64c17b457517','device-sample-3','bulk','64c17b457517'),
+('device-sample-3:twotone:64c17b457517','device-sample-3','twotone','64c17b457517'),
+('devices-sample-1:linear:7b06029fae74','devices-sample-1','linear','7b06029fae74'),
+('devices-sample-1:outline:7b06029fae74','devices-sample-1','outline','7b06029fae74'),
+('devices-sample-1:bold:7b06029fae74','devices-sample-1','bold','7b06029fae74'),
+('devices-sample-1:broken:7b06029fae74','devices-sample-1','broken','7b06029fae74'),
+('devices-sample-1:bulk:7b06029fae74','devices-sample-1','bulk','7b06029fae74'),
+('devices-sample-1:twotone:7b06029fae74','devices-sample-1','twotone','7b06029fae74'),
+('devices-sample-2:linear:ac53172a4e3e','devices-sample-2','linear','ac53172a4e3e'),
+('devices-sample-2:outline:ac53172a4e3e','devices-sample-2','outline','ac53172a4e3e'),
+('devices-sample-2:bold:ac53172a4e3e','devices-sample-2','bold','ac53172a4e3e'),
+('devices-sample-2:broken:ac53172a4e3e','devices-sample-2','broken','ac53172a4e3e'),
+('devices-sample-2:bulk:ac53172a4e3e','devices-sample-2','bulk','ac53172a4e3e'),
+('devices-sample-2:twotone:ac53172a4e3e','devices-sample-2','twotone','ac53172a4e3e'),
+('devices-sample-3:linear:0e67f7d8938b','devices-sample-3','linear','0e67f7d8938b'),
+('devices-sample-3:outline:0e67f7d8938b','devices-sample-3','outline','0e67f7d8938b'),
+('devices-sample-3:bold:0e67f7d8938b','devices-sample-3','bold','0e67f7d8938b'),
+('devices-sample-3:broken:0e67f7d8938b','devices-sample-3','broken','0e67f7d8938b'),
+('devices-sample-3:bulk:0e67f7d8938b','devices-sample-3','bulk','0e67f7d8938b'),
+('devices-sample-3:twotone:0e67f7d8938b','devices-sample-3','twotone','0e67f7d8938b'),
+('fitness-sample-1:linear:4237fc09329e','fitness-sample-1','linear','4237fc09329e'),
+('fitness-sample-1:outline:4237fc09329e','fitness-sample-1','outline','4237fc09329e'),
+('fitness-sample-1:bold:4237fc09329e','fitness-sample-1','bold','4237fc09329e'),
+('fitness-sample-1:broken:4237fc09329e','fitness-sample-1','broken','4237fc09329e'),
+('fitness-sample-1:bulk:4237fc09329e','fitness-sample-1','bulk','4237fc09329e'),
+('fitness-sample-1:twotone:4237fc09329e','fitness-sample-1','twotone','4237fc09329e'),
+('fitness-sample-2:linear:5afcdb4d9a31','fitness-sample-2','linear','5afcdb4d9a31'),
+('fitness-sample-2:outline:5afcdb4d9a31','fitness-sample-2','outline','5afcdb4d9a31'),
+('fitness-sample-2:bold:5afcdb4d9a31','fitness-sample-2','bold','5afcdb4d9a31'),
+('fitness-sample-2:broken:5afcdb4d9a31','fitness-sample-2','broken','5afcdb4d9a31'),
+('fitness-sample-2:bulk:5afcdb4d9a31','fitness-sample-2','bulk','5afcdb4d9a31'),
+('fitness-sample-2:twotone:5afcdb4d9a31','fitness-sample-2','twotone','5afcdb4d9a31'),
+('fitness-sample-3:linear:5137a5f3295a','fitness-sample-3','linear','5137a5f3295a'),
+('fitness-sample-3:outline:5137a5f3295a','fitness-sample-3','outline','5137a5f3295a'),
+('fitness-sample-3:bold:5137a5f3295a','fitness-sample-3','bold','5137a5f3295a'),
+('fitness-sample-3:broken:5137a5f3295a','fitness-sample-3','broken','5137a5f3295a'),
+('fitness-sample-3:bulk:5137a5f3295a','fitness-sample-3','bulk','5137a5f3295a'),
+('fitness-sample-3:twotone:5137a5f3295a','fitness-sample-3','twotone','5137a5f3295a'),
+('food2-sample-1:linear:4e3ab87cc4bf','food2-sample-1','linear','4e3ab87cc4bf'),
+('food2-sample-1:outline:4e3ab87cc4bf','food2-sample-1','outline','4e3ab87cc4bf'),
+('food2-sample-1:bold:4e3ab87cc4bf','food2-sample-1','bold','4e3ab87cc4bf'),
+('food2-sample-1:broken:4e3ab87cc4bf','food2-sample-1','broken','4e3ab87cc4bf'),
+('food2-sample-1:bulk:4e3ab87cc4bf','food2-sample-1','bulk','4e3ab87cc4bf'),
+('food2-sample-1:twotone:4e3ab87cc4bf','food2-sample-1','twotone','4e3ab87cc4bf'),
+('food2-sample-2:linear:e76a17c1ece8','food2-sample-2','linear','e76a17c1ece8'),
+('food2-sample-2:outline:e76a17c1ece8','food2-sample-2','outline','e76a17c1ece8'),
+('food2-sample-2:bold:e76a17c1ece8','food2-sample-2','bold','e76a17c1ece8'),
+('food2-sample-2:broken:e76a17c1ece8','food2-sample-2','broken','e76a17c1ece8'),
+('food2-sample-2:bulk:e76a17c1ece8','food2-sample-2','bulk','e76a17c1ece8'),
+('food2-sample-2:twotone:e76a17c1ece8','food2-sample-2','twotone','e76a17c1ece8'),
+('food2-sample-3:linear:96b1e1e7a4a1','food2-sample-3','linear','96b1e1e7a4a1'),
+('food2-sample-3:outline:96b1e1e7a4a1','food2-sample-3','outline','96b1e1e7a4a1'),
+('food2-sample-3:bold:96b1e1e7a4a1','food2-sample-3','bold','96b1e1e7a4a1'),
+('food2-sample-3:broken:96b1e1e7a4a1','food2-sample-3','broken','96b1e1e7a4a1'),
+('food2-sample-3:bulk:96b1e1e7a4a1','food2-sample-3','bulk','96b1e1e7a4a1'),
+('food2-sample-3:twotone:96b1e1e7a4a1','food2-sample-3','twotone','96b1e1e7a4a1'),
+('halloween-sample-1:linear:39544a2bf407','halloween-sample-1','linear','39544a2bf407'),
+('halloween-sample-1:outline:39544a2bf407','halloween-sample-1','outline','39544a2bf407'),
+('halloween-sample-1:bold:39544a2bf407','halloween-sample-1','bold','39544a2bf407'),
+('halloween-sample-1:broken:39544a2bf407','halloween-sample-1','broken','39544a2bf407'),
+('halloween-sample-1:bulk:39544a2bf407','halloween-sample-1','bulk','39544a2bf407'),
+('halloween-sample-1:twotone:39544a2bf407','halloween-sample-1','twotone','39544a2bf407'),
+('halloween-sample-2:linear:c59ca616eb31','halloween-sample-2','linear','c59ca616eb31'),
+('halloween-sample-2:outline:c59ca616eb31','halloween-sample-2','outline','c59ca616eb31'),
+('halloween-sample-2:bold:c59ca616eb31','halloween-sample-2','bold','c59ca616eb31'),
+('halloween-sample-2:broken:c59ca616eb31','halloween-sample-2','broken','c59ca616eb31'),
+('halloween-sample-2:bulk:c59ca616eb31','halloween-sample-2','bulk','c59ca616eb31'),
+('halloween-sample-2:twotone:c59ca616eb31','halloween-sample-2','twotone','c59ca616eb31'),
+('halloween-sample-3:linear:72ba69b48758','halloween-sample-3','linear','72ba69b48758'),
+('halloween-sample-3:outline:72ba69b48758','halloween-sample-3','outline','72ba69b48758'),
+('halloween-sample-3:bold:72ba69b48758','halloween-sample-3','bold','72ba69b48758'),
+('halloween-sample-3:broken:72ba69b48758','halloween-sample-3','broken','72ba69b48758'),
+('halloween-sample-3:bulk:72ba69b48758','halloween-sample-3','bulk','72ba69b48758'),
+('halloween-sample-3:twotone:72ba69b48758','halloween-sample-3','twotone','72ba69b48758'),
+('network-sample-1:linear:95d39109c836','network-sample-1','linear','95d39109c836'),
+('network-sample-1:outline:95d39109c836','network-sample-1','outline','95d39109c836'),
+('network-sample-1:bold:95d39109c836','network-sample-1','bold','95d39109c836'),
+('network-sample-1:broken:95d39109c836','network-sample-1','broken','95d39109c836'),
+('network-sample-1:bulk:95d39109c836','network-sample-1','bulk','95d39109c836'),
+('network-sample-1:twotone:95d39109c836','network-sample-1','twotone','95d39109c836'),
+('network-sample-2:linear:001271e108a9','network-sample-2','linear','001271e108a9'),
+('network-sample-2:outline:001271e108a9','network-sample-2','outline','001271e108a9'),
+('network-sample-2:bold:001271e108a9','network-sample-2','bold','001271e108a9'),
+('network-sample-2:broken:001271e108a9','network-sample-2','broken','001271e108a9'),
+('network-sample-2:bulk:001271e108a9','network-sample-2','bulk','001271e108a9'),
+('network-sample-2:twotone:001271e108a9','network-sample-2','twotone','001271e108a9'),
+('network-sample-3:linear:907d17325fc8','network-sample-3','linear','907d17325fc8'),
+('network-sample-3:outline:907d17325fc8','network-sample-3','outline','907d17325fc8'),
+('network-sample-3:bold:907d17325fc8','network-sample-3','bold','907d17325fc8'),
+('network-sample-3:broken:907d17325fc8','network-sample-3','broken','907d17325fc8'),
+('network-sample-3:bulk:907d17325fc8','network-sample-3','bulk','907d17325fc8'),
+('network-sample-3:twotone:907d17325fc8','network-sample-3','twotone','907d17325fc8'),
+('ecology-sample-1:linear:c408a414e2d1','ecology-sample-1','linear','c408a414e2d1'),
+('ecology-sample-1:outline:c408a414e2d1','ecology-sample-1','outline','c408a414e2d1'),
+('ecology-sample-1:bold:c408a414e2d1','ecology-sample-1','bold','c408a414e2d1'),
+('ecology-sample-1:broken:c408a414e2d1','ecology-sample-1','broken','c408a414e2d1'),
+('ecology-sample-1:bulk:c408a414e2d1','ecology-sample-1','bulk','c408a414e2d1'),
+('ecology-sample-1:twotone:c408a414e2d1','ecology-sample-1','twotone','c408a414e2d1'),
+('ecology-sample-2:linear:98eb27e93c87','ecology-sample-2','linear','98eb27e93c87'),
+('ecology-sample-2:outline:98eb27e93c87','ecology-sample-2','outline','98eb27e93c87'),
+('ecology-sample-2:bold:98eb27e93c87','ecology-sample-2','bold','98eb27e93c87'),
+('ecology-sample-2:broken:98eb27e93c87','ecology-sample-2','broken','98eb27e93c87'),
+('ecology-sample-2:bulk:98eb27e93c87','ecology-sample-2','bulk','98eb27e93c87'),
+('ecology-sample-2:twotone:98eb27e93c87','ecology-sample-2','twotone','98eb27e93c87'),
+('ecology-sample-3:linear:59b1097fffa1','ecology-sample-3','linear','59b1097fffa1'),
+('ecology-sample-3:outline:59b1097fffa1','ecology-sample-3','outline','59b1097fffa1'),
+('ecology-sample-3:bold:59b1097fffa1','ecology-sample-3','bold','59b1097fffa1'),
+('ecology-sample-3:broken:59b1097fffa1','ecology-sample-3','broken','59b1097fffa1'),
+('ecology-sample-3:bulk:59b1097fffa1','ecology-sample-3','bulk','59b1097fffa1'),
+('ecology-sample-3:twotone:59b1097fffa1','ecology-sample-3','twotone','59b1097fffa1'),
+('health-sample-1:linear:0482c5b8b212','health-sample-1','linear','0482c5b8b212'),
+('health-sample-1:outline:0482c5b8b212','health-sample-1','outline','0482c5b8b212'),
+('health-sample-1:bold:0482c5b8b212','health-sample-1','bold','0482c5b8b212'),
+('health-sample-1:broken:0482c5b8b212','health-sample-1','broken','0482c5b8b212'),
+('health-sample-1:bulk:0482c5b8b212','health-sample-1','bulk','0482c5b8b212'),
+('health-sample-1:twotone:0482c5b8b212','health-sample-1','twotone','0482c5b8b212'),
+('health-sample-2:linear:3e3df56b6579','health-sample-2','linear','3e3df56b6579'),
+('health-sample-2:outline:3e3df56b6579','health-sample-2','outline','3e3df56b6579'),
+('health-sample-2:bold:3e3df56b6579','health-sample-2','bold','3e3df56b6579'),
+('health-sample-2:broken:3e3df56b6579','health-sample-2','broken','3e3df56b6579'),
+('health-sample-2:bulk:3e3df56b6579','health-sample-2','bulk','3e3df56b6579'),
+('health-sample-2:twotone:3e3df56b6579','health-sample-2','twotone','3e3df56b6579'),
+('health-sample-3:linear:9c09d7be7339','health-sample-3','linear','9c09d7be7339'),
+('health-sample-3:outline:9c09d7be7339','health-sample-3','outline','9c09d7be7339'),
+('health-sample-3:bold:9c09d7be7339','health-sample-3','bold','9c09d7be7339'),
+('health-sample-3:broken:9c09d7be7339','health-sample-3','broken','9c09d7be7339'),
+('health-sample-3:bulk:9c09d7be7339','health-sample-3','bulk','9c09d7be7339'),
+('health-sample-3:twotone:9c09d7be7339','health-sample-3','twotone','9c09d7be7339'),
+('landmarks-sample-1:linear:186af59e16af','landmarks-sample-1','linear','186af59e16af'),
+('landmarks-sample-1:outline:186af59e16af','landmarks-sample-1','outline','186af59e16af'),
+('landmarks-sample-1:bold:186af59e16af','landmarks-sample-1','bold','186af59e16af'),
+('landmarks-sample-1:broken:186af59e16af','landmarks-sample-1','broken','186af59e16af'),
+('landmarks-sample-1:bulk:186af59e16af','landmarks-sample-1','bulk','186af59e16af'),
+('landmarks-sample-1:twotone:186af59e16af','landmarks-sample-1','twotone','186af59e16af'),
+('landmarks-sample-2:linear:824378163366','landmarks-sample-2','linear','824378163366'),
+('landmarks-sample-2:outline:824378163366','landmarks-sample-2','outline','824378163366'),
+('landmarks-sample-2:bold:824378163366','landmarks-sample-2','bold','824378163366'),
+('landmarks-sample-2:broken:824378163366','landmarks-sample-2','broken','824378163366'),
+('landmarks-sample-2:bulk:824378163366','landmarks-sample-2','bulk','824378163366'),
+('landmarks-sample-2:twotone:824378163366','landmarks-sample-2','twotone','824378163366'),
+('landmarks-sample-3:linear:c40e600cc6d6','landmarks-sample-3','linear','c40e600cc6d6'),
+('landmarks-sample-3:outline:c40e600cc6d6','landmarks-sample-3','outline','c40e600cc6d6'),
+('landmarks-sample-3:bold:c40e600cc6d6','landmarks-sample-3','bold','c40e600cc6d6'),
+('landmarks-sample-3:broken:c40e600cc6d6','landmarks-sample-3','broken','c40e600cc6d6'),
+('landmarks-sample-3:bulk:c40e600cc6d6','landmarks-sample-3','bulk','c40e600cc6d6'),
+('landmarks-sample-3:twotone:c40e600cc6d6','landmarks-sample-3','twotone','c40e600cc6d6'),
+('military-sample-1:linear:15eb87bd35f9','military-sample-1','linear','15eb87bd35f9'),
+('military-sample-1:outline:15eb87bd35f9','military-sample-1','outline','15eb87bd35f9'),
+('military-sample-1:bold:15eb87bd35f9','military-sample-1','bold','15eb87bd35f9'),
+('military-sample-1:broken:15eb87bd35f9','military-sample-1','broken','15eb87bd35f9'),
+('military-sample-1:bulk:15eb87bd35f9','military-sample-1','bulk','15eb87bd35f9'),
+('military-sample-1:twotone:15eb87bd35f9','military-sample-1','twotone','15eb87bd35f9'),
+('military-sample-2:linear:f9ef1d56ce39','military-sample-2','linear','f9ef1d56ce39'),
+('military-sample-2:outline:f9ef1d56ce39','military-sample-2','outline','f9ef1d56ce39'),
+('military-sample-2:bold:f9ef1d56ce39','military-sample-2','bold','f9ef1d56ce39'),
+('military-sample-2:broken:f9ef1d56ce39','military-sample-2','broken','f9ef1d56ce39'),
+('military-sample-2:bulk:f9ef1d56ce39','military-sample-2','bulk','f9ef1d56ce39'),
+('military-sample-2:twotone:f9ef1d56ce39','military-sample-2','twotone','f9ef1d56ce39'),
+('military-sample-3:linear:7ee014da8004','military-sample-3','linear','7ee014da8004'),
+('military-sample-3:outline:7ee014da8004','military-sample-3','outline','7ee014da8004'),
+('military-sample-3:bold:7ee014da8004','military-sample-3','bold','7ee014da8004'),
+('military-sample-3:broken:7ee014da8004','military-sample-3','broken','7ee014da8004'),
+('military-sample-3:bulk:7ee014da8004','military-sample-3','bulk','7ee014da8004'),
+('military-sample-3:twotone:7ee014da8004','military-sample-3','twotone','7ee014da8004'),
+('mobile-sample-1:linear:95f09c0786a2','mobile-sample-1','linear','95f09c0786a2'),
+('mobile-sample-1:outline:95f09c0786a2','mobile-sample-1','outline','95f09c0786a2'),
+('mobile-sample-1:bold:95f09c0786a2','mobile-sample-1','bold','95f09c0786a2'),
+('mobile-sample-1:broken:95f09c0786a2','mobile-sample-1','broken','95f09c0786a2'),
+('mobile-sample-1:bulk:95f09c0786a2','mobile-sample-1','bulk','95f09c0786a2'),
+('mobile-sample-1:twotone:95f09c0786a2','mobile-sample-1','twotone','95f09c0786a2'),
+('mobile-sample-2:linear:9f92ef19a6b1','mobile-sample-2','linear','9f92ef19a6b1'),
+('mobile-sample-2:outline:9f92ef19a6b1','mobile-sample-2','outline','9f92ef19a6b1'),
+('mobile-sample-2:bold:9f92ef19a6b1','mobile-sample-2','bold','9f92ef19a6b1'),
+('mobile-sample-2:broken:9f92ef19a6b1','mobile-sample-2','broken','9f92ef19a6b1'),
+('mobile-sample-2:bulk:9f92ef19a6b1','mobile-sample-2','bulk','9f92ef19a6b1'),
+('mobile-sample-2:twotone:9f92ef19a6b1','mobile-sample-2','twotone','9f92ef19a6b1'),
+('mobile-sample-3:linear:e58278629392','mobile-sample-3','linear','e58278629392'),
+('mobile-sample-3:outline:e58278629392','mobile-sample-3','outline','e58278629392'),
+('mobile-sample-3:bold:e58278629392','mobile-sample-3','bold','e58278629392'),
+('mobile-sample-3:broken:e58278629392','mobile-sample-3','broken','e58278629392'),
+('mobile-sample-3:bulk:e58278629392','mobile-sample-3','bulk','e58278629392'),
+('mobile-sample-3:twotone:e58278629392','mobile-sample-3','twotone','e58278629392'),
+('tools-sample-1:linear:2e7e30aecc30','tools-sample-1','linear','2e7e30aecc30'),
+('tools-sample-1:outline:2e7e30aecc30','tools-sample-1','outline','2e7e30aecc30'),
+('tools-sample-1:bold:2e7e30aecc30','tools-sample-1','bold','2e7e30aecc30'),
+('tools-sample-1:broken:2e7e30aecc30','tools-sample-1','broken','2e7e30aecc30'),
+('tools-sample-1:bulk:2e7e30aecc30','tools-sample-1','bulk','2e7e30aecc30'),
+('tools-sample-1:twotone:2e7e30aecc30','tools-sample-1','twotone','2e7e30aecc30'),
+('tools-sample-2:linear:d3ca8dbd67cb','tools-sample-2','linear','d3ca8dbd67cb'),
+('tools-sample-2:outline:d3ca8dbd67cb','tools-sample-2','outline','d3ca8dbd67cb'),
+('tools-sample-2:bold:d3ca8dbd67cb','tools-sample-2','bold','d3ca8dbd67cb'),
+('tools-sample-2:broken:d3ca8dbd67cb','tools-sample-2','broken','d3ca8dbd67cb'),
+('tools-sample-2:bulk:d3ca8dbd67cb','tools-sample-2','bulk','d3ca8dbd67cb'),
+('tools-sample-2:twotone:d3ca8dbd67cb','tools-sample-2','twotone','d3ca8dbd67cb'),
+('tools-sample-3:linear:5091df7c73ac','tools-sample-3','linear','5091df7c73ac'),
+('tools-sample-3:outline:5091df7c73ac','tools-sample-3','outline','5091df7c73ac'),
+('tools-sample-3:bold:5091df7c73ac','tools-sample-3','bold','5091df7c73ac'),
+('tools-sample-3:broken:5091df7c73ac','tools-sample-3','broken','5091df7c73ac'),
+('tools-sample-3:bulk:5091df7c73ac','tools-sample-3','bulk','5091df7c73ac'),
+('tools-sample-3:twotone:5091df7c73ac','tools-sample-3','twotone','5091df7c73ac'),
+('video-sample-1:linear:3b471b2d38c8','video-sample-1','linear','3b471b2d38c8'),
+('video-sample-1:outline:3b471b2d38c8','video-sample-1','outline','3b471b2d38c8'),
+('video-sample-1:bold:3b471b2d38c8','video-sample-1','bold','3b471b2d38c8'),
+('video-sample-1:broken:3b471b2d38c8','video-sample-1','broken','3b471b2d38c8'),
+('video-sample-1:bulk:3b471b2d38c8','video-sample-1','bulk','3b471b2d38c8'),
+('video-sample-1:twotone:3b471b2d38c8','video-sample-1','twotone','3b471b2d38c8'),
+('video-sample-2:linear:488de8a1d448','video-sample-2','linear','488de8a1d448'),
+('video-sample-2:outline:488de8a1d448','video-sample-2','outline','488de8a1d448'),
+('video-sample-2:bold:488de8a1d448','video-sample-2','bold','488de8a1d448'),
+('video-sample-2:broken:488de8a1d448','video-sample-2','broken','488de8a1d448'),
+('video-sample-2:bulk:488de8a1d448','video-sample-2','bulk','488de8a1d448'),
+('video-sample-2:twotone:488de8a1d448','video-sample-2','twotone','488de8a1d448'),
+('video-sample-3:linear:9787afa5fecf','video-sample-3','linear','9787afa5fecf'),
+('video-sample-3:outline:9787afa5fecf','video-sample-3','outline','9787afa5fecf'),
+('video-sample-3:bold:9787afa5fecf','video-sample-3','bold','9787afa5fecf'),
+('video-sample-3:broken:9787afa5fecf','video-sample-3','broken','9787afa5fecf'),
+('video-sample-3:bulk:9787afa5fecf','video-sample-3','bulk','9787afa5fecf'),
+('video-sample-3:twotone:9787afa5fecf','video-sample-3','twotone','9787afa5fecf'),
+('video-audio-image-sample-1:linear:9834df16be7a','video-audio-image-sample-1','linear','9834df16be7a'),
+('video-audio-image-sample-1:outline:9834df16be7a','video-audio-image-sample-1','outline','9834df16be7a'),
+('video-audio-image-sample-1:bold:9834df16be7a','video-audio-image-sample-1','bold','9834df16be7a'),
+('video-audio-image-sample-1:broken:9834df16be7a','video-audio-image-sample-1','broken','9834df16be7a'),
+('video-audio-image-sample-1:bulk:9834df16be7a','video-audio-image-sample-1','bulk','9834df16be7a'),
+('video-audio-image-sample-1:twotone:9834df16be7a','video-audio-image-sample-1','twotone','9834df16be7a'),
+('video-audio-image-sample-2:linear:a8a518bd05dc','video-audio-image-sample-2','linear','a8a518bd05dc'),
+('video-audio-image-sample-2:outline:a8a518bd05dc','video-audio-image-sample-2','outline','a8a518bd05dc'),
+('video-audio-image-sample-2:bold:a8a518bd05dc','video-audio-image-sample-2','bold','a8a518bd05dc'),
+('video-audio-image-sample-2:broken:a8a518bd05dc','video-audio-image-sample-2','broken','a8a518bd05dc'),
+('video-audio-image-sample-2:bulk:a8a518bd05dc','video-audio-image-sample-2','bulk','a8a518bd05dc'),
+('video-audio-image-sample-2:twotone:a8a518bd05dc','video-audio-image-sample-2','twotone','a8a518bd05dc'),
+('video-audio-image-sample-3:linear:653275f2ad8a','video-audio-image-sample-3','linear','653275f2ad8a'),
+('video-audio-image-sample-3:outline:653275f2ad8a','video-audio-image-sample-3','outline','653275f2ad8a'),
+('video-audio-image-sample-3:bold:653275f2ad8a','video-audio-image-sample-3','bold','653275f2ad8a'),
+('video-audio-image-sample-3:broken:653275f2ad8a','video-audio-image-sample-3','broken','653275f2ad8a'),
+('video-audio-image-sample-3:bulk:653275f2ad8a','video-audio-image-sample-3','bulk','653275f2ad8a'),
+('video-audio-image-sample-3:twotone:653275f2ad8a','video-audio-image-sample-3','twotone','653275f2ad8a'),
+('space-sample-1:linear:898f6c0fe71a','space-sample-1','linear','898f6c0fe71a'),
+('space-sample-1:outline:898f6c0fe71a','space-sample-1','outline','898f6c0fe71a'),
+('space-sample-1:bold:898f6c0fe71a','space-sample-1','bold','898f6c0fe71a'),
+('space-sample-1:broken:898f6c0fe71a','space-sample-1','broken','898f6c0fe71a'),
+('space-sample-1:bulk:898f6c0fe71a','space-sample-1','bulk','898f6c0fe71a'),
+('space-sample-1:twotone:898f6c0fe71a','space-sample-1','twotone','898f6c0fe71a'),
+('space-sample-2:linear:a20538c761df','space-sample-2','linear','a20538c761df'),
+('space-sample-2:outline:a20538c761df','space-sample-2','outline','a20538c761df'),
+('space-sample-2:bold:a20538c761df','space-sample-2','bold','a20538c761df'),
+('space-sample-2:broken:a20538c761df','space-sample-2','broken','a20538c761df'),
+('space-sample-2:bulk:a20538c761df','space-sample-2','bulk','a20538c761df'),
+('space-sample-2:twotone:a20538c761df','space-sample-2','twotone','a20538c761df'),
+('space-sample-3:linear:f5a733744072','space-sample-3','linear','f5a733744072'),
+('space-sample-3:outline:f5a733744072','space-sample-3','outline','f5a733744072'),
+('space-sample-3:bold:f5a733744072','space-sample-3','bold','f5a733744072'),
+('space-sample-3:broken:f5a733744072','space-sample-3','broken','f5a733744072'),
+('space-sample-3:bulk:f5a733744072','space-sample-3','bulk','f5a733744072'),
+('space-sample-3:twotone:f5a733744072','space-sample-3','twotone','f5a733744072'),
+('space2-sample-1:linear:1f0b72d1b5eb','space2-sample-1','linear','1f0b72d1b5eb'),
+('space2-sample-1:outline:1f0b72d1b5eb','space2-sample-1','outline','1f0b72d1b5eb'),
+('space2-sample-1:bold:1f0b72d1b5eb','space2-sample-1','bold','1f0b72d1b5eb'),
+('space2-sample-1:broken:1f0b72d1b5eb','space2-sample-1','broken','1f0b72d1b5eb'),
+('space2-sample-1:bulk:1f0b72d1b5eb','space2-sample-1','bulk','1f0b72d1b5eb'),
+('space2-sample-1:twotone:1f0b72d1b5eb','space2-sample-1','twotone','1f0b72d1b5eb'),
+('space2-sample-2:linear:efe984beefeb','space2-sample-2','linear','efe984beefeb'),
+('space2-sample-2:outline:efe984beefeb','space2-sample-2','outline','efe984beefeb'),
+('space2-sample-2:bold:efe984beefeb','space2-sample-2','bold','efe984beefeb'),
+('space2-sample-2:broken:efe984beefeb','space2-sample-2','broken','efe984beefeb'),
+('space2-sample-2:bulk:efe984beefeb','space2-sample-2','bulk','efe984beefeb'),
+('space2-sample-2:twotone:efe984beefeb','space2-sample-2','twotone','efe984beefeb'),
+('space2-sample-3:linear:6f150718992a','space2-sample-3','linear','6f150718992a'),
+('space2-sample-3:outline:6f150718992a','space2-sample-3','outline','6f150718992a'),
+('space2-sample-3:bold:6f150718992a','space2-sample-3','bold','6f150718992a'),
+('space2-sample-3:broken:6f150718992a','space2-sample-3','broken','6f150718992a'),
+('space2-sample-3:bulk:6f150718992a','space2-sample-3','bulk','6f150718992a'),
+('space2-sample-3:twotone:6f150718992a','space2-sample-3','twotone','6f150718992a'),
+('sports-sample-1:linear:b5ed2389a064','sports-sample-1','linear','b5ed2389a064'),
+('sports-sample-1:outline:b5ed2389a064','sports-sample-1','outline','b5ed2389a064'),
+('sports-sample-1:bold:b5ed2389a064','sports-sample-1','bold','b5ed2389a064'),
+('sports-sample-1:broken:b5ed2389a064','sports-sample-1','broken','b5ed2389a064'),
+('sports-sample-1:bulk:b5ed2389a064','sports-sample-1','bulk','b5ed2389a064'),
+('sports-sample-1:twotone:b5ed2389a064','sports-sample-1','twotone','b5ed2389a064'),
+('sports-sample-2:linear:eccfc61e51d7','sports-sample-2','linear','eccfc61e51d7'),
+('sports-sample-2:outline:eccfc61e51d7','sports-sample-2','outline','eccfc61e51d7'),
+('sports-sample-2:bold:eccfc61e51d7','sports-sample-2','bold','eccfc61e51d7'),
+('sports-sample-2:broken:eccfc61e51d7','sports-sample-2','broken','eccfc61e51d7'),
+('sports-sample-2:bulk:eccfc61e51d7','sports-sample-2','bulk','eccfc61e51d7'),
+('sports-sample-2:twotone:eccfc61e51d7','sports-sample-2','twotone','eccfc61e51d7'),
+('sports-sample-3:linear:30a813cb6f37','sports-sample-3','linear','30a813cb6f37'),
+('sports-sample-3:outline:30a813cb6f37','sports-sample-3','outline','30a813cb6f37'),
+('sports-sample-3:bold:30a813cb6f37','sports-sample-3','bold','30a813cb6f37'),
+('sports-sample-3:broken:30a813cb6f37','sports-sample-3','broken','30a813cb6f37'),
+('sports-sample-3:bulk:30a813cb6f37','sports-sample-3','bulk','30a813cb6f37'),
+('sports-sample-3:twotone:30a813cb6f37','sports-sample-3','twotone','30a813cb6f37'),
+('sports2-sample-1:linear:209cc56ae206','sports2-sample-1','linear','209cc56ae206'),
+('sports2-sample-1:outline:209cc56ae206','sports2-sample-1','outline','209cc56ae206'),
+('sports2-sample-1:bold:209cc56ae206','sports2-sample-1','bold','209cc56ae206'),
+('sports2-sample-1:broken:209cc56ae206','sports2-sample-1','broken','209cc56ae206'),
+('sports2-sample-1:bulk:209cc56ae206','sports2-sample-1','bulk','209cc56ae206'),
+('sports2-sample-1:twotone:209cc56ae206','sports2-sample-1','twotone','209cc56ae206'),
+('sports2-sample-2:linear:d3146cfb566d','sports2-sample-2','linear','d3146cfb566d'),
+('sports2-sample-2:outline:d3146cfb566d','sports2-sample-2','outline','d3146cfb566d'),
+('sports2-sample-2:bold:d3146cfb566d','sports2-sample-2','bold','d3146cfb566d'),
+('sports2-sample-2:broken:d3146cfb566d','sports2-sample-2','broken','d3146cfb566d'),
+('sports2-sample-2:bulk:d3146cfb566d','sports2-sample-2','bulk','d3146cfb566d'),
+('sports2-sample-2:twotone:d3146cfb566d','sports2-sample-2','twotone','d3146cfb566d'),
+('sports2-sample-3:linear:23da873545a4','sports2-sample-3','linear','23da873545a4'),
+('sports2-sample-3:outline:23da873545a4','sports2-sample-3','outline','23da873545a4'),
+('sports2-sample-3:bold:23da873545a4','sports2-sample-3','bold','23da873545a4'),
+('sports2-sample-3:broken:23da873545a4','sports2-sample-3','broken','23da873545a4'),
+('sports2-sample-3:bulk:23da873545a4','sports2-sample-3','bulk','23da873545a4'),
+('sports2-sample-3:twotone:23da873545a4','sports2-sample-3','twotone','23da873545a4'),
+('telephone-sample-1:linear:56ef08a5526e','telephone-sample-1','linear','56ef08a5526e'),
+('telephone-sample-1:outline:56ef08a5526e','telephone-sample-1','outline','56ef08a5526e'),
+('telephone-sample-1:bold:56ef08a5526e','telephone-sample-1','bold','56ef08a5526e'),
+('telephone-sample-1:broken:56ef08a5526e','telephone-sample-1','broken','56ef08a5526e'),
+('telephone-sample-1:bulk:56ef08a5526e','telephone-sample-1','bulk','56ef08a5526e'),
+('telephone-sample-1:twotone:56ef08a5526e','telephone-sample-1','twotone','56ef08a5526e'),
+('telephone-sample-2:linear:61739cfd4b98','telephone-sample-2','linear','61739cfd4b98'),
+('telephone-sample-2:outline:61739cfd4b98','telephone-sample-2','outline','61739cfd4b98'),
+('telephone-sample-2:bold:61739cfd4b98','telephone-sample-2','bold','61739cfd4b98'),
+('telephone-sample-2:broken:61739cfd4b98','telephone-sample-2','broken','61739cfd4b98'),
+('telephone-sample-2:bulk:61739cfd4b98','telephone-sample-2','bulk','61739cfd4b98'),
+('telephone-sample-2:twotone:61739cfd4b98','telephone-sample-2','twotone','61739cfd4b98'),
+('telephone-sample-3:linear:a10c8f18b6b8','telephone-sample-3','linear','a10c8f18b6b8'),
+('telephone-sample-3:outline:a10c8f18b6b8','telephone-sample-3','outline','a10c8f18b6b8'),
+('telephone-sample-3:bold:a10c8f18b6b8','telephone-sample-3','bold','a10c8f18b6b8'),
+('telephone-sample-3:broken:a10c8f18b6b8','telephone-sample-3','broken','a10c8f18b6b8'),
+('telephone-sample-3:bulk:a10c8f18b6b8','telephone-sample-3','bulk','a10c8f18b6b8'),
+('telephone-sample-3:twotone:a10c8f18b6b8','telephone-sample-3','twotone','a10c8f18b6b8'),
+('search-sample-1:linear:1d6e8e2995ab','search-sample-1','linear','1d6e8e2995ab'),
+('search-sample-1:outline:1d6e8e2995ab','search-sample-1','outline','1d6e8e2995ab'),
+('search-sample-1:bold:1d6e8e2995ab','search-sample-1','bold','1d6e8e2995ab'),
+('search-sample-1:broken:1d6e8e2995ab','search-sample-1','broken','1d6e8e2995ab'),
+('search-sample-1:bulk:1d6e8e2995ab','search-sample-1','bulk','1d6e8e2995ab'),
+('search-sample-1:twotone:1d6e8e2995ab','search-sample-1','twotone','1d6e8e2995ab'),
+('search-sample-2:linear:ce6ab45e6616','search-sample-2','linear','ce6ab45e6616'),
+('search-sample-2:outline:ce6ab45e6616','search-sample-2','outline','ce6ab45e6616'),
+('search-sample-2:bold:ce6ab45e6616','search-sample-2','bold','ce6ab45e6616'),
+('search-sample-2:broken:ce6ab45e6616','search-sample-2','broken','ce6ab45e6616'),
+('search-sample-2:bulk:ce6ab45e6616','search-sample-2','bulk','ce6ab45e6616'),
+('search-sample-2:twotone:ce6ab45e6616','search-sample-2','twotone','ce6ab45e6616'),
+('search-sample-3:linear:20a2b0f131f4','search-sample-3','linear','20a2b0f131f4'),
+('search-sample-3:outline:20a2b0f131f4','search-sample-3','outline','20a2b0f131f4'),
+('search-sample-3:bold:20a2b0f131f4','search-sample-3','bold','20a2b0f131f4'),
+('search-sample-3:broken:20a2b0f131f4','search-sample-3','broken','20a2b0f131f4'),
+('search-sample-3:bulk:20a2b0f131f4','search-sample-3','bulk','20a2b0f131f4'),
+('search-sample-3:twotone:20a2b0f131f4','search-sample-3','twotone','20a2b0f131f4'),
+('wedding-sample-1:linear:7ad7f809ff85','wedding-sample-1','linear','7ad7f809ff85'),
+('wedding-sample-1:outline:7ad7f809ff85','wedding-sample-1','outline','7ad7f809ff85'),
+('wedding-sample-1:bold:7ad7f809ff85','wedding-sample-1','bold','7ad7f809ff85'),
+('wedding-sample-1:broken:7ad7f809ff85','wedding-sample-1','broken','7ad7f809ff85'),
+('wedding-sample-1:bulk:7ad7f809ff85','wedding-sample-1','bulk','7ad7f809ff85'),
+('wedding-sample-1:twotone:7ad7f809ff85','wedding-sample-1','twotone','7ad7f809ff85'),
+('wedding-sample-2:linear:60ff85977646','wedding-sample-2','linear','60ff85977646'),
+('wedding-sample-2:outline:60ff85977646','wedding-sample-2','outline','60ff85977646'),
+('wedding-sample-2:bold:60ff85977646','wedding-sample-2','bold','60ff85977646'),
+('wedding-sample-2:broken:60ff85977646','wedding-sample-2','broken','60ff85977646'),
+('wedding-sample-2:bulk:60ff85977646','wedding-sample-2','bulk','60ff85977646'),
+('wedding-sample-2:twotone:60ff85977646','wedding-sample-2','twotone','60ff85977646'),
+('wedding-sample-3:linear:ff54aae6258d','wedding-sample-3','linear','ff54aae6258d'),
+('wedding-sample-3:outline:ff54aae6258d','wedding-sample-3','outline','ff54aae6258d'),
+('wedding-sample-3:bold:ff54aae6258d','wedding-sample-3','bold','ff54aae6258d'),
+('wedding-sample-3:broken:ff54aae6258d','wedding-sample-3','broken','ff54aae6258d'),
+('wedding-sample-3:bulk:ff54aae6258d','wedding-sample-3','bulk','ff54aae6258d'),
+('wedding-sample-3:twotone:ff54aae6258d','wedding-sample-3','twotone','ff54aae6258d'),
+('vr-sample-1:linear:e546026f91af','vr-sample-1','linear','e546026f91af'),
+('vr-sample-1:outline:e546026f91af','vr-sample-1','outline','e546026f91af'),
+('vr-sample-1:bold:e546026f91af','vr-sample-1','bold','e546026f91af'),
+('vr-sample-1:broken:e546026f91af','vr-sample-1','broken','e546026f91af'),
+('vr-sample-1:bulk:e546026f91af','vr-sample-1','bulk','e546026f91af'),
+('vr-sample-1:twotone:e546026f91af','vr-sample-1','twotone','e546026f91af'),
+('vr-sample-2:linear:b21147a955bd','vr-sample-2','linear','b21147a955bd'),
+('vr-sample-2:outline:b21147a955bd','vr-sample-2','outline','b21147a955bd'),
+('vr-sample-2:bold:b21147a955bd','vr-sample-2','bold','b21147a955bd'),
+('vr-sample-2:broken:b21147a955bd','vr-sample-2','broken','b21147a955bd'),
+('vr-sample-2:bulk:b21147a955bd','vr-sample-2','bulk','b21147a955bd'),
+('vr-sample-2:twotone:b21147a955bd','vr-sample-2','twotone','b21147a955bd'),
+('vr-sample-3:linear:777f9c5514f8','vr-sample-3','linear','777f9c5514f8'),
+('vr-sample-3:outline:777f9c5514f8','vr-sample-3','outline','777f9c5514f8'),
+('vr-sample-3:bold:777f9c5514f8','vr-sample-3','bold','777f9c5514f8'),
+('vr-sample-3:broken:777f9c5514f8','vr-sample-3','broken','777f9c5514f8'),
+('vr-sample-3:bulk:777f9c5514f8','vr-sample-3','bulk','777f9c5514f8'),
+('vr-sample-3:twotone:777f9c5514f8','vr-sample-3','twotone','777f9c5514f8')
+on conflict(id) do nothing;
+commit;
+
+commit;
+
+-- ============================================================================
+-- 0031_local_worker_atomic_reservations.sql
+-- ============================================================================
+
+begin;
+
+-- Opt-in development RPCs atomically bind locally executed work before remote
+-- polling workers can observe it. Existing deployment RPCs remain unchanged.
+create or replace function public.create_local_generation_job_v2(
+  p_user_id uuid, p_spec jsonb, p_skill_version text, p_idempotency_key uuid,
+  p_worker_id text, p_lease_seconds integer default 900
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare v_job_id uuid;
+begin
+  if coalesce(trim(p_worker_id), '') = '' or p_worker_id !~ '^local-web-[0-9]+$' then
+    raise exception using message = 'INVALID_LOCAL_WORKER_ID';
+  end if;
+  if p_lease_seconds < 30 or p_lease_seconds > 900 then
+    raise exception using message = 'INVALID_WORKER_LEASE_SECONDS';
+  end if;
+  v_job_id := public.create_generation_job_v2(p_user_id, p_spec, p_skill_version, p_idempotency_key);
+  update public.generation_jobs
+  set worker_lease_owner = p_worker_id,
+      worker_lease_expires_at = now() + make_interval(secs => p_lease_seconds),
+      updated_at = now()
+  where id = v_job_id and status in ('queued', 'processing');
+  return v_job_id;
+end;
+$$;
+revoke all on function public.create_local_generation_job_v2(uuid, jsonb, text, uuid, text, integer) from public, anon;
+grant execute on function public.create_local_generation_job_v2(uuid, jsonb, text, uuid, text, integer) to authenticated, service_role;
+
+create or replace function public.retry_local_generation_variant_v2(
+  p_user_id uuid, p_variant_id uuid, p_worker_id text,
+  p_lease_seconds integer default 900
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare v_job_id uuid;
+begin
+  if coalesce(trim(p_worker_id), '') = '' or p_worker_id !~ '^local-web-[0-9]+$' then
+    raise exception using message = 'INVALID_LOCAL_WORKER_ID';
+  end if;
+  if p_lease_seconds < 30 or p_lease_seconds > 900 then
+    raise exception using message = 'INVALID_WORKER_LEASE_SECONDS';
+  end if;
+  v_job_id := public.retry_generation_variant_v2(p_user_id, p_variant_id);
+  update public.generation_jobs
+  set worker_lease_owner = p_worker_id,
+      worker_lease_expires_at = now() + make_interval(secs => p_lease_seconds),
+      updated_at = now()
+  where id = v_job_id;
+  return v_job_id;
+end;
+$$;
+revoke all on function public.retry_local_generation_variant_v2(uuid, uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.retry_local_generation_variant_v2(uuid, uuid, text, integer) to service_role;
+
+create or replace function public.create_local_variant_detail_edit_v2(
+  p_user_id uuid, p_variant_id uuid, p_instruction text, p_idempotency_key uuid,
+  p_worker_id text, p_lease_seconds integer default 900
+) returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_result jsonb;
+  v_revision_id uuid;
+begin
+  if coalesce(trim(p_worker_id), '') = '' or p_worker_id !~ '^local-web-[0-9]+$' then
+    raise exception using message = 'INVALID_LOCAL_WORKER_ID';
+  end if;
+  if p_lease_seconds < 30 or p_lease_seconds > 900 then
+    raise exception using message = 'INVALID_WORKER_LEASE_SECONDS';
+  end if;
+
+  v_result := public.create_variant_detail_edit_v2(
+    p_user_id, p_variant_id, p_instruction, p_idempotency_key
+  );
+  v_revision_id := (v_result ->> 'id')::uuid;
+
+  update public.generation_variant_revisions
+  set worker_lease_owner = p_worker_id,
+      worker_lease_expires_at = now() + make_interval(secs => p_lease_seconds),
+      updated_at = now()
+  where id = v_revision_id and status in ('queued', 'processing');
+
+  return v_result;
+end;
+$$;
+revoke all on function public.create_local_variant_detail_edit_v2(uuid, uuid, text, uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.create_local_variant_detail_edit_v2(uuid, uuid, text, uuid, text, integer) to service_role;
+
+commit;
+
+-- ============================================================================
+-- 0032_expand_generation_subject_description.sql
+-- ============================================================================
+
+begin;
+
+-- Keep the database contract aligned with MAX_SUBJECT_DESCRIPTION_LENGTH.
+alter table public.generation_subjects
+  drop constraint if exists generation_subjects_description_check;
+
+alter table public.generation_subjects
+  add constraint generation_subjects_description_check
+  check (char_length(description) between 1 and 400);
+
+commit;
+
+-- ============================================================================
+-- 0033_icon_projects.sql
+-- ============================================================================
+
+begin;
+
+-- User-owned projects group interaction-icon generation jobs without changing
+-- the existing subject -> variant -> asset hierarchy beneath each job.
+create table public.icon_projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null check (char_length(trim(name)) between 1 and 80),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index icon_projects_user_name_idx
+  on public.icon_projects(user_id, lower(trim(name)));
+create index icon_projects_user_updated_idx
+  on public.icon_projects(user_id, updated_at desc);
+
+create trigger icon_projects_set_updated_at
+  before update on public.icon_projects
+  for each row execute function public.set_updated_at();
+
+alter table public.icon_projects enable row level security;
+create policy "users read own icon projects" on public.icon_projects
+  for select using (user_id = auth.uid());
+create policy "users create own icon projects" on public.icon_projects
+  for insert with check (user_id = auth.uid());
+create policy "users update own icon projects" on public.icon_projects
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "users delete own icon projects" on public.icon_projects
+  for delete using (user_id = auth.uid());
+
+alter table public.generation_jobs
+  add column project_id uuid references public.icon_projects(id) on delete set null;
+create index generation_jobs_project_created_idx
+  on public.generation_jobs(project_id, created_at desc)
+  where project_id is not null;
+
+create or replace function public.create_generation_job_v2(
+  p_user_id uuid,
+  p_spec jsonb,
+  p_skill_version text,
+  p_idempotency_key uuid
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  v_job_id uuid;
+  v_project_id uuid;
+  v_subject jsonb;
+  v_subject_id uuid;
+  v_position integer := 0;
+  v_subject_count integer;
+  v_balance integer;
+begin
+  if p_user_id <> auth.uid() and auth.role() <> 'service_role' then
+    raise exception using message = 'NOT_AUTHORIZED';
+  end if;
+  if (select status from public.profiles where id = p_user_id) <> 'active' then
+    raise exception using message = 'ACCOUNT_NOT_ACTIVE';
+  end if;
+  if coalesce(p_spec->>'settingsVersion', '') = '' then
+    raise exception using message = 'SETTINGS_VERSION_REQUIRED';
+  end if;
+  if jsonb_typeof(p_spec->'subjects') <> 'array' then
+    raise exception using message = 'SUBJECTS_MUST_BE_ARRAY';
+  end if;
+
+  if nullif(p_spec->>'projectId', '') is not null then
+    begin
+      v_project_id := (p_spec->>'projectId')::uuid;
+    exception when invalid_text_representation then
+      raise exception using message = 'INVALID_PROJECT_ID';
+    end;
+    if not exists (
+      select 1 from public.icon_projects
+      where id = v_project_id and user_id = p_user_id
+    ) then raise exception using message = 'PROJECT_NOT_FOUND'; end if;
+  end if;
+
+  v_subject_count := jsonb_array_length(p_spec->'subjects');
+  if v_subject_count < 1 or v_subject_count > 20 then
+    raise exception using message = 'SUBJECT_COUNT_OUT_OF_RANGE';
+  end if;
+
+  select id into v_job_id from public.generation_jobs
+  where user_id = p_user_id and idempotency_key = p_idempotency_key;
+  if v_job_id is not null then return v_job_id; end if;
+
+  if exists (
+    select 1 from public.generation_jobs
+    where user_id = p_user_id and status in ('queued', 'processing')
+  ) then raise exception using message = 'ACTIVE_GENERATION_EXISTS'; end if;
+
+  select balance into v_balance from public.credit_accounts
+  where user_id = p_user_id for update;
+  if not found then raise exception using message = 'CREDIT_ACCOUNT_NOT_FOUND'; end if;
+  if v_balance < v_subject_count then
+    raise exception using
+      message = 'INSUFFICIENT_CREDITS',
+      detail = jsonb_build_object('required', v_subject_count, 'balance', v_balance)::text;
+  end if;
+
+  insert into public.generation_jobs (
+    user_id, project_id, description, skill_version, credit_cost, settings_version,
+    generation_spec, subject_count, variants_per_subject, progress_phase, idempotency_key
+  ) values (
+    p_user_id, v_project_id, left(p_spec->'subjects'->0->>'description', 1000), p_skill_version,
+    v_subject_count, p_spec->>'settingsVersion', p_spec, v_subject_count, 3,
+    'queued', p_idempotency_key
+  ) returning id into v_job_id;
+
+  for v_subject in select value from jsonb_array_elements(p_spec->'subjects') loop
+    insert into public.generation_subjects (
+      job_id, client_id, name, description, position, color_override
+    ) values (
+      v_job_id, v_subject->>'clientId', v_subject->>'name',
+      v_subject->>'description', v_position, v_subject->'colorOverride'
+    ) returning id into v_subject_id;
+    insert into public.generation_variants(subject_id, slot)
+    values (v_subject_id, 1), (v_subject_id, 2), (v_subject_id, 3);
+    v_position := v_position + 1;
+  end loop;
+
+  update public.credit_accounts
+  set balance = balance - v_subject_count, updated_at = now()
+  where user_id = p_user_id returning balance into v_balance;
+
+  insert into public.credit_ledger (
+    user_id, entry_type, amount, balance_after, generation_job_id,
+    idempotency_key, note
+  ) values (
+    p_user_id, 'generation_debit', -v_subject_count, v_balance, v_job_id,
+    'generation-debit:' || p_idempotency_key::text,
+    v_subject_count::text || case when v_subject_count = 1 then ' icon subject' else ' icon subjects' end
+  );
+
+  if v_project_id is not null then
+    update public.icon_projects set updated_at = now() where id = v_project_id;
+  end if;
+  return v_job_id;
+end;
+$$;
+
+revoke all on function public.create_generation_job_v2(uuid, jsonb, text, uuid)
+  from public, anon, authenticated;
+grant execute on function public.create_generation_job_v2(uuid, jsonb, text, uuid)
+  to authenticated, service_role;
+
+commit;
+
+-- ============================================================================
+-- 0034_icon_project_limit.sql
+-- ============================================================================
+
+begin;
+
+-- Enforce the per-user project limit at the authoritative database boundary.
+-- The advisory transaction lock serializes concurrent creates for one user.
+create or replace function public.enforce_icon_project_limit()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(new.user_id::text, 0));
+  if (
+    select count(*) from public.icon_projects where user_id = new.user_id
+  ) >= 10 then
+    raise exception using message = 'PROJECT_LIMIT_REACHED';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger icon_projects_enforce_limit
+  before insert on public.icon_projects
+  for each row execute function public.enforce_icon_project_limit();
+
+commit;
+
+-- ============================================================================
+-- 0035_expand_icon_project_rules.sql
+-- ============================================================================
+
+begin;
+
+-- Final project limits: 20 projects per user; Chinese/mixed names use an
+-- 18-character cap, while English names use a 20-word cap.
+alter table public.icon_projects
+  drop constraint if exists icon_projects_name_check;
+alter table public.icon_projects
+  add constraint icon_projects_name_check
+  check (char_length(trim(name)) between 1 and 160);
+
+create or replace function public.enforce_icon_project_limit()
+returns trigger language plpgsql set search_path = public as $$
+declare
+  v_name text := trim(new.name);
+begin
+  if tg_op = 'INSERT' then
+    perform pg_advisory_xact_lock(hashtextextended(new.user_id::text, 0));
+    if (
+      select count(*) from public.icon_projects where user_id = new.user_id
+    ) >= 20 then
+      raise exception using message = 'PROJECT_LIMIT_REACHED';
+    end if;
+  end if;
+
+  if v_name ~ '[一-龥]' then
+    if char_length(v_name) > 18 then
+      raise exception using message = 'PROJECT_NAME_TOO_LONG';
+    end if;
+  elsif cardinality(regexp_split_to_array(v_name, '\s+')) > 20 then
+    raise exception using message = 'PROJECT_NAME_TOO_LONG';
+  end if;
+  new.name := v_name;
+  return new;
+end;
+$$;
+
+drop trigger if exists icon_projects_enforce_limit on public.icon_projects;
+create trigger icon_projects_enforce_limit
+  before insert or update of name on public.icon_projects
+  for each row execute function public.enforce_icon_project_limit();
+
+commit;
+
+-- ============================================================================
+-- 0036_icon_project_descriptions.sql
+-- ============================================================================
+
+begin;
+
+alter table public.icon_projects
+  add column if not exists description text not null default '';
+
+alter table public.icon_projects
+  drop constraint if exists icon_projects_description_check;
+alter table public.icon_projects
+  add constraint icon_projects_description_check
+  check (
+    description = ''
+    or (
+      description ~ '[一-龥]'
+      and char_length(description) <= 300
+    )
+    or (
+      description !~ '[一-龥]'
+      and cardinality(regexp_split_to_array(trim(description), '\s+')) <= 400
+    )
+  );
+
+comment on column public.icon_projects.description is
+  'Project and feature-module summary. Chinese/mixed text: 300 characters; English: 400 words.';
+
+commit;
+
+-- ============================================================================
+-- 0037_icon_project_themes.sql
+-- ============================================================================
+
+begin;
+
+alter table public.icon_projects
+  add column if not exists theme jsonb,
+  add column if not exists theme_status text not null default 'pending',
+  add column if not exists theme_source text not null default 'preset',
+  add column if not exists theme_failure_reason text,
+  add column if not exists theme_generated_at timestamptz;
+
+alter table public.icon_projects drop constraint if exists icon_projects_theme_status_check;
+alter table public.icon_projects add constraint icon_projects_theme_status_check check (theme_status in ('pending','ready','failed'));
+alter table public.icon_projects drop constraint if exists icon_projects_theme_source_check;
+alter table public.icon_projects add constraint icon_projects_theme_source_check check (theme_source in ('preset','ai','manual'));
+
+commit;
+
+-- ============================================================================
+-- 0038_icon_project_saved_themes.sql
+-- ============================================================================
+
+begin;
+
+alter table public.icon_projects
+  add column if not exists ai_theme jsonb,
+  add column if not exists custom_theme jsonb;
+
+update public.icon_projects
+set ai_theme = theme
+where theme_source = 'ai' and theme is not null and ai_theme is null;
+
+update public.icon_projects
+set custom_theme = theme
+where theme_source = 'manual' and theme is not null and custom_theme is null;
+
+commit;
+
+-- ============================================================================
+-- 0039_project_svg_icon_sets.sql
+-- ============================================================================
+
+begin;
+
+-- Editable SVG sets generated on the icon canvas, separate from raster generation jobs.
+create table public.project_svg_icon_sets (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.icon_projects(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  plan jsonb not null,
+  snapshot jsonb not null,
+  recycled_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index project_svg_icon_sets_project_created_idx
+  on public.project_svg_icon_sets(project_id, created_at desc);
+
+create table public.project_svg_icons (
+  set_id uuid not null references public.project_svg_icon_sets(id) on delete cascade,
+  subject_id text not null,
+  svg text not null check (octet_length(svg) <= 100000),
+  is_favorite boolean not null default false,
+  recycled_at timestamptz,
+  constraint project_svg_icons_favorite_recycle_exclusive check (not (is_favorite and recycled_at is not null)),
+  created_at timestamptz not null default now(),
+  primary key (set_id, subject_id)
+);
+
+alter table public.project_svg_icon_sets enable row level security;
+create policy "users read own svg icon sets" on public.project_svg_icon_sets
+  for select using (user_id = auth.uid());
+create policy "users create own svg icon sets" on public.project_svg_icon_sets
+  for insert with check (user_id = auth.uid() and exists (
+    select 1 from public.icon_projects where id = project_id and user_id = auth.uid()
+  ));
+alter table public.project_svg_icons enable row level security;
+create policy "users read own svg icons" on public.project_svg_icons
+  for select using (exists (
+    select 1 from public.project_svg_icon_sets where id = set_id and user_id = auth.uid()
+  ));
+create policy "users create own svg icons" on public.project_svg_icons
+  for insert with check (exists (
+    select 1 from public.project_svg_icon_sets where id = set_id and user_id = auth.uid()
+  ));
+create policy "users update own svg icons" on public.project_svg_icons
+  for update using (exists (
+    select 1 from public.project_svg_icon_sets where id = set_id and user_id = auth.uid()
+  )) with check (exists (
+    select 1 from public.project_svg_icon_sets where id = set_id and user_id = auth.uid()
+  ));
+
+commit;
+
+-- ============================================================================
+-- 0040_project_svg_icon_set_positions.sql
+-- ============================================================================
+
+begin;
+
+-- Persist each generated icon set's position in the project canvas.
+alter table public.project_svg_icon_sets
+  add column canvas_position jsonb not null default '{"x":0,"y":0}'::jsonb,
+  add column is_favorite boolean not null default false;
+
+alter table public.project_svg_icon_sets
+  add constraint project_svg_icon_sets_canvas_position_shape check (
+    jsonb_typeof(canvas_position) = 'object'
+    and jsonb_typeof(canvas_position -> 'x') = 'number'
+    and jsonb_typeof(canvas_position -> 'y') = 'number'
+    and abs((canvas_position ->> 'x')::numeric) <= 100000
+    and abs((canvas_position ->> 'y')::numeric) <= 100000
+  );
+
+alter table public.project_svg_icon_sets
+  add constraint project_svg_icon_sets_favorite_recycle_exclusive
+  check (not (is_favorite and recycled_at is not null));
+
+create policy "users update own svg icon sets" on public.project_svg_icon_sets
+  for update using (user_id = auth.uid())
+  with check (user_id = auth.uid() and exists (
+    select 1 from public.icon_projects where id = project_id and user_id = auth.uid()
+  ));
+
+create policy "users delete own svg icon sets" on public.project_svg_icon_sets
+  for delete using (user_id = auth.uid());
 
 commit;

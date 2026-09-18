@@ -5904,6 +5904,26 @@ html[data-theme="dark"] body:has(.butter-home)
 .auth-studio .auth-social-button {
   border-radius: 999px !important;
 }
+html[data-theme="light"] .auth-sign-in-dialog .studio-button--primary {
+  background: #171717 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+html[data-theme="light"] .auth-sign-in-dialog .studio-button--primary:hover {
+  background: #252525 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+html[data-theme="dark"] .auth-sign-in-dialog .studio-button--primary {
+  background: #f5f5f5 !important;
+  color: #171717 !important;
+  -webkit-text-fill-color: #171717 !important;
+}
+html[data-theme="dark"] .auth-sign-in-dialog .studio-button--primary:hover {
+  background: #ffffff !important;
+  color: #0a0909 !important;
+  -webkit-text-fill-color: #0a0909 !important;
+}
 .auth-dialog-open {
   overflow: hidden;
 }
@@ -6102,11 +6122,29 @@ body:has(.studio-dark-page) .language-switch__option[aria-pressed="true"] {
 }
 
 [data-toast-variant] {
-  border-color: var(--ui-line-363636, #363636) !important;
-  border-radius: 14px !important;
-  background: var(--ui-surface-1d1d1d, #1d1d1d) !important;
+  border-color: rgb(255 255 255 / 12%) !important;
+  border-radius: 18px !important;
+  background: rgb(20 21 23 / 88%) !important;
   color: var(--ui-ink-f5f5f5, #f5f5f5) !important;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 22px 70px rgb(0 0 0 / 42%), inset 0 1px 0 rgb(255 255 255 / 6%) !important;
+  backdrop-filter: blur(18px) saturate(130%);
+  animation: appToastEnter 220ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.app-toast__message { color: var(--ui-ink-f5f5f5, #f5f5f5); line-height: 1.45; text-align: center; }
+.app-toast .studio-notice__icon { width: 28px; height: 28px; background: color-mix(in srgb, currentColor 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 24%, transparent); }
+@keyframes appToastEnter {
+  from { opacity: 0; scale: .94; }
+  to { opacity: 1; scale: 1; }
+}
+:root[data-theme="light"] [data-toast-variant] {
+  border-color: rgb(0 0 0 / 10%) !important;
+  background: rgb(255 255 255 / 88%) !important;
+  color: #202124 !important;
+  box-shadow: 0 22px 70px rgb(34 38 36 / 18%), inset 0 1px 0 #fff !important;
+}
+:root[data-theme="light"] .app-toast__message { color: #202124; }
+@media (prefers-reduced-motion: reduce) {
+  [data-toast-variant] { animation: none; }
 }
 @media (max-width: 640px) {
   .studio-shell {
@@ -6573,6 +6611,28 @@ html :is(.butter-marketing-header, .studio-header)
   .language-switch__option[aria-pressed="true"]::after {
   transform: scaleX(1);
   transform-origin: left;
+}
+
+/* Floating canvas chrome shares one translucent material in both themes. */
+.studio-shell:has([data-preview-canvas]) {
+  --canvas-glass-surface: rgb(27 28 30 / 68%);
+  --canvas-glass-border: rgb(255 255 255 / 13%);
+  --canvas-glass-hover: rgb(255 255 255 / 9%);
+  --canvas-glass-filter: blur(24px) saturate(125%);
+}
+html[data-theme="light"] .studio-shell:has([data-preview-canvas]) {
+  --canvas-glass-surface: rgb(229 232 235 / 66%);
+  --canvas-glass-border: rgb(60 64 67 / 18%);
+  --canvas-glass-hover: rgb(60 64 67 / 8%);
+}
+.studio-shell:has([data-preview-canvas]) :is([data-canvas-glass], .studio-header, .user-menu__panel) {
+  background: var(--canvas-glass-surface) !important;
+  border-color: var(--canvas-glass-border) !important;
+  -webkit-backdrop-filter: var(--canvas-glass-filter);
+  backdrop-filter: var(--canvas-glass-filter);
+}
+.studio-shell:has([data-preview-canvas]) button[data-canvas-glass]:is(:hover, [aria-expanded="true"]) {
+  background: color-mix(in srgb, var(--canvas-glass-surface), var(--canvas-glass-hover) 18%) !important;
 }
 
 /* Shared legal-document palette for Security, Privacy and Terms. */

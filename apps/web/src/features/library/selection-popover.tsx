@@ -21,10 +21,10 @@ export function useSelectionPopover() {
   }};
 }
 
-export function SelectionPopover<T extends string|number>({label,value,options,onSelect,above=true,align='left',children}:{
-  label:string;value:T;options:{value:T;label:ReactNode;suffix?:ReactNode}[];onSelect:(value:T)=>void;above?:boolean;align?:'left'|'right';children?:ReactNode;
+export function SelectionPopover<T extends string|number>({label,value,options,onSelect,above=true,align='left',children,className}:{
+  label:string;value:T;options:{value:T;label:ReactNode;suffix?:ReactNode}[];onSelect:(value:T)=>void;above?:boolean;align?:'left'|'right';children?:ReactNode;className?:string;
 }) {
-  return <div className={css.selectionPanel} data-above={above} data-align={align} role="group" aria-label={label}>
+  return <div className={`${css.selectionPanel}${className ? ` ${className}` : ''}`} data-above={above} data-align={align} role="group" aria-label={label}>
     {options.map(option=><button type="button" key={option.value} aria-pressed={value===option.value} onClick={()=>onSelect(option.value)}><span>{option.label}</span>{option.suffix&&<span>{option.suffix}</span>}</button>)}
     {children}
   </div>;

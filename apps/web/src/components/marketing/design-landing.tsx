@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
+import { myIconsEnabled } from "@/lib/product-features";
 import styles from "./design-landing.module.css";
 import { useLandingMotion } from "./use-landing-motion";
 
@@ -645,7 +646,9 @@ export function DesignLanding() {
               <Link href="/create" className={styles.primaryAction}>
                 <span>{c.primary}</span><i aria-hidden="true" />
               </Link>
-              <Link href="/icons" className={styles.secondaryAction}>{c.secondary}</Link>
+              {myIconsEnabled ? (
+                <Link href="/icons" className={styles.secondaryAction}>{c.secondary}</Link>
+              ) : null}
             </div>
           </div>
           <div className={styles.heroMedia} id="work">

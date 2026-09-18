@@ -1,0 +1,146 @@
+.viewport {
+  --canvas-surface: #202124;
+  --canvas-dot: #626367;
+  --canvas-highlight: #e6e7e9;
+  --control-surface: #1b1c1e;
+  --control-border: #3b3d40;
+  --control-ink: #e8eaed;
+  --control-muted: #9aa0a6;
+  --control-hover: #36383b;
+  --control-selected: #f1f3f4;
+  --control-selected-ink: #202124;
+  position: fixed;
+  inset: 0;
+  overflow: clip;
+  isolation: isolate;
+  background: var(--canvas-surface);
+  color: var(--control-ink);
+}
+:global(html[data-theme="light"]) .viewport {
+  --canvas-surface: #f1f3f4;
+  --canvas-dot: #c6c9cc;
+  --canvas-highlight: #303134;
+  --control-surface: #e5e7e9;
+  --control-border: #c6c9cc;
+  --control-ink: #202124;
+  --control-muted: #73777c;
+  --control-hover: #d5d8db;
+  --control-selected: #202124;
+  --control-selected-ink: #fff;
+}
+.viewport[data-tool="hand"] { cursor: grab; touch-action: none; user-select: none; }
+.viewport[data-dragging="true"] { cursor: grabbing; }
+.dots, .highlight { position: absolute; inset: 0; pointer-events: none; background-size: var(--dot-spacing) var(--dot-spacing); background-position: calc(50% + var(--pan-x, 0px)) calc(50% + var(--pan-y, 0px)); }
+.dots { background-image: radial-gradient(circle, var(--canvas-dot) var(--dot-radius), transparent calc(var(--dot-radius) + .3px)); }
+.highlight { background-image: radial-gradient(circle, var(--canvas-highlight) var(--dot-radius), transparent calc(var(--dot-radius) + .3px)); mask-image: radial-gradient(circle 120px at var(--pointer-x, -200px) var(--pointer-y, -200px), #000, transparent); opacity: 0; transition: opacity 160ms; }
+.viewport:hover .highlight { opacity: 1; }
+.artwork { position: absolute; inset: 80px 0 0 var(--rail-offset, 0px); transform: translate(var(--pan-x, 0px), var(--pan-y, 0px)) scale(var(--zoom)); transform-origin: center; pointer-events: none; }
+.viewport[data-focusing="true"] .artwork { transition: transform 360ms cubic-bezier(.2, .8, .2, 1); }
+.tools { position: absolute; right: 16px; top: 50%; translate: 0 -50%; padding: 6px; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-surface); box-shadow: 0 4px 10px #00000014; }
+.viewport .tools button { position: relative; display: flex; width: 36px; height: 36px; box-sizing: border-box; align-items: center; justify-content: center; padding: 7px; border: 0; border-radius: 50%; background: transparent; color: var(--control-ink); cursor: pointer; }
+.viewport .tools .themeButton { padding: 6px; }
+.tools .themeButton > span { width: 24px; height: 24px; flex-basis: 24px; }
+.tools svg { width: 22px; height: 22px; }
+.viewport .tools button { transition: background-color 140ms ease, color 140ms ease; }
+.viewport .tools button:hover { background: var(--control-hover); }
+.viewport .tools button:disabled { opacity: .32; cursor: default; }
+.viewport .tools button:disabled:hover { background: transparent; }
+.tools button > svg,
+.tools .themeButton > span {
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+  transform-origin: center;
+}
+.tools .themeButton:hover > span { transform: rotate(12deg) scale(1.08); }
+.tools button[aria-label="选择工具"]:hover > svg,
+.tools button[aria-label="Select tool"]:hover > svg { transform: translate(-2px, -2px) rotate(-7deg); }
+.tools button[aria-label="手形工具"]:hover > svg,
+.tools button[aria-label="Hand tool"]:hover > svg { transform: rotate(-12deg) translateY(-1px); }
+.tools button[aria-label="打开收藏夹"]:hover > svg,
+.tools button[aria-label="Open favorites"]:hover > svg { transform: rotate(-10deg) scale(1.14); }
+.tools button[aria-label="打开废纸篓"]:hover > svg,
+.tools button[aria-label="Open recycle bin"]:hover > svg { transform: translateY(-2px) rotate(6deg) scale(1.06); }
+.tools button[aria-label="自动整理画布"]:hover > svg,
+.tools button[aria-label="Auto arrange canvas"]:hover > svg { transform: scale(.9) rotate(3deg); }
+.viewport .tools button[aria-pressed="true"],
+.viewport .tools button[aria-expanded="true"] { background: var(--control-selected); color: var(--control-selected-ink); }
+.toolDivider{display:block;width:26px;height:1px;margin:0 auto;background:var(--control-border)}
+.alignmentGuide { position: absolute; z-index: 20; display: block; pointer-events: none; background: color-mix(in srgb, #6aa4ff 55%, transparent); }
+.verticalGuide { top: 12px; bottom: 12px; width: 1px; }
+.horizontalGuide { left: 12px; right: 12px; height: 1px; }
+.viewport .tools button::before,
+.viewport .tools button::after {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.viewport .tools button::before {
+  content: attr(data-tooltip);
+  right: calc(100% + 14px);
+  padding: 7px 10px;
+  transform: translate(4px, -50%);
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--control-surface);
+  color: var(--control-ink);
+  box-shadow: 0 4px 12px #0004;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.viewport .tools button::after {
+  content: "";
+  right: calc(100% + 8px);
+  width: 9px;
+  height: 9px;
+  transform: translate(4px, -50%) rotate(45deg);
+  border-top: 1px solid var(--control-border);
+  border-right: 1px solid var(--control-border);
+  background: var(--control-surface);
+}
+.viewport .tools button:is(:hover, :focus-visible)::before {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.viewport .tools button:is(:hover, :focus-visible)::after {
+  opacity: 1;
+  transform: translate(0, -50%) rotate(45deg);
+}
+.zoomControl { position: absolute; right: 16px; bottom: 16px; width: 76px; }
+.viewport .zoomControl > .zoomButton { width: 100%; box-sizing: border-box; }
+.viewport .zoomButton { min-width: 70px; height: 36px; padding: 0 14px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-surface); color: var(--control-ink); font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; cursor: pointer; }
+.viewport .zoomButton:hover, .viewport .zoomButton[aria-expanded="true"] { background: var(--control-hover); }
+.menu { position: absolute; bottom: 44px; right: 0; width: 224px; padding: 8px; border: 1px solid var(--control-border); border-radius: 14px; background: var(--control-surface); box-shadow: 0 5px 18px #0000001a; }
+.viewport .menu button { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 40px; padding: 0 10px; border: 0; border-radius: 6px; color: var(--control-ink); background: transparent; font-size: 14px; cursor: pointer; }
+.viewport .menu button:hover { background: var(--control-hover); }
+.viewport button:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
+.viewport .menu button:disabled { opacity: .35; cursor: default; }
+.menu kbd { font: inherit; color: var(--control-muted); }
+.menu form { display: flex; align-items: center; border: 1px solid var(--control-border); border-radius: 7px; margin: 2px 2px 6px; padding-right: 12px; }
+.viewport .menu input { width: 100%; height: 34px; padding: 0 10px; border: 0; background: transparent; color: var(--control-ink); outline: none; font: inherit; }
+.menu form:focus-within { outline: 2px solid #8ab4f8; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--control-border); padding-top: 6px; margin-top: 6px; }
+.viewport .presets button { justify-content: center; height: 30px; font-size: 12px; }
+.viewport .presets button[aria-pressed="true"] { background: var(--control-hover); }
+@media (prefers-reduced-motion: reduce) {
+  .viewport[data-focusing="true"] .artwork,
+  .highlight,
+  .tools button > svg,
+  .tools .themeButton > span,
+  .viewport .tools button::before,
+  .viewport .tools button::after { transition: none; }
+  .tools .themeButton:hover > span,
+  .tools button[aria-label="选择工具"]:hover > svg,
+  .tools button[aria-label="Select tool"]:hover > svg,
+  .tools button[aria-label="手形工具"]:hover > svg,
+  .tools button[aria-label="Hand tool"]:hover > svg,
+  .tools button[aria-label="打开收藏夹"]:hover > svg,
+  .tools button[aria-label="Open favorites"]:hover > svg,
+  .tools button[aria-label="打开废纸篓"]:hover > svg,
+  .tools button[aria-label="Open recycle bin"]:hover > svg,
+  .tools button[aria-label="自动整理画布"]:hover > svg,
+  .tools button[aria-label="Auto arrange canvas"]:hover > svg { transform: none; }
+}

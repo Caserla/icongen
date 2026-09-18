@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { findAsset } from './favorite-model';
 import css from './library.module.css';
 
-export function useLibraryFavorites() {
+export function useLibraryFavorites(autoLoad = true) {
   const [ids,setIds]=useState<string[]>([]);
   const [ready,setReady]=useState(false);
   const [failed,setFailed]=useState(false);
@@ -23,7 +23,7 @@ export function useLibraryFavorites() {
       setIds(data.items.map(item=>item.asset_id));setFailed(false);setReady(true);
     }catch{if(version===epoch.current){setFailed(true);setReady(false);}}
   },[]);
-  useEffect(()=>{const timer=setTimeout(()=>void load(),0);window.addEventListener('focus',load);return()=>{clearTimeout(timer);window.removeEventListener('focus',load);};},[load]);
+  useEffect(()=>{if(!autoLoad)return;const timer=setTimeout(()=>void load(),0);window.addEventListener('focus',load);return()=>{clearTimeout(timer);window.removeEventListener('focus',load);};},[autoLoad,load]);
   const toggle=async(id:string)=>{
     if(!ready||pending.current.has(id))return;
     pending.current.add(id);epoch.current++;setBusy([...pending.current]);

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  ICON_LIST_SKELETON_COUNT,
+  ICON_STYLE_PRESETS,
+} from "@icongen/shared";
+import {
   buildIconJobListHref,
   groupGenerationJobsByStyle,
   validatePageJump,
@@ -70,14 +72,14 @@ test("groups jobs in the shared style catalog order", () => {
     { ...base, id: "clay-2", stylePreset: "clay-3d" },
   ];
   const groups = groupGenerationJobsByStyle(jobs);
+  const expectedOrder = ICON_STYLE_PRESETS
+    .filter((preset) => preset.id === "clay-3d" || preset.id === "pixel-art")
+    .map((preset) => preset.id);
   assert.deepEqual(
     groups.map((group) => group.preset.id),
-    ["clay-3d", "pixel-art"],
+    expectedOrder,
   );
-  assert.deepEqual(
-    groups.map((group) => group.jobs.length),
-    [2, 1],
-  );
+  assert.deepEqual(Object.fromEntries(groups.map((group) => [group.preset.id, group.jobs.length])), { "clay-3d": 2, "pixel-art": 1 });
 });
 
 test("library previews prefer 256px thumbnails instead of full-size output", () => {

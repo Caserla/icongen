@@ -49,11 +49,12 @@ export function checkMutationRequest(input: {
     };
 
   const rawLength = input.headers.get("content-length") ?? "0";
+  const iconPlanUpload = input.pathname === "/api/generation/icon-plan" && input.method === "POST";
   const declaredLength = Number(rawLength);
   if (
     !/^\d+$/.test(rawLength) ||
     !Number.isSafeInteger(declaredLength) ||
-    declaredLength > MAX_API_BODY_BYTES
+    declaredLength > (iconPlanUpload ? 6_000_000 : MAX_API_BODY_BYTES)
   )
     return {
       allowed: false,
@@ -63,6 +64,7 @@ export function checkMutationRequest(input: {
     };
   if (
     declaredLength > 0 &&
+    !(iconPlanUpload && input.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data;")) &&
     !input.headers
       .get("content-type")
       ?.toLowerCase()

@@ -1,11 +1,5 @@
-"use client";
-import { GenerationForm } from "@/features/generation/components/generation-form";
+import { IconGenerationShell } from "@/features/generation/icon-generation-shell";
+
 export default function CreatePage() {
-  return (
-    <div className="create-studio">
-      <section className="create-studio__workspace">
-        <GenerationForm />
-      </section>
-    </div>
-  );
+  return <IconGenerationShell />;
 }

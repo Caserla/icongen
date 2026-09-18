@@ -28,7 +28,7 @@ export const TOAST_PRESENTATION = {
 export function Toast({
   message,
   variant,
-  placement = "bottom",
+  placement = "center",
 }: {
   message: string;
   variant: ToastVariant;
@@ -48,7 +48,7 @@ export function Toast({
       data-toast-variant={variant}
       role={isError ? "alert" : "status"}
       aria-live={isError ? "assertive" : "polite"}
-      className={`studio-notice fixed left-1/2 z-[100] flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 px-4 py-3 text-sm font-bold ${placement === "center" ? "top-1/2 -translate-y-1/2" : "bottom-5 sm:bottom-6"} ${presentation.container}`}
+      className={`app-toast studio-notice fixed left-1/2 z-[100] flex w-max min-w-[240px] max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center justify-center gap-3 px-5 py-4 text-center text-sm font-semibold ${placement === "center" ? "top-1/2 -translate-y-1/2" : "bottom-5 sm:bottom-6"} ${presentation.container}`}
     >
       <span
         aria-hidden="true"
@@ -56,7 +56,7 @@ export function Toast({
       >
         {presentation.icon}
       </span>
-      <span>{message}</span>
+      <span className="app-toast__message">{message}</span>
     </div>
   );
 }

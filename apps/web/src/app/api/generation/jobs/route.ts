@@ -67,6 +67,12 @@ export async function POST(request: Request) {
           "Icon settings were updated. Refresh the page, review your choices, and generate again.",
           409,
         );
+      if (error.message.includes("PROJECT_NOT_FOUND"))
+        return apiError(
+          "PROJECT_NOT_FOUND",
+          "The selected project does not exist or does not belong to this account.",
+          404,
+        );
       if (
         error.message.includes("ACTIVE_GENERATION_EXISTS") ||
         error.message.includes("active generation exists")

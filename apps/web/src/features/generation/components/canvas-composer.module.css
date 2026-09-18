@@ -1,0 +1,77 @@
+.composerDock {
+  position: absolute;
+  bottom: 16px;
+  left: calc(50% + var(--rail-offset, 0px) / 2 - 48px);
+  translate: -50% 0;
+  width: min(520px, calc(100vw - var(--rail-offset, 0px) - 128px));
+  display: grid;
+  gap: 10px;
+}
+.quickPrompts { display:flex; min-width:0; overflow:hidden; }
+.quickPrompts button { max-width:100%; height:34px; overflow:hidden; padding:0 16px; border:1px solid var(--control-border); border-radius:999px; background:color-mix(in srgb,var(--control-surface) 76%,transparent); color:var(--control-ink); box-shadow:0 3px 12px #0002; font:inherit; font-size:13px; text-align:left; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; -webkit-backdrop-filter:blur(18px) saturate(125%); backdrop-filter:blur(18px) saturate(125%); }
+.quickPrompts button:hover { background:var(--control-hover); }
+.quickPrompts button:focus-visible { outline:2px solid #8ab4f8; outline-offset:2px; }
+.composer {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 16px;
+  color: var(--control-ink);
+  box-shadow: 0 4px 16px #0000000a;
+  cursor: default;
+  user-select: text;
+}
+.composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 2px !important;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--control-ink) !important;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  outline: none;
+  resize: none;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.composer textarea::placeholder { color: var(--control-muted); opacity: 1; }
+.actions, .right { display: flex; align-items: center; }
+.actions { justify-content: space-between; margin-top: 8px; }
+.right { gap: 12px; }
+.composer button { display: grid; place-items: center; padding: 0; border: 0; color: var(--control-ink); cursor: pointer; }
+.composer .add, .composer .send { width: 36px; height: 36px; border-radius: 50%; background: transparent; }
+.composer svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.composer .add:hover { background: var(--control-hover); }
+.composer .send { background: var(--control-selected); color: var(--control-selected-ink); }
+.composer .send:disabled { background: var(--control-hover); color: var(--control-muted); opacity: .45; cursor: default; }
+.generationMode { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; color: var(--control-ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.modeState { width: 92px; flex: 0 0 92px; text-align: right; }
+.colorSlot { display: flex; width: 60px; flex: 0 0 60px; align-items: center; justify-content: center; }
+.composer .modeSwitch { position: relative; display: block; width: 34px; height: 20px; flex: 0 0 34px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); transition: background-color 180ms ease, border-color 180ms ease; }
+.composer .modeSwitch[aria-checked="true"] { border-color: var(--control-selected); background: var(--control-selected); }
+.modeThumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--control-ink); box-shadow: 0 1px 3px #0003; transition: transform 180ms ease, background-color 180ms ease; }
+.modeSwitch[aria-checked="true"] .modeThumb { transform: translateX(14px); background: var(--control-selected-ink); }
+.composer .modeSwitch:hover { border-color: var(--control-ink); }
+.composer .modeSwitch:disabled { cursor: not-allowed; opacity: .6; }
+.composer .modeSwitch:disabled:hover { border-color: var(--control-selected); }
+@media (prefers-reduced-motion: reduce) { .composer .modeSwitch, .modeThumb { transition: none; } }
+.color { display: flex; align-items: center; gap: 8px; padding: 5px 9px 5px 5px; border-radius: 999px; background: var(--control-hover); }
+.color :global(.studio-color-swatch) { width: 24px; height: 24px; border-radius: 50%; border: 0; }
+.gradientColor > :first-child { width: 46px; }
+.gradientColor :global(button[aria-expanded]) { display: flex; width: 46px; height: 24px; align-items: center; justify-content: space-between; gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--control-ink); }
+.gradientColor :global(button[aria-expanded] > span:first-child) { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; }
+.gradientColor :global(button[aria-expanded] > svg) { width: 14px; height: 14px; }
+.color > svg { width: 14px; height: 14px; pointer-events: none; }
+.attachment { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin-bottom: 14px; padding: 5px 8px 5px 6px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); font-size: 13px; }
+.attachment img { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; object-fit: contain; }
+.attachment span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment button { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--control-hover); }
+.composer button:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
+@media(max-width: 600px) { .composerDock { left: calc(50% + var(--rail-offset, 0px) / 2); width: calc(100vw - var(--rail-offset, 0px) - 24px); bottom: 68px; } .composer { padding: 12px; } }

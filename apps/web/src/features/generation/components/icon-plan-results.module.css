@@ -1,0 +1,48 @@
+.results { position: absolute; top: calc(50% + 200px); left: 50%; width: min(920px, calc(100% - 48px)); min-width: 220px; transform: translateX(-50%); display: grid; gap: 24px; color: var(--control-ink); }
+.group { position: relative; translate: var(--group-x, 0) var(--group-y, 0); padding: 14px; border: 1px solid var(--canvas-glass-border); border-radius: 16px; background: var(--canvas-glass-surface); pointer-events: auto; touch-action: none; transition: border-color 140ms ease, box-shadow 140ms ease, translate 380ms cubic-bezier(.2,.8,.2,1); }
+.group[data-raised] { z-index: 10; }
+.groupSpacer { translate: var(--group-x, 0) var(--group-y, 0); justify-self: center; pointer-events: none; }
+.group { width: max(220px, var(--group-width, 100%)); max-width: none; box-sizing: border-box; justify-self: center; }
+.group[data-selected] { border-color: #8ab4f8; box-shadow: 0 0 0 2px #8ab4f855, 0 10px 30px #0003; cursor: move; user-select: none; touch-action: none; }
+.group[data-moving] { cursor: grabbing; transition: none; }
+.groupActions { position: absolute; left: calc(100% + 10px); top: 12px; z-index: 2; display: flex; flex-direction: column; gap: 6px; padding: 4px; border: 1px solid var(--canvas-glass-border); border-radius: 999px; background: var(--control-surface); box-shadow: 0 6px 18px #0004; }
+.grid article[data-selected] { position: relative; }
+.iconActions { top: 0; }
+.groupActions button { position: relative; display: grid; width: 32px; height: 32px; place-items: center; padding: 7px; border: 0; border-radius: 50%; background: transparent; color: var(--control-ink); cursor: pointer; }
+.groupActions button:hover { background: var(--control-hover); }
+.groupActions button:disabled { opacity: .45; cursor: wait; }
+.groupActions button::before { position: absolute; top: 50%; right: calc(100% + 10px); z-index: 4; padding: 7px 10px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--control-surface); color: var(--control-ink); box-shadow: 0 4px 12px #0004; content: attr(data-tooltip); font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(4px, -50%); transition: opacity 120ms ease, transform 120ms ease; }
+.groupActions button:is(:hover, :focus-visible)::before { opacity: 1; transform: translate(0, -50%); }
+.groupActions button[aria-pressed="true"] { color: #f6c344; }
+.groupActions svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.groupActions button[aria-pressed="true"] svg { fill: currentColor; }
+.group h3 { font-size: 16px; margin: 0 0 8px; }
+.group p { font-size: 13px; margin: 4px 0; color: var(--control-muted); }
+.group .summary { max-width: 680px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grid { display: grid; grid-template-columns: repeat(var(--group-columns, 1), minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.grid article { display: flex; align-items: center; flex-direction: column; gap: 6px; min-width: 0; padding: 8px 4px; border: 1px solid var(--canvas-glass-border); border-radius: 12px; font-size: 12px; text-align: center; }
+.grid article[data-icon-item] { cursor: pointer; }
+.grid .iconSpacer { min-height: 126px; box-sizing: border-box; visibility: hidden; pointer-events: none; }
+.grid article[data-selected] { border-color: #8ab4f8; box-shadow: 0 0 0 2px #8ab4f855; background: var(--control-hover); }
+.placeholder { width: 88px; height: 88px; flex: 0 0 88px; border-radius: 14px; background: var(--control-hover); }
+.failedPreview { position: relative; display: grid; width: 88px; height: 88px; flex: 0 0 88px; place-items: center; box-sizing: border-box; padding: 8px 16px; border: 0; border-radius: 14px; background: transparent; color: var(--control-muted); cursor: pointer; }
+.brokenImage { display: grid; width: 54px; height: 54px; place-items: center; color: var(--control-muted); opacity: .68; transition: opacity 140ms ease, transform 140ms ease; }
+.brokenImage svg { width: 54px; height: 54px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 2.15; stroke-linecap: round; stroke-linejoin: round; }
+.brokenImage .leftFragment { transform: translateX(-1.5px); }
+.brokenImage .rightFragment { transform: translateX(1.5px); }
+.retryAction { position: absolute; left: 50%; top: 50%; display: grid; width: 25px; height: 25px; place-items: center; box-sizing: border-box; border: 1.5px solid currentColor; border-radius: 50%; background: transparent; color: var(--control-ink); opacity: 0; transform: translate(-50%, -50%) scale(.82); transition: opacity 140ms ease, transform 180ms ease; }
+.retryAction svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 180ms ease; }
+.failedPreview:hover .brokenImage { opacity: .9; transform: scale(1.03); }
+.failedPreview:is(:hover, :focus-visible) .retryAction { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.failedPreview:hover .retryAction svg { transform: rotate(-45deg); }
+.loading { animation: pulse 1.2s ease-in-out infinite alternate; }
+@keyframes pulse { to { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .loading { animation: none; } .group, .brokenImage, .retryAction, .retryAction svg { transition-duration: 0ms; } }
+.iconButton { pointer-events: auto; border: 0; background: transparent; padding: 0; cursor: pointer; }
+.iconButton img { display: block; width: 88px; height: 88px; }
+.detail { pointer-events: auto; margin: auto; position: fixed; width: 360px; padding: 28px; border: 1px solid var(--canvas-glass-border); border-radius: 16px; background: var(--control-surface, #202124); color: var(--control-ink); }
+.detail::backdrop { background: #0006; backdrop-filter: blur(8px); }
+.large { display: block; width: 220px; height: 220px; margin: 24px auto; }
+.close { float: right; border: 0; color: inherit; background: transparent; cursor: pointer; font-size: 24px; }
+.detail a { color: inherit; }
+:global(html[data-theme="light"]) .detail { background: #f1f3f4; }
