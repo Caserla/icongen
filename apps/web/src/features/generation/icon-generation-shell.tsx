@@ -44,9 +44,18 @@ export function IconGenerationShell() {
   const [projectName, setProjectName] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
   const [projectBusy, setProjectBusy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<IconProject | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
+  const deleteDialogRef = useRef<HTMLDialogElement>(null);
+  const deleteInFlight = useRef(false);
+  useEffect(() => {
+    if (deleteTarget) deleteDialogRef.current?.showModal();
+    else deleteDialogRef.current?.close();
+  }, [deleteTarget]);
   const [generationLocked, setGenerationLocked] = useState(false);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [projectDialogClosing, setProjectDialogClosing] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState("");
   const [projectDraftName, setProjectDraftName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectToast, setProjectToast] = useState<{ id: number; message: string; variant?: "error"|"warning"|"success" } | null>(null);
@@ -80,6 +89,27 @@ export function IconGenerationShell() {
       (category) => category.id === browsingCategoryId,
     ) ??
     ICON_GENERATION_CATEGORIES[0];
+
+  const deleteProject = async () => {
+    if (!deleteTarget || deleteInFlight.current || generationLocked) return;
+    deleteInFlight.current = true;
+    setDeletingProject(true);
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(deleteTarget.id)}`, {
+        method: "DELETE", credentials: "same-origin", signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error("delete failed");
+      setProjects(items => items.filter(item => item.id !== deleteTarget.id));
+      if (activeProjectId === deleteTarget.id) { setActiveProjectId(""); setProjectName(""); }
+      setDeleteTarget(null);
+      setProjectToast({ id: Date.now(), message: zh ? "项目已删除" : "Project deleted", variant: "success" });
+    } catch {
+      setProjectToast({ id: Date.now(), message: zh ? "删除失败，请稍后重试" : "Deletion failed. Please try again.", variant: "error" });
+    } finally {
+      deleteInFlight.current = false;
+      setDeletingProject(false);
+    }
+  };
 
   const openCategory = (nextCategoryId: string) => {
     if (subcategoryOpen && nextCategoryId === browsingCategoryId) {
@@ -147,6 +177,20 @@ export function IconGenerationShell() {
     return "";
   };
 
+  const matchedProject = projects.find(project =>
+    project.name.toLocaleLowerCase() === projectName.trim().toLocaleLowerCase(),
+  );
+
+  const openProjectEditor = (project: IconProject) => {
+    setEditingProjectId(project.id);
+    setActiveProjectId(project.id);
+    setProjectName(project.name);
+    setProjectDraftName(project.name);
+    setProjectDescription(project.description ?? "");
+    closeProjectMenu();
+    setProjectDialogOpen(true);
+  };
+
   const addOrAssociateProject = () => {
     const nextProject = projectName.trim();
     if (!nextProject || projectBusy || generationLocked) return;
@@ -157,18 +201,17 @@ export function IconGenerationShell() {
     }
     const existing = projects.find((project) => project.name.toLocaleLowerCase() === nextProject.toLocaleLowerCase());
     if (existing) {
-      setActiveProjectId(existing.id);
-      setProjectName(existing.name);
-      closeProjectMenu();
+      openProjectEditor(existing);
       return;
     }
+    setEditingProjectId("");
     setProjectDraftName(nextProject);
     setProjectDescription("");
     closeProjectMenu();
     setProjectDialogOpen(true);
   };
 
-  const createProject = async () => {
+  const saveProject = async () => {
     if (generationLocked) return;
     const nextProject = projectDraftName.trim();
     const nameError = validateProjectName(nextProject);
@@ -177,14 +220,14 @@ export function IconGenerationShell() {
       setProjectToast({ id: Date.now(), message: nameError || descriptionError });
       return;
     }
-    if (projects.length >= MAX_ICON_PROJECTS) {
+    if (!editingProjectId && projects.length >= MAX_ICON_PROJECTS) {
       setProjectToast({ id: Date.now(), message: zh ? `每个账号最多创建 ${MAX_ICON_PROJECTS} 个项目` : `You can create up to ${MAX_ICON_PROJECTS} projects` });
       return;
     }
     setProjectBusy(true);
     try {
-      const response = await fetch("/api/projects", {
-        method: "POST",
+      const response = await fetch(editingProjectId ? `/api/projects/${editingProjectId}` : "/api/projects", {
+        method: editingProjectId ? "PATCH" : "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: nextProject, description: projectDescription.trim() }),
@@ -195,23 +238,31 @@ export function IconGenerationShell() {
           throw new Error(zh ? "项目服务尚未完成数据库配置" : "Project storage is not configured yet");
         if (response.status === 409 && payload?.message?.includes(String(MAX_ICON_PROJECTS)))
           throw new Error(zh ? `每个账号最多创建 ${MAX_ICON_PROJECTS} 个项目` : `You can create up to ${MAX_ICON_PROJECTS} projects`);
-        throw new Error(payload?.message || "project create failed");
+        if (response.status === 409)
+          throw new Error(zh ? "项目名称已存在" : "A project with this name already exists");
+        throw new Error(payload?.message || (editingProjectId ? "project update failed" : "project create failed"));
       }
       const payload = await response.json() as { item: IconProject };
-      setProjects((items) => [payload.item, ...items]);
+      setProjects((items) => editingProjectId
+        ? items.map(item => item.id === payload.item.id ? payload.item : item)
+        : [payload.item, ...items]);
       setActiveProjectId(payload.item.id);
       setProjectName(payload.item.name);
       closeProjectDialog();
       closeProjectMenu();
-      void fetch(`/api/projects/${payload.item.id}/theme`, { method: "POST", credentials: "same-origin" }).then(async response => {
+      if (editingProjectId) {
+        setProjectToast({ id: Date.now(), message: zh ? "项目已更新" : "Project updated", variant: "success" });
+      } else void fetch(`/api/projects/${payload.item.id}/theme`, { method: "POST", credentials: "same-origin" }).then(async response => {
         if (!response.ok) throw new Error("theme failed");
         const themed = await response.json() as { item: IconProject };
         setProjects(items => items.map(item => item.id === themed.item.id ? themed.item : item));
       }).catch(() => setProjectToast({ id: Date.now(), variant: "warning", message: zh ? "项目创建成功，但主题色生成失败，已使用默认主题色" : "Project created, but theme generation failed. The default theme is being used." }));
     } catch (error) {
-      const message = error instanceof Error && error.message !== "project create failed"
+      const message = error instanceof Error && !["project create failed", "project update failed"].includes(error.message)
           ? error.message
-          : zh ? "项目创建失败，请稍后重试" : "Project creation failed. Try again.";
+          : editingProjectId
+            ? (zh ? "项目更新失败，请稍后重试" : "Project update failed. Try again.")
+            : (zh ? "项目创建失败，请稍后重试" : "Project creation failed. Try again.");
       setProjectToast({ id: Date.now(), message });
       setProjectMenuOpen(true);
     } finally {
@@ -314,18 +365,25 @@ export function IconGenerationShell() {
                 className={css.projectAddButton}
                 type="submit"
                 disabled={!projectName.trim() || projectBusy || generationLocked}
-                aria-label={zh ? "回车确认项目" : "Press Enter to confirm project"}
+                data-tooltip={matchedProject ? (zh ? "编辑项目" : "Edit project") : (zh ? "新增项目" : "New project")}
+                aria-label={matchedProject
+                  ? (zh ? `编辑项目 ${matchedProject.name}` : `Edit project ${matchedProject.name}`)
+                  : (zh ? "回车新建项目" : "Press Enter to create project")}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
+                {matchedProject ? <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m4 16.5-.5 4 4-.5L19 8.5 15.5 5 4 16.5Z" />
+                  <path d="m13.5 7 3.5 3.5" />
+                </svg> : <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M19 5v6a4 4 0 0 1-4 4H6" />
                   <path d="m10 11-4 4 4 4" />
-                </svg>
+                </svg>}
               </button>
             </span>
             <button
               ref={projectTriggerRef}
               className={css.projectListButton}
               type="button"
+              data-tooltip={zh ? "选择项目" : "Select project"}
               aria-label={zh ? "选择已有项目" : "Choose an existing project"}
               aria-expanded={projectMenuOpen}
               disabled={projectBusy || generationLocked}
@@ -341,7 +399,7 @@ export function IconGenerationShell() {
             className={css.projectMenu}
             label={zh ? "已创建项目" : "Existing projects"}
             value={activeProjectId}
-            options={projects.map((project) => ({ value: project.id, label: project.name }))}
+            options={[]}
             above={false}
             align="right"
             onSelect={(projectId) => {
@@ -353,6 +411,18 @@ export function IconGenerationShell() {
               closeProjectMenu();
             }}
           >
+            {projects.map(project => <div key={project.id} className={css.projectMenuRow}>
+              <button type="button" className={css.projectMenuSelect} aria-pressed={activeProjectId === project.id}
+                disabled={generationLocked} onClick={() => {
+                  if (generationLocked) return;
+                  setActiveProjectId(project.id); setProjectName(project.name); closeProjectMenu();
+                }}><span>{project.name}</span></button>
+              <button type="button" className={css.projectMenuDelete} disabled={generationLocked}
+                aria-label={zh ? `删除项目 ${project.name}` : `Delete project ${project.name}`}
+                onClick={() => { if (!generationLocked) { setDeleteTarget(project); closeProjectMenu(); } }}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7M14 10v7" /></svg>
+              </button>
+            </div>)}
             {!projects.length ? <p className={css.projectEmpty}>{zh ? "暂无项目" : "No projects"}</p> : null}
           </SelectionPopover> : null}
         </div>
@@ -447,7 +517,7 @@ export function IconGenerationShell() {
           event.preventDefault();
           if (!projectBusy) closeProjectDialog();
         }}
-        onClose={() => { setProjectDialogOpen(false); setProjectDialogClosing(false); }}
+        onClose={() => { setProjectDialogOpen(false); setProjectDialogClosing(false); setEditingProjectId(""); }}
         onClick={(event) => {
           if (event.target === event.currentTarget && !projectBusy)
             closeProjectDialog();
@@ -457,11 +527,13 @@ export function IconGenerationShell() {
           className={css.projectDialogCard}
           onSubmit={(event) => {
             event.preventDefault();
-            void createProject();
+            void saveProject();
           }}
         >
           <div className={css.projectDialogHeader}>
-            <h2 id="new-project-title">{zh ? "新建项目" : "Create project"}</h2>
+            <h2 id="new-project-title">{editingProjectId
+              ? (zh ? "编辑项目" : "Edit project")
+              : (zh ? "新建项目" : "Create project")}</h2>
             <button type="button" onClick={closeProjectDialog} disabled={projectBusy} aria-label={zh ? "关闭" : "Close"}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
             </button>
@@ -490,9 +562,26 @@ export function IconGenerationShell() {
             </small>
           </label>
           <button className={css.projectDialogSubmit} type="submit" disabled={projectBusy || !projectDraftName.trim() || !projectDescription.trim()}>
-            {projectBusy ? (zh ? "创建中…" : "Creating…") : (zh ? "创建并关联" : "Create and link")}
+            {projectBusy
+              ? (editingProjectId ? (zh ? "保存中…" : "Saving…") : (zh ? "创建中…" : "Creating…"))
+              : (editingProjectId ? (zh ? "保存修改" : "Save changes") : (zh ? "创建并关联" : "Create and link"))}
           </button>
         </form>
+      </dialog>
+      <dialog ref={deleteDialogRef} className={css.projectDialog} aria-labelledby="delete-project-title"
+        onCancel={event => { event.preventDefault(); if (!deleteInFlight.current) setDeleteTarget(null); }}>
+        <div className={css.projectDialogCard}>
+          <div className={css.projectDialogHeader}><h2 id="delete-project-title">{zh ? "确认删除项目？" : "Delete project?"}</h2></div>
+          <p className={css.deleteDescription}>{zh
+            ? `将永久删除「${deleteTarget?.name ?? ""}」及其生成图标、收藏和回收记录，此操作无法撤销。`
+            : `Permanently delete “${deleteTarget?.name ?? ""}” and its generated icons, favorites and recycle records? This cannot be undone.`}</p>
+          <div className={css.deleteActions}>
+            <button type="button" autoFocus disabled={deletingProject} onClick={() => setDeleteTarget(null)}>{zh ? "取消" : "Cancel"}</button>
+            <button type="button" className={css.projectDialogSubmit} disabled={deletingProject || generationLocked} onClick={() => void deleteProject()}>
+              {deletingProject ? (zh ? "删除中…" : "Deleting…") : (zh ? "确认删除" : "Delete project")}
+            </button>
+          </div>
+        </div>
       </dialog>
       {projectToast ? <Toast key={projectToast.id} message={projectToast.message} variant={projectToast.variant ?? "error"} /> : null}
     </section>

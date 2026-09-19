@@ -52,7 +52,7 @@
 .composer .send { background: var(--control-selected); color: var(--control-selected-ink); }
 .composer .send:disabled { background: var(--control-hover); color: var(--control-muted); opacity: .45; cursor: default; }
 .generationMode { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; color: var(--control-ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
-.modeState { width: 92px; flex: 0 0 92px; text-align: right; }
+.modeState { width: auto; flex: 0 0 auto; text-align: left; }
 .colorSlot { display: flex; width: 60px; flex: 0 0 60px; align-items: center; justify-content: center; }
 .composer .modeSwitch { position: relative; display: block; width: 34px; height: 20px; flex: 0 0 34px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); transition: background-color 180ms ease, border-color 180ms ease; }
 .composer .modeSwitch[aria-checked="true"] { border-color: var(--control-selected); background: var(--control-selected); }
@@ -62,13 +62,14 @@
 .composer .modeSwitch:disabled { cursor: not-allowed; opacity: .6; }
 .composer .modeSwitch:disabled:hover { border-color: var(--control-selected); }
 @media (prefers-reduced-motion: reduce) { .composer .modeSwitch, .modeThumb { transition: none; } }
-.color { display: flex; align-items: center; gap: 8px; padding: 5px 9px 5px 5px; border-radius: 999px; background: var(--control-hover); }
+.color { display: flex; align-items: center; gap: 8px; padding: 5px 9px 5px 5px; border-radius: 999px; background: var(--control-hover); cursor: pointer; }
 .color :global(.studio-color-swatch) { width: 24px; height: 24px; border-radius: 50%; border: 0; }
 .gradientColor > :first-child { width: 46px; }
 .gradientColor :global(button[aria-expanded]) { display: flex; width: 46px; height: 24px; align-items: center; justify-content: space-between; gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--control-ink); }
 .gradientColor :global(button[aria-expanded] > span:first-child) { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; }
 .gradientColor :global(button[aria-expanded] > svg) { width: 14px; height: 14px; }
-.color > svg { width: 14px; height: 14px; pointer-events: none; }
+.color > svg { width: 14px; height: 14px; pointer-events: none; transition: transform 160ms ease; }
+.color:has(:global(.studio-color-swatch[aria-expanded="true"])) > svg { transform: rotate(180deg); }
 .attachment { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin-bottom: 14px; padding: 5px 8px 5px 6px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); font-size: 13px; }
 .attachment img { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; object-fit: contain; }
 .attachment span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

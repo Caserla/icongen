@@ -56,6 +56,7 @@
 ## 项目管理
 
 - [项目开发准则：UI 交互响应优先](project/development-principles.md)
+- [2026-09-19 图标生成工作区交互与数据闭环交接](project/update-2026-09-19.md)
 - [2026-09-18 项目级 SVG 图标工作区交接](project/update-2026-09-18.md)
 - [TODO 与推进顺序](project/todo.md)
 - [当前实现基线](project/current-implementation-baseline.md)
@@ -75,6 +76,7 @@
 - 当前页面和交互口径以 PRD 2.0、前端页面规划、需求一致性审计及原子级开发计划为准；`docs/reference` 只保存立项初稿。
 # 最新累计交接
 
+- [2026-09-19 图标生成工作区交互与数据闭环交接](project/update-2026-09-19.md)
 - [2026-09-18 项目级 SVG 图标工作区交接](project/update-2026-09-18.md)
 - [2026-09-09 工作区汇总与验收交接](project/update-2026-09-09.md)
 - [EASY ICON 品牌统一（2026-09-09）](project/brand-update-2026-09-09.md)

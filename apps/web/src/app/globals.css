@@ -19,6 +19,7 @@
   --shadow-sm: 3px 3px 0 rgba(32, 35, 42, 0.12);
   --shadow-lg: 7px 7px 0 rgba(32, 35, 42, 0.12);
   --ease-mechanical: cubic-bezier(0.23, 1, 0.32, 1);
+  --app-glass-filter: blur(34px) saturate(145%);
 }
 
 /* Keep every icon-style preview on the same large-radius mask. */
@@ -85,7 +86,7 @@ body {
   padding: 0;
   border: 1px solid rgb(var(--chrome-neutral-rgb, 255 255 255) / .13);
   border-radius: 12px;
-  background: transparent;
+  background: transparent !important;
   color: currentColor;
   cursor: pointer;
   transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
@@ -595,7 +596,7 @@ select:focus-visible {
   animation: paper-enter 0.48s var(--ease-mechanical);
 }
 .workspace-header {
-  animation: chrome-drop 0.52s var(--ease-mechanical) both;
+  animation: chrome-drop 0.52s var(--ease-mechanical);
 }
 .workspace-meta {
   animation: fade-slide 0.42s 0.12s var(--ease-mechanical) both;
@@ -683,7 +684,7 @@ select:focus-visible {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 @keyframes fade-slide {
@@ -6221,7 +6222,8 @@ body:has(.studio-dark-page) .language-switch__option[aria-pressed="true"] {
 .studio-picker-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: 214px;
+  width: 100%;
+  box-sizing: border-box;
   height: 32px;
   padding: 2px;
   border-radius: 10px;
@@ -6618,14 +6620,14 @@ html :is(.butter-marketing-header, .studio-header)
   --canvas-glass-surface: rgb(27 28 30 / 68%);
   --canvas-glass-border: rgb(255 255 255 / 13%);
   --canvas-glass-hover: rgb(255 255 255 / 9%);
-  --canvas-glass-filter: blur(24px) saturate(125%);
+  --canvas-glass-filter: var(--app-glass-filter);
 }
 html[data-theme="light"] .studio-shell:has([data-preview-canvas]) {
   --canvas-glass-surface: rgb(229 232 235 / 66%);
   --canvas-glass-border: rgb(60 64 67 / 18%);
   --canvas-glass-hover: rgb(60 64 67 / 8%);
 }
-.studio-shell:has([data-preview-canvas]) :is([data-canvas-glass], .studio-header, .user-menu__panel) {
+.studio-shell:has([data-preview-canvas]) :is([data-canvas-glass], .studio-header:not(.workspace-header), .user-menu__panel) {
   background: var(--canvas-glass-surface) !important;
   border-color: var(--canvas-glass-border) !important;
   -webkit-backdrop-filter: var(--canvas-glass-filter);
@@ -6633,6 +6635,95 @@ html[data-theme="light"] .studio-shell:has([data-preview-canvas]) {
 }
 .studio-shell:has([data-preview-canvas]) button[data-canvas-glass]:is(:hover, [aria-expanded="true"]) {
   background: color-mix(in srgb, var(--canvas-glass-surface), var(--canvas-glass-hover) 18%) !important;
+}
+
+/* Product navigation is two independent glass islands: brand on the left,
+   workspace navigation and account controls on the right. */
+.workspace-header.studio-header {
+  --workspace-header-border: var(--canvas-glass-border, rgb(255 255 255 / 13%));
+  width: calc(100% - 24px);
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.workspace-header__brand-pane,
+.workspace-header__controls-pane {
+  position: relative;
+  border: 1px solid var(--workspace-header-border);
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.workspace-header :is(.theme-switch, .user-menu__avatar),
+.workspace-header .theme-switch:hover {
+  border-color: var(--workspace-header-border) !important;
+}
+.workspace-header__brand-pane::before,
+.workspace-header__controls-pane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--canvas-glass-surface, rgb(27 28 30 / 68%));
+  -webkit-backdrop-filter: var(--canvas-glass-filter, blur(34px) saturate(145%));
+  backdrop-filter: var(--canvas-glass-filter, blur(34px) saturate(145%));
+  pointer-events: none;
+}
+.workspace-header__brand-pane > *,
+.workspace-header__controls-pane > * {
+  position: relative;
+  z-index: 1;
+}
+.studio-shell:has([data-preview-canvas]) .workspace-header
+  :is(.workspace-header__brand-pane, .workspace-header__controls-pane)[data-canvas-glass] {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.workspace-header__controls-pane { max-width: calc(100% - 156px); }
+/* Reserve the same label space in both locales without resizing the controls. */
+.workspace-header__controls-pane .studio-nav-link {
+  box-sizing: border-box;
+  width: 100px;
+  flex: 0 0 100px;
+  text-align: center;
+}
+.workspace-header__controls-pane > a[href="/account"] {
+  box-sizing: border-box;
+  width: 96px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* Stronger shared glass treatment for application chrome and floating UI. */
+:is(.pagination-float, .favorites-float, .favorites-drawer, .user-menu__panel,
+  .icon-subject-editor-popover, .icon-background-dialog__panel,
+  .auth-sign-in-dialog, .studio-color-popover, [data-canvas-glass]) {
+  -webkit-backdrop-filter: var(--app-glass-filter) !important;
+  backdrop-filter: var(--app-glass-filter) !important;
+}
+.workspace-header .user-menu .user-menu__panel,
+.studio-shell:has([data-preview-canvas]) .workspace-header .user-menu__panel {
+  background: var(--canvas-glass-surface, rgb(27 28 30 / 68%)) !important;
+  -webkit-backdrop-filter: var(--canvas-glass-filter, blur(34px) saturate(145%)) !important;
+  backdrop-filter: var(--canvas-glass-filter, blur(34px) saturate(145%)) !important;
+  border-color: var(--canvas-glass-border, rgb(255 255 255 / 13%)) !important;
+}
+.workspace-header__controls-pane .user-menu__panel { right: -17px; }
+@media (max-width: 640px) {
+  .workspace-header.studio-header { width: calc(100% - 16px); }
+  .workspace-header__brand-pane,
+  .workspace-header__controls-pane { min-height: 56px; border-radius: 14px; }
+  .workspace-header__brand-pane { padding-inline: 14px; }
+  .workspace-header__controls-pane { max-width: calc(100% - 126px); padding-inline: 8px; }
+  .workspace-header__controls-pane .user-menu__panel { right: -9px; }
 }
 
 /* Shared legal-document palette for Security, Privacy and Terms. */

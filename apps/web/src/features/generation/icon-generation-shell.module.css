@@ -12,7 +12,6 @@
 }
 
 .shell[data-locale="zh"] {
-  --rail-offset: 188px;
   grid-template-columns: 176px minmax(0, 1fr) !important;
 }
 
@@ -201,7 +200,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 48px;
   height: 48px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--category-dialog-border);
   border-radius: 16px;
   background: var(--category-dialog-surface);
@@ -238,6 +237,7 @@
 }
 
 .projectComposer .projectListButton {
+  position: relative;
   display: grid;
   place-items: center;
   padding: 0;
@@ -305,6 +305,33 @@
   transform: translateY(1px);
 }
 
+.projectComposer :is(.projectAddButton, .projectListButton)[data-tooltip]::after {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -8px;
+  z-index: 20;
+  padding: 7px 10px;
+  border: 1px solid var(--canvas-glass-border, rgb(255 255 255 / 13%));
+  border-radius: 8px;
+  background: var(--canvas-glass-surface, rgb(27 28 30 / 92%));
+  color: var(--category-dialog-text);
+  box-shadow: 0 6px 18px #0005;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.projectComposer :is(.projectAddButton, .projectListButton)[data-tooltip]:is(:hover, :focus-visible)::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .projectEmpty {
   margin: 0;
   padding: 10px 8px;
@@ -348,6 +375,21 @@
   word-break: normal;
   overflow-wrap: normal;
 }
+
+.projectMenuRow { display:flex; align-items:center; height:46px; gap:8px; padding:0 8px; color:var(--ui-ink-eee, #eee); }
+.projectMenuSelect { flex:1; min-width:0; height:100%; padding:0 4px; border:0; background:transparent !important; color:inherit; text-align:left; font-size:14px; font-weight:500; }
+.projectMenuSelect span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:transform 200ms ease; }
+.projectMenuRow:is(:hover,:focus-within) .projectMenuSelect span { transform:translateX(4px); }
+.projectMenuDelete { display:grid; place-items:center; flex:0 0 30px; height:30px; padding:6px; border:0; background:transparent !important; color:inherit; opacity:0; pointer-events:none; }
+.projectMenuRow:is(:hover,:focus-within) .projectMenuDelete { opacity:1; pointer-events:auto; }
+.projectMenuDelete svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.projectMenuDelete:hover { color:var(--menu-danger, #d85b60); }
+.deleteDescription { overflow-wrap:anywhere; line-height:1.6; }
+.deleteActions { display:flex; justify-content:flex-end; gap:12px; }
+.deleteActions > button { padding:10px 18px; border-radius:10px; }
+.deleteActions > button:first-child { background:transparent; color:inherit; border:1px solid currentColor; }
+@media (hover:none) { .projectMenuDelete { opacity:1; pointer-events:auto; } }
+@media (prefers-reduced-motion:reduce) { .projectMenuSelect span { transition:none; } }
 
 .projectDialog {
   width: min(520px, calc(100vw - 32px));

@@ -29,11 +29,11 @@ export function FavoriteIconGroupsDialog({ open, projectGroups, zh, onClose, onL
       </article>;
     })}</div> : <div className={css.empty}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.47 6.03.88-4.36 4.25 1.03 6-5.4-2.84L6.6 19.6l1.03-6-4.36-4.25 6.03-.88Z" /></svg><p>{zh ? "暂无收藏图标组" : "No favorite icon groups yet"}</p></div>)}
     {category === "icons" && (favoriteIcons.length ? <div className={`${css.grid} ${css.libraryGrid}`}>{favoriteIcons.map(icon => <article className={css.card} key={`${icon.groupId}:${icon.subjectId}`}>
+        <button type="button" className={css.libraryRemove} data-tooltip={zh ? "取消收藏" : "Remove favorite"} aria-label={zh ? "取消收藏" : "Remove favorite"} onClick={() => onRemoveIcon(icon.groupId, icon.subjectId)}>×</button>
         <button type="button" className={css.libraryCard} onClick={() => onLocate(icon.groupId)}>
           <img src={svgUrl(icon.svg)} alt="" />
           <strong>{icon.name}</strong>
         </button>
-        <button type="button" className={css.libraryRemove} aria-label={zh ? "取消收藏" : "Remove favorite"} onClick={() => onRemoveIcon(icon.groupId, icon.subjectId)}>×</button>
       </article>)}</div> : <div className={css.empty}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.47 6.03.88-4.36 4.25 1.03 6-5.4-2.84L6.6 19.6l1.03-6-4.36-4.25 6.03-.88Z" /></svg><p>{zh ? "暂无收藏单图" : "No favorite single icons yet"}</p></div>)}
   </ProjectCollectionDialog>;
 }

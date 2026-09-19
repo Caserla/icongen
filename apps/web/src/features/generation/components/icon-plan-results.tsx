@@ -12,6 +12,7 @@ function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position
   const [items, setItems] = useState<Record<string, Item>>(() => Object.fromEntries(Object.entries(result.icons ?? {}).map(([id, svg]) => [id, { status: "completed", svg }])));
   const [selected, setSelected] = useState<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
+  const detailClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const group = useRef<HTMLElement>(null);
   const groupDrag = useRef<{ pointerId: number; clientX: number; clientY: number; latestX: number; latestY: number; frame: number | null; originX: number; originY: number; lastPosition: GroupPosition; moved: boolean } | null>(null);
   const [moving, setMoving] = useState(false);
@@ -66,6 +67,12 @@ function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position
     // Each immutable result owns one generation queue.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result.id]);
+  useEffect(() => () => { if (detailClickTimer.current) clearTimeout(detailClickTimer.current); }, []);
+  useEffect(() => {
+    if (tool !== "select" || !detailClickTimer.current) return;
+    clearTimeout(detailClickTimer.current);
+    detailClickTimer.current = null;
+  }, [tool]);
   const complete = Object.values(items).filter(item => item.status === "completed").length;
   const failed = Object.values(items).filter(item => item.status === "failed").length;
   const svg = selected ? items[selected]?.svg ?? result.icons?.[selected] : undefined;
@@ -117,36 +124,36 @@ function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position
   return <section ref={group} className={css.group} data-canvas-glass data-canvas-icon-group data-group-id={result.id} data-selected={isSelected || undefined} data-raised={isRaised || undefined} data-moving={moving || undefined} style={{ "--group-columns": Math.max(1, Math.min(result.plan.subjects.length, 5)), "--group-width": `${Math.min(result.plan.subjects.length, 5) * 152 + 36}px`, "--group-x": `${position.x}px`, "--group-y": `${position.y}px` } as CSSProperties}
     onPointerDown={startGroupMove} onPointerMove={moveGroup} onPointerUp={stopGroupMove} onPointerCancel={stopGroupMove} onLostPointerCapture={() => stopGroupMove()}
     onClickCapture={event => { if (tool === "select" && !(event.target as Element).closest("[data-icon-item], [data-canvas-controls]")) { event.preventDefault(); event.stopPropagation(); onSelect(); } }}
-    onDoubleClick={event => { if (tool !== "select") return; event.preventDefault(); event.stopPropagation(); onSelect(); onFocus(event.currentTarget); }}>
+    onDoubleClick={event => { event.preventDefault(); event.stopPropagation(); onSelect(); onFocus(event.currentTarget); }}>
     {isSelected && visibleSubjects.length > 1 ? <div className={css.groupActions} data-canvas-controls data-canvas-pan-surface data-icon-group-actions onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
-      <button type="button" disabled={actionBusy} data-tooltip={zh ? "整组收藏" : "Favorite group"} aria-label={result.favorite ? (zh ? "取消收藏图标组" : "Remove icon group from favorites") : (zh ? "收藏图标组" : "Favorite icon group")} aria-pressed={Boolean(result.favorite)} onClick={onToggleFavorite}>
+      <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "整组收藏" : "Favorite group"} aria-label={result.favorite ? (zh ? "取消收藏图标组" : "Remove icon group from favorites") : (zh ? "收藏图标组" : "Favorite icon group")} aria-pressed={Boolean(result.favorite)} onClick={onToggleFavorite}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.47 6.03.88-4.36 4.25 1.03 6-5.4-2.84L6.6 19.6l1.03-6-4.36-4.25 6.03-.88Z" /></svg>
       </button>
-      <button type="button" disabled={actionBusy} data-tooltip={zh ? "整组下载" : "Download group"} aria-label={zh ? "导出图标组" : "Export icon group"} onClick={onExport}>
+      <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "整组下载" : "Download group"} aria-label={zh ? "导出图标组" : "Export icon group"} onClick={onExport}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v3h16v-3" /></svg>
       </button>
-      <button type="button" disabled={actionBusy || Boolean(result.favorite)} data-tooltip={result.favorite ? (zh ? "请先取消整组收藏" : "Remove the group from favorites first") : (zh ? "整组回收" : "Recycle group")} aria-label={zh ? "删除图标组" : "Delete icon group"} onClick={onDelete}>
+      <button type="button" disabled={actionBusy || Boolean(result.favorite)} data-busy={actionBusy || undefined} data-tooltip={result.favorite ? (zh ? "请先取消整组收藏" : "Remove the group from favorites first") : (zh ? "整组回收" : "Recycle group")} aria-label={zh ? "删除图标组" : "Delete icon group"} onClick={onDelete}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" /></svg>
       </button>
     </div> : null}
     <p className={css.summary} title={result.plan.summary}>{result.plan.fallback ? (zh ? "已按通用交互场景整理 20 组图标。" : "Using 20 common UI icons.") : result.plan.summary}</p>
-    <div className={css.grid} data-canvas-pan-surface aria-busy={!result.saved && complete + failed < result.plan.count}>{result.plan.subjects.map(subject => { const item = items[subject.id] ?? (result.icons?.[subject.id] ? { status: "completed" as const, svg: result.icons[subject.id] } : undefined); const recycled = (result.recycledIconIds ?? []).includes(subject.id); if (recycled) return <article className={css.iconSpacer} key={subject.id} aria-hidden="true" />; return <article key={subject.id} data-icon-item={item?.svg ? "" : undefined} data-selected={selectedIconId === subject.id || undefined} onClick={event => { if (tool === "select" && item?.svg) { event.stopPropagation(); onSelectIcon(subject.id); onFocus(event.currentTarget); } }} onDoubleClick={event => { if (tool === "select") event.stopPropagation(); }}>
+    <div className={css.grid} data-canvas-pan-surface aria-busy={!result.saved && complete + failed < result.plan.count}>{result.plan.subjects.map(subject => { const item = items[subject.id] ?? (result.icons?.[subject.id] ? { status: "completed" as const, svg: result.icons[subject.id] } : undefined); const recycled = (result.recycledIconIds ?? []).includes(subject.id); if (recycled) return <article className={css.iconSpacer} key={subject.id} aria-hidden="true" />; return <article key={subject.id} data-icon-item={item?.svg ? "" : undefined} data-subject-id={subject.id} data-selected={selectedIconId === subject.id || undefined} onClick={event => { if (tool === "select" && item?.svg) { event.stopPropagation(); onSelectIcon(subject.id); onFocus(event.currentTarget); } }} onDoubleClick={event => { if (!item?.svg) return; event.preventDefault(); event.stopPropagation(); if (detailClickTimer.current) clearTimeout(detailClickTimer.current); dialog.current?.close(); onSelectIcon(subject.id); onFocus(event.currentTarget); }}>
       {singleSelectionId === subject.id ? <div className={`${css.groupActions} ${css.iconActions}`} data-canvas-controls data-canvas-pan-surface data-icon-group-actions onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
-      <button type="button" disabled={actionBusy} data-tooltip={zh ? "单图收藏" : "Favorite icon"} aria-label={result.favoriteIconIds?.includes(singleSelectionId) ? (zh ? "取消收藏单图" : "Remove icon from favorites") : (zh ? "收藏单图" : "Favorite icon")} aria-pressed={Boolean(result.favoriteIconIds?.includes(singleSelectionId))} onClick={() => onToggleIconFavorite(singleSelectionId)}>
+      <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "单图收藏" : "Favorite icon"} aria-label={result.favoriteIconIds?.includes(singleSelectionId) ? (zh ? "取消收藏单图" : "Remove icon from favorites") : (zh ? "收藏单图" : "Favorite icon")} aria-pressed={Boolean(result.favoriteIconIds?.includes(singleSelectionId))} onClick={() => onToggleIconFavorite(singleSelectionId)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.47 6.03.88-4.36 4.25 1.03 6-5.4-2.84L6.6 19.6l1.03-6-4.36-4.25 6.03-.88Z" /></svg>
       </button>
-      <button type="button" disabled={actionBusy} data-tooltip={zh ? "单图下载" : "Download icon"} aria-label={zh ? "下载单图" : "Download icon"} onClick={() => {
+      <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "单图下载" : "Download icon"} aria-label={zh ? "下载单图" : "Download icon"} onClick={() => {
         const iconSvg = items[singleSelectionId]?.svg ?? result.icons?.[singleSelectionId];
         if (!iconSvg) return;
         const anchor = document.createElement("a"); anchor.href = imageUrl(iconSvg); anchor.download = `${singleSelectionId}.svg`; document.body.append(anchor); anchor.click(); anchor.remove();
       }}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v3h16v-3" /></svg>
       </button>
-      <button type="button" disabled={actionBusy || Boolean(result.favoriteIconIds?.includes(singleSelectionId))} data-tooltip={result.favoriteIconIds?.includes(singleSelectionId) ? (zh ? "请先取消单图收藏" : "Remove the icon from favorites first") : (zh ? "单图回收" : "Recycle icon")} aria-label={zh ? "回收单图" : "Recycle icon"} onClick={() => onRecycleIcon(singleSelectionId)}>
+      <button type="button" disabled={actionBusy || Boolean(result.favoriteIconIds?.includes(singleSelectionId))} data-busy={actionBusy || undefined} data-tooltip={result.favoriteIconIds?.includes(singleSelectionId) ? (zh ? "请先取消单图收藏" : "Remove the icon from favorites first") : (zh ? "单图回收" : "Recycle icon")} aria-label={zh ? "回收单图" : "Recycle icon"} onClick={() => onRecycleIcon(singleSelectionId)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" /></svg>
       </button>
     </div> : null}
-      {item?.svg ? <button className={css.iconButton} data-canvas-controls aria-label={tool === "select" ? (zh ? `选中 ${subject.name}` : `Select ${subject.name}`) : (zh ? `查看 ${subject.name}` : `View ${subject.name}`)} aria-pressed={tool === "select" ? selectedIconId === subject.id : undefined} onClick={() => { if (tool !== "select") { setSelected(subject.id); dialog.current?.showModal(); } }}><img src={imageUrl(item.svg)} alt={subject.name} /></button> : (item?.status === "failed" || (result.saved && item?.status !== "processing")) ? <button className={css.failedPreview} data-canvas-controls aria-label={zh ? `重试生成 ${subject.name}` : `Retry generating ${subject.name}`} onClick={() => { if (abort.current && !retrying.current.has(subject.id)) { retrying.current.add(subject.id); const busyId = `${result.id}:${subject.id}`; onBusyChange(busyId, true); void generate(subject, abort.current.signal, true).finally(() => { retrying.current.delete(subject.id); onBusyChange(busyId, false); }); } }}>
+      {item?.svg ? <button className={css.iconButton} data-canvas-controls aria-label={tool === "select" ? (zh ? `选中 ${subject.name}` : `Select ${subject.name}`) : (zh ? `查看 ${subject.name}` : `View ${subject.name}`)} aria-pressed={tool === "select" ? selectedIconId === subject.id : undefined} onClick={() => { if (tool !== "select") { if (detailClickTimer.current) clearTimeout(detailClickTimer.current); detailClickTimer.current = setTimeout(() => { setSelected(subject.id); dialog.current?.showModal(); detailClickTimer.current = null; }, 430); } }}><img src={imageUrl(item.svg)} alt={subject.name} /></button> : (item?.status === "failed" || (result.saved && item?.status !== "processing")) ? <button className={css.failedPreview} data-canvas-controls aria-label={zh ? `重试生成 ${subject.name}` : `Retry generating ${subject.name}`} onClick={() => { if (abort.current && !retrying.current.has(subject.id)) { retrying.current.add(subject.id); const busyId = `${result.id}:${subject.id}`; onBusyChange(busyId, true); void generate(subject, abort.current.signal, true).finally(() => { retrying.current.delete(subject.id); onBusyChange(busyId, false); }); } }}>
         <span className={css.brokenImage} aria-hidden="true"><svg viewBox="0 0 48 48">
           <g className={css.leftFragment}><path d="M7 12h15l-4 9 6 6-5 11H7z"/><path d="m9 34 8-9 5 5"/></g>
           <g className={css.rightFragment}><path d="M28 12h13v26H21l5-11-6-6 5-9z"/><path d="m28 31 4-4 7 8"/></g>

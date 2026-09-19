@@ -113,6 +113,7 @@ export function StudioColorPicker({
       <button
         type="button"
         aria-label={label}
+        aria-expanded={open}
         className="studio-color-swatch"
         style={{
           background: `linear-gradient(rgb(255 255 255 / ${1 - alpha / 100}), rgb(255 255 255 / ${1 - alpha / 100})), ${value}`,

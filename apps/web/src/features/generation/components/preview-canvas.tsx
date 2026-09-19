@@ -19,6 +19,7 @@ const clamp = (value: number) => Math.min(300, Math.max(5, value));
 
 export function PreviewCanvas({ children, zh, projectId, projectName, projectDescription, categoryId, previewSvg, theme = DEFAULT_PROJECT_THEME, aiTheme, customTheme, themeSource = "preset", onThemeSave, onManualPreviewColorChange, onGenerationBusyChange }: { children: ReactNode; zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; previewSvg: string; theme?: ProjectTheme; aiTheme?: ProjectTheme | null; customTheme?: ProjectTheme | null; themeSource?: string; onThemeSave?: (theme: ProjectTheme, choice: { source: "ai" | "manual" | "preset"; presetId?: string }) => void; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onGenerationBusyChange?: (busy: boolean) => void }) {
   const root = useRef<HTMLDivElement>(null);
+  const [headerGlassRects, setHeaderGlassRects] = useState<Array<{ left: number; top: number; width: number; height: number }>>([]);
   const [plans, setPlans] = useState<PlanResult[]>([]);
   const [planning, setPlanning] = useState(false);
   const [activeSets, setActiveSets] = useState<Set<string>>(() => new Set());
@@ -75,6 +76,35 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef(pan);
   useLayoutEffect(() => { panRef.current = pan; }, [pan]);
+  useLayoutEffect(() => {
+    const header = document.querySelector<HTMLElement>(".workspace-header");
+    if (!header) return;
+    const panes = Array.from(header.querySelectorAll<HTMLElement>(".workspace-header__brand-pane, .workspace-header__controls-pane"));
+    const userMenuPanel = header.querySelector<HTMLElement>(".user-menu__panel");
+    const update = () => setHeaderGlassRects([
+      ...panes,
+      ...(userMenuPanel?.dataset.open === "true" ? [userMenuPanel] : []),
+    ].map(element => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    }));
+    const observer = new ResizeObserver(update);
+    panes.forEach(element => observer.observe(element));
+    if (userMenuPanel) observer.observe(userMenuPanel);
+    const menuObserver = userMenuPanel
+      ? new MutationObserver(update)
+      : null;
+    if (userMenuPanel) menuObserver?.observe(userMenuPanel, { attributes: true, attributeFilter: ["data-open"] });
+    window.addEventListener("resize", update);
+    header.addEventListener("animationend", update);
+    update();
+    return () => {
+      observer.disconnect();
+      menuObserver?.disconnect();
+      window.removeEventListener("resize", update);
+      header.removeEventListener("animationend", update);
+    };
+  }, []);
   const [focusing, setFocusing] = useState(false);
   const focusAnimationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -209,6 +239,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
   }, [beginAction, endAction, plans, projectId, zh]);
   const [dragging, setDragging] = useState(false);
   const drag = useRef<{ id: number; x: number; y: number; originX: number; originY: number } | null>(null);
+  const handDoubleClick = useRef<{ groupId: string; subjectId?: string; groupTarget: HTMLElement; iconTarget?: HTMLElement; at: number; x: number; y: number } | null>(null);
   const stopDrag = () => {
     drag.current = null;
     setDragging(false);
@@ -288,6 +319,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       setDraft(String(Math.round(next)));
     };
     const wheel = (event: WheelEvent) => {
+      if (event.target instanceof Element && event.target.closest("dialog[open]")) return;
       if (toolRef.current !== "hand" && isControl(event.target)) return;
       event.preventDefault();
       setFocusing(false);
@@ -406,7 +438,13 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       rowHeight = Math.max(rowHeight, item.height);
       packedWidth = Math.max(packedWidth, cursorX - gap);
     });
-    const targetLeft = (availableLeft + availableRight - packedWidth * scale) / 2;
+    const packedHeight = cursorY + rowHeight;
+    // The results container is fixed directly below the preview in canvas-world
+    // coordinates. Use it as the arrangement anchor so panning never changes
+    // where arranged groups are saved.
+    const targetLeft = resultsRect
+      ? (resultsRect.left + resultsRect.right - packedWidth * scale) / 2
+      : (availableLeft + availableRight - packedWidth * scale) / 2;
     const targetTop = resultsRect?.top ?? canvasRect.top + canvasRect.height / 2 + 200 * scale;
     const nextPositions = Object.fromEntries(packed.map(item => [item.id, {
       x: item.current.x + (targetLeft + item.x * scale - item.rect.left) / scale,
@@ -415,6 +453,21 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     setAlignmentGuides({});
     setGroupPositions(current => ({ ...current, ...nextPositions }));
     setPlans(items => items.map(item => nextPositions[item.id] ? { ...item, position: nextPositions[item.id] } : item));
+    const focusCenter = {
+      x: (availableLeft + availableRight) / 2,
+      y: toolsRect ? toolsRect.top + toolsRect.height / 2 : canvasRect.top + canvas.clientHeight / 2,
+    };
+    const arrangedCenter = {
+      x: targetLeft + packedWidth * scale / 2,
+      y: targetTop + packedHeight * scale / 2,
+    };
+    if (focusAnimationTimer.current) clearTimeout(focusAnimationTimer.current);
+    setFocusing(true);
+    setPan(current => ({
+      x: current.x + focusCenter.x - arrangedCenter.x,
+      y: current.y + focusCenter.y - arrangedCenter.y,
+    }));
+    focusAnimationTimer.current = setTimeout(() => setFocusing(false), 380);
     void Promise.all(Object.entries(nextPositions).map(async ([id, position]) => {
       const response = await fetch(`/api/projects/${projectId}/svg-sets/${id}/position`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(position) });
       if (!response.ok) throw new Error("Position save failed");
@@ -432,7 +485,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     });
   };
   // Panning only changes the artwork transform; it must not rebuild every SVG card.
-  const iconResults = useMemo(() => <IconPlanResults results={projectGroups} busy={planning} zh={zh} onBusyChange={onSetBusyChange} actionBusyKeys={actionBusyKeys} tool={tool} scale={scale} selectedGroupId={selectedGroupId} selectedIcon={selectedIcon} raisedGroupId={raisedGroupId} positions={groupPositions} onSelectGroup={id => { setSelectedGroupId(id); setSelectedIcon(null); setRaisedGroupId(id); }} onSelectIcon={(groupId, subjectId) => { setSelectedGroupId(null); setSelectedIcon({ groupId, subjectId }); setRaisedGroupId(groupId); }} onIconGenerated={(groupId, subjectId, svg) => setPlans(items => items.map(item => item.id === groupId ? { ...item, icons: { ...(item.icons ?? {}), [subjectId]: svg } } : item))} onRetryError={() => setGroupActionError({ id: Date.now(), message: zh ? "图标重试生成失败，请稍后再试。" : "The icon couldn't be regenerated. Please try again." })} onMoveGroup={moveGroupWithSnap} onMoveGroupEnd={(id, position) => { setAlignmentGuides({}); void saveGroupPosition(id, position); }} onFocusGroup={focusGroup} onToggleFavorite={id => void toggleGroupFavorite(id)} onToggleIconFavorite={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} onRecycleIcon={(groupId, subjectId) => void recycleIcon(groupId, subjectId)} onExportGroup={exportGroup} onDeleteGroup={id => void recycleGroup(id)} />,
+  const iconResults = useMemo(() => <IconPlanResults results={projectGroups} busy={planning} zh={zh} onBusyChange={onSetBusyChange} actionBusyKeys={actionBusyKeys} tool={tool} scale={scale} selectedGroupId={selectedGroupId} selectedIcon={selectedIcon} raisedGroupId={raisedGroupId} positions={groupPositions} onSelectGroup={id => { setTool("select"); setSelectedGroupId(id); setSelectedIcon(null); setRaisedGroupId(id); }} onSelectIcon={(groupId, subjectId) => { setTool("select"); setSelectedGroupId(null); setSelectedIcon({ groupId, subjectId }); setRaisedGroupId(groupId); }} onIconGenerated={(groupId, subjectId, svg) => setPlans(items => items.map(item => item.id === groupId ? { ...item, icons: { ...(item.icons ?? {}), [subjectId]: svg } } : item))} onRetryError={() => setGroupActionError({ id: Date.now(), message: zh ? "图标重试生成失败，请稍后再试。" : "The icon couldn't be regenerated. Please try again." })} onMoveGroup={moveGroupWithSnap} onMoveGroupEnd={(id, position) => { setAlignmentGuides({}); void saveGroupPosition(id, position); }} onFocusGroup={focusGroup} onToggleFavorite={id => void toggleGroupFavorite(id)} onToggleIconFavorite={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} onRecycleIcon={(groupId, subjectId) => void recycleIcon(groupId, subjectId)} onExportGroup={exportGroup} onDeleteGroup={id => void recycleGroup(id)} />,
   [projectGroups, planning, zh, onSetBusyChange, actionBusyKeys, tool, scale, selectedGroupId, selectedIcon, raisedGroupId, groupPositions, moveGroupWithSnap, saveGroupPosition, focusGroup, toggleGroupFavorite, toggleIconFavorite, recycleIcon, exportGroup, recycleGroup]);
   return <div ref={root} className={css.viewport} data-preview-canvas data-zoom={Math.round(zoom)}
     data-tool={tool} data-dragging={dragging} data-focusing={focusing || undefined} data-pan-x={pan.x} data-pan-y={pan.y}
@@ -440,9 +493,34 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     onPointerDown={event => {
       setFocusing(false);
       const target = event.target as Element;
+      const visualTarget = document.elementFromPoint(event.clientX, event.clientY) ?? target;
       if (tool === "select" && !target.closest("[data-canvas-icon-group], [data-canvas-controls]")) { setSelectedGroupId(null); setSelectedIcon(null); }
-      const blockingControl = target.closest("[data-canvas-controls]") && !target.closest("[data-canvas-pan-surface]");
+      const blockingControl = visualTarget.closest("[data-canvas-controls]") && !visualTarget.closest("[data-canvas-pan-surface]");
       if (tool !== "hand" || event.button !== 0 || !event.isPrimary || blockingControl) return;
+      const groupTarget = visualTarget.closest<HTMLElement>("[data-canvas-icon-group]");
+      const iconTarget = visualTarget.closest<HTMLElement>("[data-icon-item][data-subject-id]");
+      const groupId = groupTarget?.dataset.groupId;
+      const subjectId = iconTarget?.dataset.subjectId;
+      const now = performance.now();
+      const previous = handDoubleClick.current;
+      const repeatedPress = previous
+        && now - previous.at <= 650
+        && Math.hypot(event.clientX - previous.x, event.clientY - previous.y) <= 12;
+      if (repeatedPress) {
+        handDoubleClick.current = null;
+        event.preventDefault();
+        event.stopPropagation();
+        stopDrag();
+        setTool("select");
+        setRaisedGroupId(previous.groupId);
+        if (previous.iconTarget && previous.subjectId) { setSelectedGroupId(null); setSelectedIcon({ groupId: previous.groupId, subjectId: previous.subjectId }); }
+        else { setSelectedGroupId(previous.groupId); setSelectedIcon(null); }
+        requestAnimationFrame(() => focusGroup(previous.iconTarget ?? previous.groupTarget));
+        return;
+      }
+      if (groupTarget && groupId) {
+        handDoubleClick.current = { groupId, subjectId, groupTarget, iconTarget: iconTarget ?? undefined, at: now, x: event.clientX, y: event.clientY };
+      } else handDoubleClick.current = null;
       event.preventDefault();
       drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, originX: pan.x, originY: pan.y };
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -451,6 +529,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     onPointerMove={event => {
       const active = drag.current;
       if (active?.id === event.pointerId) {
+        if (Math.hypot(event.clientX - active.x, event.clientY - active.y) > 4) handDoubleClick.current = null;
         setPan({ x: active.originX + event.clientX - active.x, y: active.originY + event.clientY - active.y });
       }
       const rect = event.currentTarget.getBoundingClientRect();
@@ -473,6 +552,12 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     <div className={css.dots} aria-hidden="true" />
     <div className={css.highlight} aria-hidden="true" />
     <div className={css.artwork}>{children}{iconResults}</div>
+    {headerGlassRects.map((rect, index) => <span
+      key={index}
+      className={css.headerGlassBackdrop}
+      style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+      aria-hidden="true"
+    />)}
     {alignmentGuides.x !== undefined ? <span className={`${css.alignmentGuide} ${css.verticalGuide}`} style={{ left: alignmentGuides.x }} aria-hidden="true" /> : null}
     {alignmentGuides.y !== undefined ? <span className={`${css.alignmentGuide} ${css.horizontalGuide}`} style={{ top: alignmentGuides.y }} aria-hidden="true" /> : null}
     {loadError ? <Toast key={loadError.id} message={loadError.message} variant="error" /> : null}
@@ -503,6 +588,29 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
         const restoredGroup = root.current?.querySelector<HTMLElement>(`[data-canvas-icon-group][data-group-id="${groupId}"]`);
         if (restoredGroup) focusGroup(restoredGroup);
       }));
+    }} onDeleted={({ groupId, subjectId }) => {
+      setPlans(items => items.flatMap(item => {
+        if (item.id !== groupId) return [item];
+        if (!subjectId) return [];
+        const subjects = item.plan.subjects.filter(subject => subject.id !== subjectId);
+        if (!subjects.length) return [];
+        const icons = { ...(item.icons ?? {}) };
+        delete icons[subjectId];
+        return [{
+          ...item,
+          plan: { ...item.plan, subjects, count: subjects.length },
+          icons,
+          recycledIconIds: (item.recycledIconIds ?? []).filter(id => id !== subjectId),
+          favoriteIconIds: (item.favoriteIconIds ?? []).filter(id => id !== subjectId),
+        }];
+      }));
+      setSelectedGroupId(current => current === groupId ? null : current);
+      setSelectedIcon(current => current?.groupId === groupId && (!subjectId || current.subjectId === subjectId) ? null : current);
+      if (!subjectId) setGroupPositions(current => {
+        const next = { ...current };
+        delete next[groupId];
+        return next;
+      });
     }} />
     <div className={css.tools} role="toolbar" aria-label={zh ? "画布工具" : "Canvas tools"} data-canvas-tool-rail data-canvas-controls data-canvas-glass>
       <button className={css.themeButton} type="button" data-theme-trigger data-tooltip={zh ? "项目主题色" : "Project theme"} aria-label={zh ? "项目主题色" : "Project theme"} aria-expanded={themeOpen} onClick={() => { setOpen(false); setThemeOpen(value => { const next = !value; if (next) setTool("none"); return next; }); }}><ThemeMark theme={theme} /></button>

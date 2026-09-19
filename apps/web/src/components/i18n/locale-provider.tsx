@@ -55,7 +55,7 @@ const words: Record<string, Record<Locale, string>> = {
     zh: "正在打开工作空间",
   },
   enterWorkspace: { en: "Open workspace", zh: "打开工作空间" },
-  workspace: { en: "Icon generator", zh: "图标生成" },
+  workspace: { en: "Icon Gen", zh: "图标生成" },
   avatarAndProfile: { en: "Personal information", zh: "个人信息" },
   signOut: { en: "Sign out", zh: "退出登录" },
   signingOut: { en: "Signing out…", zh: "正在退出…" },

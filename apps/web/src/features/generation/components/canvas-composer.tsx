@@ -168,14 +168,17 @@ export function CanvasComposer({ zh, projectId, projectName, projectDescription,
         }} />
         <button className={css.add} type="button" aria-label={zh ? "添加参考图片" : "Add reference image"} onClick={() => attachment.current?.click()}><svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /></svg></button>
         <div className={css.right}>
-          <div className={css.generationMode}>
-            <span className={css.modeState}>{smartColor ? (zh ? "智能配色" : "Smart colors") : (zh ? "手动配色" : "Manual colors")}</span>
-            <button className={css.modeSwitch} type="button" role="switch" aria-checked={smartColor} aria-label={zh ? "智能配色" : "Smart colors"} title={!manualColorAvailable ? (zh ? "多色风格仅支持智能配色" : "Multicolor styles use smart colors only") : undefined} disabled={!manualColorAvailable} onClick={toggleColorMode}><span className={css.modeThumb} /></button>
-          </div>
           <div className={css.colorSlot}>
             {!smartColor && (previewUsesGradient
               ? <div className={`${css.color} ${css.gradientColor}`}><LibraryColorPicker gradientOnly portal value={gradientColor} onChange={setGradientColor} zh={zh} /></div>
-              : <div className={css.color}><StudioColorPicker value={color} onChange={setColor} alpha={colorAlpha} onAlphaChange={setColorAlpha} label={zh ? "选择颜色" : "Choose color"} locale={zh ? "zh" : "en"} /><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg></div>)}
+              : <div className={css.color} onClick={event => {
+                if ((event.target as Element).closest("button")) return;
+                event.currentTarget.querySelector<HTMLButtonElement>("button")?.click();
+              }}><StudioColorPicker value={color} onChange={setColor} alpha={colorAlpha} onAlphaChange={setColorAlpha} label={zh ? "选择颜色" : "Choose color"} locale={zh ? "zh" : "en"} /><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg></div>)}
+          </div>
+          <div className={css.generationMode}>
+            <span className={css.modeState}>{smartColor ? (zh ? "智能配色" : "Smart colors") : (zh ? "手动配色" : "Manual colors")}</span>
+            <button className={css.modeSwitch} type="button" role="switch" aria-checked={smartColor} aria-label={zh ? "智能配色" : "Smart colors"} title={!manualColorAvailable ? (zh ? "多色风格仅支持智能配色" : "Multicolor styles use smart colors only") : undefined} disabled={!manualColorAvailable} onClick={toggleColorMode}><span className={css.modeThumb} /></button>
           </div>
           <button className={css.send} type="submit" disabled={busy || (!text.trim() && !file)} aria-label={busy ? (zh ? "正在分析需求" : "Analyzing request") : (zh ? "发送" : "Send")}><svg viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6" /></svg></button>
         </div>
