@@ -38,7 +38,7 @@ test("admin uses the shared workspace navigation and panels provide English copy
     "Refresh data",
     "Generation jobs",
     "No data yet",
-    "Reload",
+    "Data could not be loaded. Try again.",
     "Generate CD-Keys",
   ]) {
     assert.ok(

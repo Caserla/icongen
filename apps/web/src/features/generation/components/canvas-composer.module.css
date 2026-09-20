@@ -44,6 +44,11 @@
 .composer textarea::placeholder { color: var(--control-muted); opacity: 1; }
 .actions, .right { display: flex; align-items: center; }
 .actions { justify-content: space-between; margin-top: 8px; }
+.leftActions { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.selectedStyle { position: relative; display: flex; min-width: 0; max-width: 180px; height: 30px; box-sizing: border-box; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); color: var(--control-muted); font-size: 11px; white-space: nowrap; cursor: default; user-select: none; }
+.selectedStyle strong { overflow: hidden; color: var(--control-ink); font-size: 12px; font-weight: 600; text-overflow: ellipsis; }
+.selectedStyle::after { position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 12; padding: 7px 10px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--control-surface); color: var(--control-ink); box-shadow: 0 5px 16px #0005; content: attr(data-tooltip); font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, 4px); transition: opacity 120ms ease, transform 120ms ease; }
+.selectedStyle:hover::after { opacity: 1; transform: translate(-50%, 0); }
 .right { gap: 12px; }
 .composer button { display: grid; place-items: center; padding: 0; border: 0; color: var(--control-ink); cursor: pointer; }
 .composer .add, .composer .send { width: 36px; height: 36px; border-radius: 50%; background: transparent; }

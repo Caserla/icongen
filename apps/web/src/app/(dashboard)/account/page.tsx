@@ -55,7 +55,10 @@ export default function AccountPage() {
 
   if (error && !account)
     return (
-      <PageState kind="error" />
+      <>
+        <PageState />
+        <Toast message={error} variant="error" />
+      </>
     );
   if (!account)
     return (

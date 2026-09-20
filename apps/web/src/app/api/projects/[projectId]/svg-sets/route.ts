@@ -8,6 +8,14 @@ const paramsSchema = z.object({ projectId: z.string().uuid() });
 type Context = { params: Promise<{ projectId: string }> };
 
 const pageSchema = z.object({ offset: z.coerce.number().int().min(0).default(0), asOf: z.string().datetime().optional() });
+const batchTargetSchema = z.object({ groupId: z.string().uuid(), subjectId: z.string().min(1).max(120).optional() });
+const batchActionSchema = z.object({
+  action: z.enum(["removeFavorite", "deletePermanently"]),
+  targets: z.array(batchTargetSchema).min(1).max(200),
+});
+const storedPlanSchema = z.object({
+  subjects: z.array(z.object({ id: z.string().min(1).max(120), name: z.string(), description: z.string() }).passthrough()),
+}).passthrough();
 const pageSize = 50;
 
 export async function GET(request: Request, context: Context) {
@@ -79,4 +87,74 @@ export async function POST(request: Request, context: Context) {
     if (saved.error) throw saved.error;
     return Response.json({ id: saved.data.id }, { status: 201 });
   } catch (error) { return authErrorResponse(error) ?? apiError("SVG_SET_SAVE_FAILED", "Icon set could not be saved.", 503); }
+}
+
+export async function PUT(request: Request, context: Context) {
+  const parsed = paramsSchema.safeParse(await context.params);
+  if (!parsed.success) return apiError("INVALID_PROJECT_ID", "Invalid project.", 400);
+  const input = batchActionSchema.safeParse(await request.json().catch(() => null));
+  if (!input.success) return apiError("INVALID_INPUT", "Invalid batch icon action.", 400);
+  const targets = [...new Map(input.data.targets.map(target => [`${target.groupId}:${target.subjectId ?? "group"}`, target])).values()];
+  const requestedGroupIds = [...new Set(targets.map(target => target.groupId))];
+  try {
+    const user = await requireActiveUser();
+    const client = await createServerSupabaseClient();
+    const owned = await client.from("project_svg_icon_sets").select("id,plan,recycled_at")
+      .eq("project_id", parsed.data.projectId).eq("user_id", user.id).in("id", requestedGroupIds);
+    if (owned.error) throw owned.error;
+    if ((owned.data?.length ?? 0) !== requestedGroupIds.length) return apiError("SET_NOT_FOUND", "One or more icon sets were not found.", 404);
+    const sets = new Map((owned.data ?? []).map(set => [set.id, set]));
+    const groupTargets = targets.filter(target => !target.subjectId);
+    const iconTargets = targets.filter((target): target is { groupId: string; subjectId: string } => Boolean(target.subjectId));
+
+    if (input.data.action === "removeFavorite") {
+      if (groupTargets.length) {
+        const result = await client.from("project_svg_icon_sets").update({ is_favorite: false })
+          .eq("project_id", parsed.data.projectId).eq("user_id", user.id).in("id", groupTargets.map(target => target.groupId));
+        if (result.error) throw result.error;
+      }
+      for (const groupId of [...new Set(iconTargets.map(target => target.groupId))]) {
+        const subjectIds = iconTargets.filter(target => target.groupId === groupId).map(target => target.subjectId);
+        const result = await client.from("project_svg_icons").update({ is_favorite: false }).eq("set_id", groupId).in("subject_id", subjectIds);
+        if (result.error) throw result.error;
+      }
+      return Response.json({ updated: targets.length });
+    }
+
+    const groupIdsToDelete = new Set(groupTargets.map(target => target.groupId));
+    if ([...groupIdsToDelete].some(groupId => !sets.get(groupId)?.recycled_at))
+      return apiError("NOT_RECYCLED", "Only recycled icon sets can be permanently deleted.", 409);
+    for (const groupId of groupIdsToDelete) {
+      const removed = await client.from("project_svg_icon_sets").delete()
+        .eq("id", groupId).eq("project_id", parsed.data.projectId).eq("user_id", user.id).not("recycled_at", "is", null).select("id").maybeSingle();
+      if (removed.error) throw removed.error;
+      if (!removed.data) return apiError("SET_NOT_FOUND", "Icon set not found.", 404);
+    }
+    for (const groupId of [...new Set(iconTargets.map(target => target.groupId))]) {
+      if (groupIdsToDelete.has(groupId)) continue;
+      const set = sets.get(groupId);
+      const plan = storedPlanSchema.safeParse(set?.plan);
+      if (!plan.success) return apiError("INVALID_SET", "Icon set plan is invalid.", 409);
+      const subjectIds = new Set(iconTargets.filter(target => target.groupId === groupId).map(target => target.subjectId));
+      const existing = await client.from("project_svg_icons").select("subject_id,recycled_at").eq("set_id", groupId).in("subject_id", [...subjectIds]);
+      if (existing.error) throw existing.error;
+      if ((existing.data?.length ?? 0) !== subjectIds.size || (existing.data ?? []).some(icon => !icon.recycled_at))
+        return apiError("ICON_NOT_RECYCLED", "Only recycled icons can be permanently deleted.", 409);
+      const subjects = plan.data.subjects.filter(subject => !subjectIds.has(subject.id));
+      if (!subjects.length) {
+        const removedSet = await client.from("project_svg_icon_sets").delete()
+          .eq("id", groupId).eq("project_id", parsed.data.projectId).eq("user_id", user.id);
+        if (removedSet.error) throw removedSet.error;
+        continue;
+      }
+      const removedIcons = await client.from("project_svg_icons").delete().eq("set_id", groupId).in("subject_id", [...subjectIds]);
+      if (removedIcons.error) throw removedIcons.error;
+      const updated = await client.from("project_svg_icon_sets").update({ plan: { ...plan.data, subjects, count: subjects.length } })
+        .eq("id", groupId).eq("project_id", parsed.data.projectId).eq("user_id", user.id);
+      if (updated.error) throw updated.error;
+    }
+    return Response.json({ deleted: targets.length });
+  } catch (error) {
+    return authErrorResponse(error) ?? apiError("BATCH_ICON_ACTION_FAILED", "Batch icon action failed.", 503);
+  }
 }

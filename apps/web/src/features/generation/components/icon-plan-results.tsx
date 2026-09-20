@@ -1,18 +1,16 @@
 /* eslint-disable @next/next/no-img-element -- Generated SVG data URLs and download previews must remain local and unoptimized. */
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { IconPlan } from "../icon-plan";
+import { ICON_GENERATION_CATEGORIES } from "../icon-generation-categories";
 import { withIconGenerationSlot } from "../icon-generation-limiter";
 import css from "./icon-plan-results.module.css";
 export type PlanResult = { id: string; plan: IconPlan; snapshot: unknown; position?: GroupPosition; layoutSize?: { width: number; height: number }; favorite?: boolean; recycled?: boolean; favoriteIconIds?: string[]; recycledIconIds?: string[]; saved?: boolean; icons?: Record<string, string> };
 type Item = { status: "queued" | "processing" | "completed" | "failed"; svg?: string; error?: string };
-type CanvasTool = "select" | "hand" | "none";
+type CanvasTool = "select" | "hand";
 type GroupPosition = { x: number; y: number };
 
-function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position, isSelected, selectedIconId, isRaised, onSelect, onSelectIcon, onIconGenerated, onRetryError, onMove, onMoveEnd, onFocus, onToggleFavorite, onToggleIconFavorite, onRecycleIcon, onExport, onDelete }: { result: PlanResult; zh: boolean; onBusyChange: (id: string, busy: boolean) => void; actionBusy: boolean; tool: CanvasTool; scale: number; position: GroupPosition; isSelected: boolean; selectedIconId: string | null; isRaised: boolean; onSelect: () => void; onSelectIcon: (id: string) => void; onIconGenerated: (id: string, svg: string) => void; onRetryError: () => void; onMove: (position: GroupPosition) => GroupPosition; onMoveEnd: (position: GroupPosition) => void; onFocus: (element: HTMLElement) => void; onToggleFavorite: () => void; onToggleIconFavorite: (id: string) => void; onRecycleIcon: (id: string) => void; onExport: () => void; onDelete: () => void }) {
+function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position, isSelected, selectedIconId, isRaised, onSelect, onSelectIcon, onIconGenerated, onRetryError, onMove, onMoveEnd, onFocus, onToggleFavorite, onToggleIconFavorite, onRecycleIcon, onExport, onExportIcon, onDelete }: { result: PlanResult; zh: boolean; onBusyChange: (id: string, busy: boolean) => void; actionBusy: boolean; tool: CanvasTool; scale: number; position: GroupPosition; isSelected: boolean; selectedIconId: string | null; isRaised: boolean; onSelect: () => void; onSelectIcon: (id: string) => void; onIconGenerated: (id: string, svg: string) => void; onRetryError: () => void; onMove: (position: GroupPosition) => GroupPosition; onMoveEnd: (position: GroupPosition) => void; onFocus: (element: HTMLElement) => void; onToggleFavorite: () => void; onToggleIconFavorite: (id: string) => void; onRecycleIcon: (id: string) => void; onExport: () => void; onExportIcon: (id: string) => void; onDelete: () => void }) {
   const [items, setItems] = useState<Record<string, Item>>(() => Object.fromEntries(Object.entries(result.icons ?? {}).map(([id, svg]) => [id, { status: "completed", svg }])));
-  const [selected, setSelected] = useState<string | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const detailClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const group = useRef<HTMLElement>(null);
   const groupDrag = useRef<{ pointerId: number; clientX: number; clientY: number; latestX: number; latestY: number; frame: number | null; originX: number; originY: number; lastPosition: GroupPosition; moved: boolean } | null>(null);
   const [moving, setMoving] = useState(false);
@@ -67,17 +65,11 @@ function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position
     // Each immutable result owns one generation queue.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result.id]);
-  useEffect(() => () => { if (detailClickTimer.current) clearTimeout(detailClickTimer.current); }, []);
-  useEffect(() => {
-    if (tool !== "select" || !detailClickTimer.current) return;
-    clearTimeout(detailClickTimer.current);
-    detailClickTimer.current = null;
-  }, [tool]);
   const complete = Object.values(items).filter(item => item.status === "completed").length;
   const failed = Object.values(items).filter(item => item.status === "failed").length;
-  const svg = selected ? items[selected]?.svg ?? result.icons?.[selected] : undefined;
-  const subject = result.plan.subjects.find(subject => subject.id === selected);
   const visibleSubjects = result.plan.subjects.filter(subject => !(result.recycledIconIds ?? []).includes(subject.id));
+  const styleId = (result.snapshot as { styleId?: string })?.styleId ?? "";
+  const styleLabel = ICON_GENERATION_CATEGORIES.flatMap(category => category.children).find(style => style.id === styleId)?.label;
   const singleSelectionId = selectedIconId ?? (isSelected && visibleSubjects.length === 1 ? visibleSubjects[0]?.id ?? null : null);
   const imageUrl = (value: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(value)}`;
   const startGroupMove = (event: ReactPointerEvent<HTMLElement>) => {
@@ -136,24 +128,23 @@ function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" /></svg>
       </button>
     </div> : null}
-    <p className={css.summary} title={result.plan.summary}>{result.plan.fallback ? (zh ? "已按通用交互场景整理 20 组图标。" : "Using 20 common UI icons.") : result.plan.summary}</p>
-    <div className={css.grid} data-canvas-pan-surface aria-busy={!result.saved && complete + failed < result.plan.count}>{result.plan.subjects.map(subject => { const item = items[subject.id] ?? (result.icons?.[subject.id] ? { status: "completed" as const, svg: result.icons[subject.id] } : undefined); const recycled = (result.recycledIconIds ?? []).includes(subject.id); if (recycled) return <article className={css.iconSpacer} key={subject.id} aria-hidden="true" />; return <article key={subject.id} data-icon-item={item?.svg ? "" : undefined} data-subject-id={subject.id} data-selected={selectedIconId === subject.id || undefined} onClick={event => { if (tool === "select" && item?.svg) { event.stopPropagation(); onSelectIcon(subject.id); onFocus(event.currentTarget); } }} onDoubleClick={event => { if (!item?.svg) return; event.preventDefault(); event.stopPropagation(); if (detailClickTimer.current) clearTimeout(detailClickTimer.current); dialog.current?.close(); onSelectIcon(subject.id); onFocus(event.currentTarget); }}>
+    <div className={css.groupMeta}>
+      <p className={css.summary} title={result.plan.summary}>{result.plan.fallback ? (zh ? "已按通用交互场景整理 20 组图标。" : "Using 20 common UI icons.") : result.plan.summary}</p>
+      <span className={css.styleLabel}>{zh ? "风格" : "Style"}: <strong>{styleLabel ? (zh ? styleLabel.zh : styleLabel.en) : styleId || "—"}</strong></span>
+    </div>
+    <div className={css.grid} data-canvas-pan-surface aria-busy={!result.saved && complete + failed < result.plan.count}>{result.plan.subjects.map(subject => { const item = items[subject.id] ?? (result.icons?.[subject.id] ? { status: "completed" as const, svg: result.icons[subject.id] } : undefined); const recycled = (result.recycledIconIds ?? []).includes(subject.id); if (recycled) return <article className={css.iconSpacer} key={subject.id} aria-hidden="true" />; return <article key={subject.id} data-icon-item={item?.svg ? "" : undefined} data-subject-id={subject.id} data-selected={selectedIconId === subject.id || undefined} onClick={event => { if (tool === "select" && item?.svg) { event.stopPropagation(); onSelectIcon(subject.id); onFocus(event.currentTarget); } }} onDoubleClick={event => { if (!item?.svg) return; event.preventDefault(); event.stopPropagation(); onSelectIcon(subject.id); onFocus(event.currentTarget); }}>
       {singleSelectionId === subject.id ? <div className={`${css.groupActions} ${css.iconActions}`} data-canvas-controls data-canvas-pan-surface data-icon-group-actions onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
       <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "单图收藏" : "Favorite icon"} aria-label={result.favoriteIconIds?.includes(singleSelectionId) ? (zh ? "取消收藏单图" : "Remove icon from favorites") : (zh ? "收藏单图" : "Favorite icon")} aria-pressed={Boolean(result.favoriteIconIds?.includes(singleSelectionId))} onClick={() => onToggleIconFavorite(singleSelectionId)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.47 6.03.88-4.36 4.25 1.03 6-5.4-2.84L6.6 19.6l1.03-6-4.36-4.25 6.03-.88Z" /></svg>
       </button>
-      <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "单图下载" : "Download icon"} aria-label={zh ? "下载单图" : "Download icon"} onClick={() => {
-        const iconSvg = items[singleSelectionId]?.svg ?? result.icons?.[singleSelectionId];
-        if (!iconSvg) return;
-        const anchor = document.createElement("a"); anchor.href = imageUrl(iconSvg); anchor.download = `${singleSelectionId}.svg`; document.body.append(anchor); anchor.click(); anchor.remove();
-      }}>
+      <button type="button" disabled={actionBusy} data-busy={actionBusy || undefined} data-tooltip={zh ? "单图下载" : "Download icon"} aria-label={zh ? "下载单图" : "Download icon"} onClick={() => onExportIcon(singleSelectionId)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v3h16v-3" /></svg>
       </button>
       <button type="button" disabled={actionBusy || Boolean(result.favoriteIconIds?.includes(singleSelectionId))} data-busy={actionBusy || undefined} data-tooltip={result.favoriteIconIds?.includes(singleSelectionId) ? (zh ? "请先取消单图收藏" : "Remove the icon from favorites first") : (zh ? "单图回收" : "Recycle icon")} aria-label={zh ? "回收单图" : "Recycle icon"} onClick={() => onRecycleIcon(singleSelectionId)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" /></svg>
       </button>
     </div> : null}
-      {item?.svg ? <button className={css.iconButton} data-canvas-controls aria-label={tool === "select" ? (zh ? `选中 ${subject.name}` : `Select ${subject.name}`) : (zh ? `查看 ${subject.name}` : `View ${subject.name}`)} aria-pressed={tool === "select" ? selectedIconId === subject.id : undefined} onClick={() => { if (tool !== "select") { if (detailClickTimer.current) clearTimeout(detailClickTimer.current); detailClickTimer.current = setTimeout(() => { setSelected(subject.id); dialog.current?.showModal(); detailClickTimer.current = null; }, 430); } }}><img src={imageUrl(item.svg)} alt={subject.name} /></button> : (item?.status === "failed" || (result.saved && item?.status !== "processing")) ? <button className={css.failedPreview} data-canvas-controls aria-label={zh ? `重试生成 ${subject.name}` : `Retry generating ${subject.name}`} onClick={() => { if (abort.current && !retrying.current.has(subject.id)) { retrying.current.add(subject.id); const busyId = `${result.id}:${subject.id}`; onBusyChange(busyId, true); void generate(subject, abort.current.signal, true).finally(() => { retrying.current.delete(subject.id); onBusyChange(busyId, false); }); } }}>
+      {item?.svg ? <button className={css.iconButton} data-canvas-controls aria-label={tool === "select" ? (zh ? `选中 ${subject.name}` : `Select ${subject.name}`) : subject.name} aria-pressed={tool === "select" ? selectedIconId === subject.id : undefined}><img src={imageUrl(item.svg)} alt={subject.name} /></button> : (item?.status === "failed" || (result.saved && item?.status !== "processing")) ? <button className={css.failedPreview} data-canvas-controls aria-label={zh ? `重试生成 ${subject.name}` : `Retry generating ${subject.name}`} onClick={() => { if (abort.current && !retrying.current.has(subject.id)) { retrying.current.add(subject.id); const busyId = `${result.id}:${subject.id}`; onBusyChange(busyId, true); void generate(subject, abort.current.signal, true).finally(() => { retrying.current.delete(subject.id); onBusyChange(busyId, false); }); } }}>
         <span className={css.brokenImage} aria-hidden="true"><svg viewBox="0 0 48 48">
           <g className={css.leftFragment}><path d="M7 12h15l-4 9 6 6-5 11H7z"/><path d="m9 34 8-9 5 5"/></g>
           <g className={css.rightFragment}><path d="M28 12h13v26H21l5-11-6-6 5-9z"/><path d="m28 31 4-4 7 8"/></g>
@@ -162,14 +153,9 @@ function PlanGroup({ result, zh, onBusyChange, actionBusy, tool, scale, position
       </button> : <span className={`${css.placeholder} ${!item || item.status === "queued" || item.status === "processing" ? css.loading : ""}`} aria-hidden="true" />}
       <span>{subject.name}</span>
     </article>; })}</div>
-    <dialog ref={dialog} className={css.detail} data-canvas-controls onClick={event => { if (event.target === event.currentTarget) dialog.current?.close(); }}>
-      <button className={css.close} onClick={() => dialog.current?.close()} aria-label={zh ? "关闭" : "Close"}>×</button>
-      <h3>{subject?.name}</h3>
-      {svg && <><img className={css.large} src={imageUrl(svg)} alt={subject?.name || "Icon"} /><a href={imageUrl(svg)} download={`${subject?.id || "icon"}.svg`}>{zh ? "下载 SVG" : "Download SVG"}</a></>}
-    </dialog>
   </section>;
 }
-export function IconPlanResults({ results, zh, onBusyChange, actionBusyKeys, tool, scale, selectedGroupId, selectedIcon, raisedGroupId, positions, onSelectGroup, onSelectIcon, onIconGenerated, onRetryError, onMoveGroup, onMoveGroupEnd, onFocusGroup, onToggleFavorite, onToggleIconFavorite, onRecycleIcon, onExportGroup, onDeleteGroup }: { results: PlanResult[]; busy: boolean; zh: boolean; onBusyChange: (id: string, busy: boolean) => void; actionBusyKeys: Set<string>; tool: CanvasTool; scale: number; selectedGroupId: string | null; selectedIcon: { groupId: string; subjectId: string } | null; raisedGroupId: string | null; positions: Record<string, GroupPosition>; onSelectGroup: (id: string) => void; onSelectIcon: (groupId: string, subjectId: string) => void; onIconGenerated: (groupId: string, subjectId: string, svg: string) => void; onRetryError: () => void; onMoveGroup: (id: string, position: GroupPosition) => GroupPosition; onMoveGroupEnd: (id: string, position: GroupPosition) => void; onFocusGroup: (element: HTMLElement) => void; onToggleFavorite: (id: string) => void; onToggleIconFavorite: (groupId: string, subjectId: string) => void; onRecycleIcon: (groupId: string, subjectId: string) => void; onExportGroup: (id: string) => void; onDeleteGroup: (id: string) => void }) {
+export function IconPlanResults({ results, zh, onBusyChange, actionBusyKeys, tool, scale, selectedGroupId, selectedIcon, raisedGroupId, positions, onSelectGroup, onSelectIcon, onIconGenerated, onRetryError, onMoveGroup, onMoveGroupEnd, onFocusGroup, onToggleFavorite, onToggleIconFavorite, onRecycleIcon, onExportGroup, onExportIcon, onDeleteGroup }: { results: PlanResult[]; busy: boolean; zh: boolean; onBusyChange: (id: string, busy: boolean) => void; actionBusyKeys: Set<string>; tool: CanvasTool; scale: number; selectedGroupId: string | null; selectedIcon: { groupId: string; subjectId: string } | null; raisedGroupId: string | null; positions: Record<string, GroupPosition>; onSelectGroup: (id: string) => void; onSelectIcon: (groupId: string, subjectId: string) => void; onIconGenerated: (groupId: string, subjectId: string, svg: string) => void; onRetryError: () => void; onMoveGroup: (id: string, position: GroupPosition) => GroupPosition; onMoveGroupEnd: (id: string, position: GroupPosition) => void; onFocusGroup: (element: HTMLElement) => void; onToggleFavorite: (id: string) => void; onToggleIconFavorite: (groupId: string, subjectId: string) => void; onRecycleIcon: (groupId: string, subjectId: string) => void; onExportGroup: (id: string) => void; onExportIcon: (groupId: string, subjectId: string) => void; onDeleteGroup: (id: string) => void }) {
   return <div className={css.results} data-icon-plan-results aria-live="polite">
     {results.map(result => {
       const position = positions[result.id] ?? result.position ?? { x: 0, y: 0 };
@@ -182,7 +168,7 @@ export function IconPlanResults({ results, zh, onBusyChange, actionBusyKeys, too
       }
       const selectedSubjectId = selectedIcon?.groupId === result.id ? selectedIcon.subjectId : null;
       const actionKey = selectedSubjectId || (selectedGroupId === result.id && result.plan.subjects.length === 1) ? `icon:${result.id}:${selectedSubjectId ?? result.plan.subjects[0]?.id}` : `group:${result.id}`;
-      return <PlanGroup key={result.id} result={result} zh={zh} onBusyChange={onBusyChange} actionBusy={actionBusyKeys.has(actionKey)} tool={tool} scale={scale} position={position} isSelected={selectedGroupId === result.id} selectedIconId={selectedSubjectId} isRaised={raisedGroupId === result.id} onSelect={() => onSelectGroup(result.id)} onSelectIcon={subjectId => onSelectIcon(result.id, subjectId)} onIconGenerated={(subjectId, svg) => onIconGenerated(result.id, subjectId, svg)} onRetryError={onRetryError} onMove={next => onMoveGroup(result.id, next)} onMoveEnd={next => onMoveGroupEnd(result.id, next)} onFocus={onFocusGroup} onToggleFavorite={() => onToggleFavorite(result.id)} onToggleIconFavorite={subjectId => onToggleIconFavorite(result.id, subjectId)} onRecycleIcon={subjectId => onRecycleIcon(result.id, subjectId)} onExport={() => onExportGroup(result.id)} onDelete={() => onDeleteGroup(result.id)} />;
+      return <PlanGroup key={result.id} result={result} zh={zh} onBusyChange={onBusyChange} actionBusy={actionBusyKeys.has(actionKey)} tool={tool} scale={scale} position={position} isSelected={selectedGroupId === result.id} selectedIconId={selectedSubjectId} isRaised={raisedGroupId === result.id} onSelect={() => onSelectGroup(result.id)} onSelectIcon={subjectId => onSelectIcon(result.id, subjectId)} onIconGenerated={(subjectId, svg) => onIconGenerated(result.id, subjectId, svg)} onRetryError={onRetryError} onMove={next => onMoveGroup(result.id, next)} onMoveEnd={next => onMoveGroupEnd(result.id, next)} onFocus={onFocusGroup} onToggleFavorite={() => onToggleFavorite(result.id)} onToggleIconFavorite={subjectId => onToggleIconFavorite(result.id, subjectId)} onRecycleIcon={subjectId => onRecycleIcon(result.id, subjectId)} onExport={() => onExportGroup(result.id)} onExportIcon={subjectId => onExportIcon(result.id, subjectId)} onDelete={() => onDeleteGroup(result.id)} />;
     })}
   </div>;
 }

@@ -179,7 +179,7 @@ test("validates direct page input against integer and page boundaries", () => {
   assert.deepEqual(validatePageJump("5", 4), { error: "above-range" });
 });
 
-test("filter transitions use shared loading, empty and retry states", () => {
+test("filter transitions use shared loading, empty and toast error states", () => {
   const source = readFileSync(
     new URL("./components/icon-job-list.tsx", import.meta.url),
     "utf8",
@@ -189,7 +189,9 @@ test("filter transitions use shared loading, empty and retry states", () => {
   assert.match(source, /setIsLoading\(true\)/);
   assert.match(source, /<PageState \/>/);
   assert.match(source, /<PageState kind="empty"/);
-  assert.match(source, /<PageState kind="error" onRetry=/);
+  assert.match(source, /loadFailed \? \(/);
+  assert.match(source, /Network error\. The icon list could not be loaded\./);
+  assert.doesNotMatch(source, /<PageState kind="error"/);
   assert.doesNotMatch(source, /暂无图标|创建一套图标/);
   assert.doesNotMatch(source, /No icons yet|Create an icon set/);
   assert.doesNotMatch(source, /generated-icon-no-options/);

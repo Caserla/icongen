@@ -634,6 +634,9 @@ export function IconJobList({
       {pageToast ? (
         <Toast message={pageToast} variant="warning" placement="center" />
       ) : null}
+      {loadFailed ? (
+        <Toast message={locale === "zh" ? "网络异常，图标列表加载失败" : "Network error. The icon list could not be loaded."} variant="error" placement="center" />
+      ) : null}
       <div className="icons-studio__filters">
         <section className="icons-filter-group">
           <p className="mb-3 text-sm font-black">
@@ -742,9 +745,7 @@ export function IconJobList({
 
       {isLoading && activeResult.jobs.length === 0 ? (
         <PageState />
-      ) : loadFailed ? (
-        <PageState kind="error" onRetry={()=>void loadList(activeUsage,activeStyle,activeStatus,activeStructure,activeResult.page)} />
-      ) : activeResult.jobs.length === 0 ? <PageState kind="empty"/> : !activeStyle &&
+      ) : activeResult.jobs.length === 0 ? (loadFailed ? null : <PageState kind="empty"/>) : !activeStyle &&
         !activeStructure ? (
         <div
           className={`icons-jobs-grid stagger-grid icons-list-swap mt-6 ${isLoading ? "is-updating" : ""}`}

@@ -10,8 +10,9 @@ import type { ManualPreviewColor } from "../manual-preview-color";
 import css from "./canvas-composer.module.css";
 import type { PlanResult } from "./icon-plan-results";
 import type { ProjectTheme } from "../project-themes";
+import { ICON_GENERATION_CATEGORIES } from "../icon-generation-categories";
 
-export function CanvasComposer({ zh, projectId, projectName, projectDescription, categoryId, previewSvg, projectTheme, onManualPreviewColorChange, onPlan, onPlanning }: { zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; previewSvg: string; projectTheme: ProjectTheme; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onPlan?: (result: PlanResult) => void; onPlanning?: (busy: boolean) => void }) {
+export function CanvasComposer({ zh, projectId, projectName, projectDescription, categoryId, lastSubcategoryId, previewSvg, projectTheme, onManualPreviewColorChange, onPlan, onPlanning }: { zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; lastSubcategoryId: string; previewSvg: string; projectTheme: ProjectTheme; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onPlan?: (result: PlanResult) => void; onPlanning?: (busy: boolean) => void }) {
   const [text, setText] = useState("");
   const [color, setColor] = useState("#3399DB");
   const [colorAlpha, setColorAlpha] = useState(100);
@@ -21,6 +22,7 @@ export function CanvasComposer({ zh, projectId, projectName, projectDescription,
   const manualColorAvailable = categoryId !== "multicolor";
   const previewUsesGradient = Boolean(previewPaletteFor(previewSvg, false)?.gradient);
   const smartColor = automaticColor || !manualColorAvailable;
+  const selectedStyle = ICON_GENERATION_CATEGORIES.flatMap(category => category.children).find(style => style.id === lastSubcategoryId)?.label;
   const toggleColorMode = () => {
     if (!smartColor) onManualPreviewColorChange?.(null);
     setAutomaticColor(value => !value);
@@ -144,7 +146,7 @@ export function CanvasComposer({ zh, projectId, projectName, projectDescription,
     : "Analyze the current project and generate a set of common functional icons.";
 
   return <>
-    <div className={css.composerDock} data-canvas-controls>
+    <div className={css.composerDock} data-composer-dock data-canvas-controls>
     {quickPrompt ? <div className={css.quickPrompts} aria-label={zh ? "快速提示语" : "Quick prompts"}>
       <button type="button" title={quickPrompt} onClick={() => { setText(quickPrompt); requestAnimationFrame(() => { input.current?.focus(); input.current?.setSelectionRange(quickPrompt.length, quickPrompt.length); }); }}>{quickPrompt}</button>
     </div> : null}
@@ -166,7 +168,10 @@ export function CanvasComposer({ zh, projectId, projectName, projectDescription,
           setFileError(0);
           setFile(selected);
         }} />
-        <button className={css.add} type="button" aria-label={zh ? "添加参考图片" : "Add reference image"} onClick={() => attachment.current?.click()}><svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /></svg></button>
+        <div className={css.leftActions}>
+          <button className={css.add} type="button" aria-label={zh ? "添加参考图片" : "Add reference image"} onClick={() => attachment.current?.click()}><svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /></svg></button>
+          {selectedStyle ? <span className={css.selectedStyle} data-tooltip={zh ? "当前生成风格" : "Current generation style"}><span>{zh ? "风格" : "Style"}</span><strong>{zh ? selectedStyle.zh : selectedStyle.en}</strong></span> : null}
+        </div>
         <div className={css.right}>
           <div className={css.colorSlot}>
             {!smartColor && (previewUsesGradient

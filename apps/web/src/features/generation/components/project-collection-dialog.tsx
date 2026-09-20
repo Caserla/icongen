@@ -22,6 +22,28 @@ export function ProjectCollectionDialog({ open, title, closeLabel, tabsLabel, ca
     if (open && !node.open) node.showModal();
     if (!open && node.open) node.close();
   }, [open]);
+  useEffect(() => {
+    const node = dialog.current;
+    if (!open || !node) return;
+    const keepFocusInside = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(node.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter(element => !element.hidden && element.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    node.addEventListener("keydown", keepFocusInside);
+    return () => node.removeEventListener("keydown", keepFocusInside);
+  }, [open, category, children]);
   if (!open) return null;
   return <dialog ref={dialog} className={`${libraryCss.dialog} ${libraryCss.iconDetail} ${css.favoriteDialog}`} data-canvas-controls aria-label={title} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => {
     if (event.target !== event.currentTarget) return;

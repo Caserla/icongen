@@ -94,6 +94,7 @@ export function AdminDashboard() {
   }, [load]);
   return (
     <div>
+      {error ? <Toast message={error} variant="error" /> : null}
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="text-xs font-black uppercase tracking-[.16em] text-brand">
@@ -129,8 +130,6 @@ export function AdminDashboard() {
       <section className="studio-panel mt-6 min-h-[420px] p-5 sm:p-7">
         {loading ? (
           <Loading />
-        ) : error ? (
-          <ErrorState message={error} retry={load} zh={zh} />
         ) : tab === "overview" ? (
           <OverviewPanel data={overview} zh={zh} />
         ) : tab === "cdkeys" ? (
@@ -845,27 +844,6 @@ function Loading() {
         <span className="skeleton-block mt-5 block h-40 w-full rounded-xl" />
       </div>
       <span className="sr-only">Loading operations data…</span>
-    </div>
-  );
-}
-function ErrorState({
-  message,
-  retry,
-  zh,
-}: {
-  message: string;
-  retry: () => Promise<void>;
-  zh: boolean;
-}) {
-  return (
-    <div className="py-20 text-center">
-      <p className="font-black text-danger">{message}</p>
-      <button
-        onClick={() => void retry()}
-        className="mt-4 font-black underline"
-      >
-        {zh ? "重新加载" : "Reload"}
-      </button>
     </div>
   );
 }

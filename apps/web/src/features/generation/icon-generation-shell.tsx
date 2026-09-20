@@ -125,7 +125,6 @@ export function IconGenerationShell() {
       && Boolean(nextCategory?.children.some(child => child.id === subcategoryId))
       && previewSvg.includes("/style-subcategories/");
     if (!keepsSelectedSubcategory) {
-      setSubcategoryId("");
       setPreviewSvg(nextCategory?.icon ?? "");
     }
     setSubcategoryOpen(true);
@@ -456,7 +455,7 @@ export function IconGenerationShell() {
             ))}
           </div>
         </div> : null}
-        <PreviewCanvas key="preview-canvas" zh={zh} categoryId={categoryId} previewSvg={previewSvg} projectId={activeProjectId || undefined} projectName={projects.find(project => project.id === activeProjectId)?.name} projectDescription={projects.find(project => project.id === activeProjectId)?.description} theme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme ?? DEFAULT_PROJECT_THEME : unlinkedTheme} aiTheme={projects.find(project => project.id === activeProjectId)?.ai_theme} customTheme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.custom_theme : unlinkedCustomTheme} themeSource={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme_source ?? "preset" : unlinkedThemeSource} onManualPreviewColorChange={setManualPreviewColor} onGenerationBusyChange={setGenerationLocked} onThemeSave={(nextTheme, choice) => {
+        <PreviewCanvas key="preview-canvas" zh={zh} categoryId={categoryId} lastSubcategoryId={subcategoryId} previewSvg={previewSvg} projectId={activeProjectId || undefined} projectName={projects.find(project => project.id === activeProjectId)?.name} projectDescription={projects.find(project => project.id === activeProjectId)?.description} theme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme ?? DEFAULT_PROJECT_THEME : unlinkedTheme} aiTheme={projects.find(project => project.id === activeProjectId)?.ai_theme} customTheme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.custom_theme : unlinkedCustomTheme} themeSource={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme_source ?? "preset" : unlinkedThemeSource} onManualPreviewColorChange={setManualPreviewColor} onGenerationBusyChange={setGenerationLocked} onThemeSave={(nextTheme, choice) => {
           if (!activeProjectId) {
             setUnlinkedTheme(nextTheme);
             setUnlinkedThemeSource(choice.source === "manual" ? "manual" : "preset");
@@ -480,7 +479,7 @@ export function IconGenerationShell() {
             setProjectToast({ id: Date.now(), message: zh ? "主题色保存失败" : "Theme could not be saved" });
           });
         }}>
-        <section className={css.stylePreview} aria-label={zh ? "风格预览详情" : "Style preview details"}>
+        <section className={css.stylePreview} data-canvas-fit-root aria-label={zh ? "风格预览详情" : "Style preview details"}>
           <div className={css.stylePreviewStage} data-canvas-glass>
             <p className={css.stylePreviewNotice}>
               {zh ? "风格预览" : "Style preview"}

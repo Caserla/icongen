@@ -90,6 +90,7 @@ export function StudioColorPicker({
   const setAlpha = onAlphaChange ?? setLocalAlpha;
   const [position, setPosition] = useState({ left: 12, top: 12 });
   const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const popover = useRef<HTMLDivElement>(null);
   const hsv = hexToHsv(value);
   useEffect(() => {
@@ -102,6 +103,18 @@ export function StudioColorPicker({
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("keydown", closeOnEscape, true);
+    return () => document.removeEventListener("keydown", closeOnEscape, true);
+  }, [open]);
   const setSV = (event: React.PointerEvent<HTMLDivElement>) => {
     const r = event.currentTarget.getBoundingClientRect();
     const s = Math.max(0, Math.min(1, (event.clientX - r.left) / r.width));
@@ -111,6 +124,7 @@ export function StudioColorPicker({
   return (
     <div ref={root} className="studio-picker-anchor">
       <button
+        ref={trigger}
         type="button"
         aria-label={label}
         aria-expanded={open}

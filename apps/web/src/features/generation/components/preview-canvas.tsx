@@ -12,12 +12,18 @@ import { pendingGenerationId, updateActiveGenerationSets } from "../generation-b
 import { mergeProjectSvgSetPage } from "../project-svg-set-pages";
 import { alignMovingGroup } from "../canvas-alignment";
 import { recycleGroupState, recycleIconState, setGroupFavorite, setIconFavorite } from "../project-icon-state";
+import { placeGeneratedGroup } from "../canvas-group-placement";
 import { FavoriteIconGroupsDialog } from "./favorite-icon-groups-dialog";
 import { RecycleBinDialog } from "./recycle-bin-dialog";
+import { GeneratedIconExportDialog, type GeneratedExportIcon } from "./generated-icon-export-dialog";
 
 const clamp = (value: number) => Math.min(300, Math.max(5, value));
+const isCanvasOverlay = (target: EventTarget | null) =>
+  target instanceof Element && Boolean(target.closest(
+    "dialog[open], [role=dialog], .studio-color-popover, [data-library-color-popover]",
+  ));
 
-export function PreviewCanvas({ children, zh, projectId, projectName, projectDescription, categoryId, previewSvg, theme = DEFAULT_PROJECT_THEME, aiTheme, customTheme, themeSource = "preset", onThemeSave, onManualPreviewColorChange, onGenerationBusyChange }: { children: ReactNode; zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; previewSvg: string; theme?: ProjectTheme; aiTheme?: ProjectTheme | null; customTheme?: ProjectTheme | null; themeSource?: string; onThemeSave?: (theme: ProjectTheme, choice: { source: "ai" | "manual" | "preset"; presetId?: string }) => void; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onGenerationBusyChange?: (busy: boolean) => void }) {
+export function PreviewCanvas({ children, zh, projectId, projectName, projectDescription, categoryId, lastSubcategoryId, previewSvg, theme = DEFAULT_PROJECT_THEME, aiTheme, customTheme, themeSource = "preset", onThemeSave, onManualPreviewColorChange, onGenerationBusyChange }: { children: ReactNode; zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; lastSubcategoryId: string; previewSvg: string; theme?: ProjectTheme; aiTheme?: ProjectTheme | null; customTheme?: ProjectTheme | null; themeSource?: string; onThemeSave?: (theme: ProjectTheme, choice: { source: "ai" | "manual" | "preset"; presetId?: string }) => void; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onGenerationBusyChange?: (busy: boolean) => void }) {
   const root = useRef<HTMLDivElement>(null);
   const [headerGlassRects, setHeaderGlassRects] = useState<Array<{ left: number; top: number; width: number; height: number }>>([]);
   const [plans, setPlans] = useState<PlanResult[]>([]);
@@ -66,12 +72,13 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   const [draft, setDraft] = useState("100");
   const [open, setOpen] = useState(false);
-  const [tool, setTool] = useState<"select" | "hand" | "none">("select");
-  const toolRef = useRef<"select" | "hand" | "none">("select");
+  const [tool, setTool] = useState<"select" | "hand">("select");
+  const toolRef = useRef<"select" | "hand">("select");
   useEffect(() => { toolRef.current = tool; }, [tool]);
   const [themeOpen, setThemeOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [recycleBinOpen, setRecycleBinOpen] = useState(false);
+  const [exportDialog, setExportDialog] = useState<{ title: string; icons: GeneratedExportIcon[]; allIcons: GeneratedExportIcon[]; initialIconId?: string; groupMode: boolean } | null>(null);
   const [modifierLabel] = useState(() => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl");
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef(pan);
@@ -190,15 +197,55 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       setGroupActionError({ id: Date.now(), message: zh ? "单图收藏状态更新失败，请重试。" : "Couldn't update the icon favorite. Please retry." });
     } finally { endAction(actionKey); }
   }, [beginAction, endAction, plans, projectId, zh]);
+  const removeFavoritesBatch = useCallback(async (targets: Array<{ groupId: string; subjectId?: string }>) => {
+    if (!projectId || !targets.length) return;
+    const previous = plans;
+    const groupIds = new Set(targets.filter(target => !target.subjectId).map(target => target.groupId));
+    const iconKeys = new Set(targets.filter(target => target.subjectId).map(target => `${target.groupId}:${target.subjectId}`));
+    setPlans(items => items.map(item => ({
+      ...item,
+      favorite: groupIds.has(item.id) ? false : item.favorite,
+      favoriteIconIds: (item.favoriteIconIds ?? []).filter(subjectId => !iconKeys.has(`${item.id}:${subjectId}`)),
+    })));
+    try {
+      const response = await fetch(`/api/projects/${projectId}/svg-sets`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "removeFavorite", targets }) });
+      if (!response.ok) throw new Error("Batch favorite update failed");
+    } catch {
+      setPlans(previous);
+      setGroupActionError({ id: Date.now(), message: zh ? "批量取消收藏失败，请重试。" : "Couldn't remove the selected favorites. Please retry." });
+      throw new Error("Batch favorite update failed");
+    }
+  }, [plans, projectId, zh]);
+  const exportableIcons = useCallback(() => plans.filter(item => !item.recycled && projectId && (item.snapshot as { projectId?: string })?.projectId === projectId).flatMap(group => group.plan.subjects.flatMap(subject => {
+    const svg = group.icons?.[subject.id];
+    return svg && !(group.recycledIconIds ?? []).includes(subject.id) ? [{ id: `${group.id}:${subject.id}`, groupId: group.id, groupName: group.plan.summary, name: subject.name, svg, styleId: (group.snapshot as { styleId?: string })?.styleId ?? "" }] : [];
+  })), [plans, projectId]);
   const exportGroup = useCallback((id: string) => {
-    if (!projectId) return;
-    const anchor = document.createElement("a");
-    anchor.href = `/api/projects/${projectId}/svg-sets/${id}/download`;
-    anchor.download = "";
-    document.body.append(anchor);
-    anchor.click();
-    anchor.remove();
-  }, [projectId]);
+    const group = plans.find(item => item.id === id);
+    if (!group) return;
+    const allIcons = exportableIcons();
+    const icons = allIcons.filter(icon => icon.id.startsWith(`${id}:`));
+    if (icons.length) setExportDialog({ title: group.plan.summary, icons, allIcons, initialIconId: icons[0].id, groupMode: true });
+  }, [exportableIcons, plans]);
+  const exportFavoriteGroup = useCallback((id: string) => {
+    const favoriteGroupIds = new Set(plans.filter(item => item.favorite && !item.recycled && item.plan.subjects.filter(subject => !(item.recycledIconIds ?? []).includes(subject.id)).length > 1).map(item => item.id));
+    const group = plans.find(item => item.id === id && favoriteGroupIds.has(item.id));
+    if (!group) return;
+    const allIcons = exportableIcons().filter(icon => favoriteGroupIds.has(icon.groupId));
+    const icons = allIcons.filter(icon => icon.groupId === id);
+    if (icons.length) setExportDialog({ title: group.plan.summary, icons, allIcons, initialIconId: icons[0].id, groupMode: true });
+  }, [exportableIcons, plans]);
+  const exportFavoriteIcon = useCallback((groupId: string, subjectId: string) => {
+    const favoriteIconIds = new Set(plans.flatMap(group => (group.favoriteIconIds ?? []).map(id => `${group.id}:${id}`)));
+    const allIcons = exportableIcons().filter(icon => favoriteIconIds.has(icon.id));
+    const icon = allIcons.find(item => item.id === `${groupId}:${subjectId}`);
+    if (icon) setExportDialog({ title: icon.name, icons: [icon], allIcons, initialIconId: icon.id, groupMode: false });
+  }, [exportableIcons, plans]);
+  const exportIcon = useCallback((groupId: string, subjectId: string) => {
+    const allIcons = exportableIcons();
+    const icon = allIcons.find(item => item.id === `${groupId}:${subjectId}`);
+    if (icon) setExportDialog({ title: icon.name, icons: [icon], allIcons, initialIconId: icon.id, groupMode: false });
+  }, [exportableIcons]);
   const recycleGroup = useCallback(async (id: string) => {
     if (!projectId) return;
     const actionKey = `group:${id}`;
@@ -252,11 +299,55 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
   }, []);
   const fit = useCallback(() => {
     const el = root.current;
-    if (el) {
-      const rail = parseFloat(getComputedStyle(el).getPropertyValue("--rail-offset")) || 0;
+    if (!el) return;
+    const viewportRect = el.getBoundingClientRect();
+    const currentScale = zoomRef.current / 100;
+    const rail = parseFloat(getComputedStyle(el).getPropertyValue("--rail-offset")) || 0;
+    const toolsRect = el.querySelector<HTMLElement>("[data-canvas-tool-rail]")?.getBoundingClientRect();
+    const composerRect = el.querySelector<HTMLElement>("[data-composer-dock]")?.getBoundingClientRect();
+    const padding = 32;
+    const available = {
+      left: viewportRect.left + rail + padding,
+      right: (toolsRect?.left ?? viewportRect.right - 64) - padding,
+      top: viewportRect.top + 96,
+      bottom: (composerRect?.top ?? viewportRect.bottom - 72) - padding,
+    };
+    const targets = Array.from(el.querySelectorAll<HTMLElement>("[data-canvas-fit-root], [data-canvas-icon-group]"))
+      .filter(target => target.getClientRects().length > 0);
+    if (!targets.length) {
       changeZoom(Math.min((el.clientWidth - rail - 120) / 360, (el.clientHeight - 140) / 360) * 100);
       setPan({ x: 0, y: 0 });
+      return;
     }
+    const transformOrigin = {
+      x: viewportRect.left + (el.clientWidth + rail) / 2,
+      y: viewportRect.top + (el.clientHeight + 80) / 2,
+    };
+    const bounds = targets.reduce((result, target) => {
+      const rect = target.getBoundingClientRect();
+      return {
+        left: Math.min(result.left, (rect.left - transformOrigin.x - panRef.current.x) / currentScale),
+        right: Math.max(result.right, (rect.right - transformOrigin.x - panRef.current.x) / currentScale),
+        top: Math.min(result.top, (rect.top - transformOrigin.y - panRef.current.y) / currentScale),
+        bottom: Math.max(result.bottom, (rect.bottom - transformOrigin.y - panRef.current.y) / currentScale),
+      };
+    }, { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity });
+    const width = Math.max(1, bounds.right - bounds.left);
+    const height = Math.max(1, bounds.bottom - bounds.top);
+    const nextZoom = Math.round(clamp(Math.min(
+      (available.right - available.left) / width,
+      (available.bottom - available.top) / height,
+    ) * 100));
+    const nextScale = nextZoom / 100;
+    const worldCenter = { x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2 };
+    const availableCenter = { x: (available.left + available.right) / 2, y: (available.top + available.bottom) / 2 };
+    zoomRef.current = nextZoom;
+    setZoom(nextZoom);
+    setDraft(String(nextZoom));
+    setPan({
+      x: availableCenter.x - transformOrigin.x - worldCenter.x * nextScale,
+      y: availableCenter.y - transformOrigin.y - worldCenter.y * nextScale,
+    });
   }, [changeZoom]);
   const focusGroup = useCallback((element: HTMLElement) => {
     const el = root.current;
@@ -296,6 +387,32 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       focusAnimationTimer.current = setTimeout(() => setFocusing(false), 380);
     });
   }, []);
+  useEffect(() => {
+    if (!previewSvg.includes("/style-subcategories/")) return;
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        const el = root.current;
+        const preview = el?.querySelector<HTMLElement>("[data-canvas-fit-root]");
+        if (!el || !preview || !preview.getClientRects().length) return;
+        const viewportRect = el.getBoundingClientRect();
+        const previewRect = preview.getBoundingClientRect();
+        const rail = parseFloat(getComputedStyle(el).getPropertyValue("--rail-offset")) || 0;
+        const toolsRect = el.querySelector<HTMLElement>("[data-canvas-tool-rail]")?.getBoundingClientRect();
+        const horizontalGap = 24;
+        const availableCenter = {
+          x: ((viewportRect.left + rail + horizontalGap) + ((toolsRect?.left ?? viewportRect.right - 64) - horizontalGap)) / 2,
+          y: toolsRect ? toolsRect.top + toolsRect.height / 2 : viewportRect.top + el.clientHeight / 2,
+        };
+        const previewCenter = { x: previewRect.left + previewRect.width / 2, y: previewRect.top + previewRect.height / 2 };
+        if (focusAnimationTimer.current) clearTimeout(focusAnimationTimer.current);
+        setFocusing(true);
+        setPan(current => ({ x: current.x + availableCenter.x - previewCenter.x, y: current.y + availableCenter.y - previewCenter.y }));
+        focusAnimationTimer.current = setTimeout(() => setFocusing(false), 380);
+      });
+    });
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(secondFrame); };
+  }, [previewSvg]);
   useEffect(() => () => { if (focusAnimationTimer.current) clearTimeout(focusAnimationTimer.current); }, []);
 
   useEffect(() => {
@@ -366,6 +483,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
+      if (isCanvasOverlay(event.target)) return;
       if ((event.target as Element).closest("input, textarea, [contenteditable=true]")) return;
       if (!event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "h") {
         event.preventDefault();
@@ -473,6 +591,28 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       if (!response.ok) throw new Error("Position save failed");
     })).catch(() => setPositionError({ id: Date.now(), message: zh ? "自动整理已显示，但部分位置保存失败，请重试。" : "Groups were arranged, but some positions couldn't be saved." }));
   };
+  const appendGeneratedPlan = (plan: PlanResult) => {
+    setActiveSets(current => new Set(current).add(pendingGenerationId(plan.id)));
+    setPlans(current => current.some(item => item.id === plan.id) ? current : [...current, plan]);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const canvas = root.current;
+      const generated = canvas?.querySelector<HTMLElement>(`[data-canvas-icon-group][data-group-id="${plan.id}"]`);
+      if (!canvas || !generated) return;
+      const existing = Array.from(canvas.querySelectorAll<HTMLElement>("[data-canvas-icon-group]"))
+        .filter(element => element.dataset.groupId !== plan.id)
+        .map(element => element.getBoundingClientRect());
+      if (!existing.length) return;
+      const next = placeGeneratedGroup({
+        current: plan.position ?? { x: 0, y: 0 },
+        generated: generated.getBoundingClientRect(),
+        existing,
+        scale,
+      });
+      setGroupPositions(current => ({ ...current, [plan.id]: next }));
+      setPlans(current => current.map(item => item.id === plan.id ? { ...item, position: next } : item));
+      void saveGroupPosition(plan.id, next);
+    }));
+  };
   const locateGroup = (id: string) => {
     setFavoritesOpen(false);
     setTool("select");
@@ -484,13 +624,27 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       if (element) focusGroup(element);
     });
   };
+  const locateIcon = (groupId: string, subjectId: string) => {
+    setFavoritesOpen(false);
+    setTool("select");
+    setSelectedGroupId(null);
+    setSelectedIcon({ groupId, subjectId });
+    setRaisedGroupId(groupId);
+    requestAnimationFrame(() => {
+      const element = root.current?.querySelector<HTMLElement>(
+        `[data-canvas-icon-group][data-group-id="${groupId}"] [data-icon-item][data-subject-id="${subjectId}"]`,
+      );
+      if (element) focusGroup(element);
+    });
+  };
   // Panning only changes the artwork transform; it must not rebuild every SVG card.
-  const iconResults = useMemo(() => <IconPlanResults results={projectGroups} busy={planning} zh={zh} onBusyChange={onSetBusyChange} actionBusyKeys={actionBusyKeys} tool={tool} scale={scale} selectedGroupId={selectedGroupId} selectedIcon={selectedIcon} raisedGroupId={raisedGroupId} positions={groupPositions} onSelectGroup={id => { setTool("select"); setSelectedGroupId(id); setSelectedIcon(null); setRaisedGroupId(id); }} onSelectIcon={(groupId, subjectId) => { setTool("select"); setSelectedGroupId(null); setSelectedIcon({ groupId, subjectId }); setRaisedGroupId(groupId); }} onIconGenerated={(groupId, subjectId, svg) => setPlans(items => items.map(item => item.id === groupId ? { ...item, icons: { ...(item.icons ?? {}), [subjectId]: svg } } : item))} onRetryError={() => setGroupActionError({ id: Date.now(), message: zh ? "图标重试生成失败，请稍后再试。" : "The icon couldn't be regenerated. Please try again." })} onMoveGroup={moveGroupWithSnap} onMoveGroupEnd={(id, position) => { setAlignmentGuides({}); void saveGroupPosition(id, position); }} onFocusGroup={focusGroup} onToggleFavorite={id => void toggleGroupFavorite(id)} onToggleIconFavorite={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} onRecycleIcon={(groupId, subjectId) => void recycleIcon(groupId, subjectId)} onExportGroup={exportGroup} onDeleteGroup={id => void recycleGroup(id)} />,
-  [projectGroups, planning, zh, onSetBusyChange, actionBusyKeys, tool, scale, selectedGroupId, selectedIcon, raisedGroupId, groupPositions, moveGroupWithSnap, saveGroupPosition, focusGroup, toggleGroupFavorite, toggleIconFavorite, recycleIcon, exportGroup, recycleGroup]);
+  const iconResults = useMemo(() => <IconPlanResults results={projectGroups} busy={planning} zh={zh} onBusyChange={onSetBusyChange} actionBusyKeys={actionBusyKeys} tool={tool} scale={scale} selectedGroupId={selectedGroupId} selectedIcon={selectedIcon} raisedGroupId={raisedGroupId} positions={groupPositions} onSelectGroup={id => { setTool("select"); setSelectedGroupId(id); setSelectedIcon(null); setRaisedGroupId(id); }} onSelectIcon={(groupId, subjectId) => { setTool("select"); setSelectedGroupId(null); setSelectedIcon({ groupId, subjectId }); setRaisedGroupId(groupId); }} onIconGenerated={(groupId, subjectId, svg) => setPlans(items => items.map(item => item.id === groupId ? { ...item, icons: { ...(item.icons ?? {}), [subjectId]: svg } } : item))} onRetryError={() => setGroupActionError({ id: Date.now(), message: zh ? "图标重试生成失败，请稍后再试。" : "The icon couldn't be regenerated. Please try again." })} onMoveGroup={moveGroupWithSnap} onMoveGroupEnd={(id, position) => { setAlignmentGuides({}); void saveGroupPosition(id, position); }} onFocusGroup={focusGroup} onToggleFavorite={id => void toggleGroupFavorite(id)} onToggleIconFavorite={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} onRecycleIcon={(groupId, subjectId) => void recycleIcon(groupId, subjectId)} onExportGroup={exportGroup} onExportIcon={exportIcon} onDeleteGroup={id => void recycleGroup(id)} />,
+  [projectGroups, planning, zh, onSetBusyChange, actionBusyKeys, tool, scale, selectedGroupId, selectedIcon, raisedGroupId, groupPositions, moveGroupWithSnap, saveGroupPosition, focusGroup, toggleGroupFavorite, toggleIconFavorite, recycleIcon, exportGroup, exportIcon, recycleGroup]);
   return <div ref={root} className={css.viewport} data-preview-canvas data-zoom={Math.round(zoom)}
     data-tool={tool} data-dragging={dragging} data-focusing={focusing || undefined} data-pan-x={pan.x} data-pan-y={pan.y}
     style={{ "--dot-spacing": `${spacing}px`, "--dot-radius": `${Math.max(0.45, 1.05 * scale)}px`, "--zoom": scale, "--pan-x": `${pan.x}px`, "--pan-y": `${pan.y}px` } as CSSProperties}
     onPointerDown={event => {
+      if (isCanvasOverlay(event.target)) return;
       setFocusing(false);
       const target = event.target as Element;
       const visualTarget = document.elementFromPoint(event.clientX, event.clientY) ?? target;
@@ -544,6 +698,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     onPointerCancel={stopDrag}
     onLostPointerCapture={stopDrag}
     onClickCapture={event => {
+      if (isCanvasOverlay(event.target)) return;
       if (tool === "hand" && (event.target as Element).closest("[data-canvas-pan-surface]")) {
         event.preventDefault();
         event.stopPropagation();
@@ -563,10 +718,14 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     {loadError ? <Toast key={loadError.id} message={loadError.message} variant="error" /> : null}
     {positionError ? <Toast key={positionError.id} message={positionError.message} variant="error" /> : null}
     {groupActionError ? <Toast key={groupActionError.id} message={groupActionError.message} variant="error" /> : null}
-    <CanvasComposer zh={zh} projectId={projectId} projectName={projectName} projectDescription={projectDescription} categoryId={categoryId} previewSvg={previewSvg} projectTheme={theme} onManualPreviewColorChange={onManualPreviewColorChange} onPlan={plan => { setActiveSets(current => new Set(current).add(pendingGenerationId(plan.id))); setPlans(current => current.some(item => item.id === plan.id) ? current : [...current, plan]); }} onPlanning={setPlanning} />
+    <CanvasComposer zh={zh} projectId={projectId} projectName={projectName} projectDescription={projectDescription} categoryId={categoryId} lastSubcategoryId={lastSubcategoryId} previewSvg={previewSvg} projectTheme={theme} onManualPreviewColorChange={onManualPreviewColorChange} onPlan={appendGeneratedPlan} onPlanning={setPlanning} />
     <ProjectThemePanel open={themeOpen} onClose={() => setThemeOpen(false)} theme={theme} aiTheme={aiTheme} customTheme={customTheme} themeSource={themeSource} onSave={(next, choice) => onThemeSave?.(next, choice)} zh={zh} />
-    <FavoriteIconGroupsDialog open={favoritesOpen} projectGroups={projectGroups} zh={zh} onClose={() => setFavoritesOpen(false)} onLocate={locateGroup} onExport={exportGroup} onRemove={id => void toggleGroupFavorite(id)} onRemoveIcon={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} />
+    <FavoriteIconGroupsDialog open={favoritesOpen} projectId={projectId} projectGroups={projectGroups} zh={zh} onClose={() => setFavoritesOpen(false)} onLocate={locateGroup} onLocateIcon={locateIcon} onExport={exportFavoriteGroup} onExportIcon={exportFavoriteIcon} onRemove={toggleGroupFavorite} onRemoveIcon={toggleIconFavorite} onRemoveMany={removeFavoritesBatch} />
+    {exportDialog ? <GeneratedIconExportDialog title={exportDialog.title} icons={exportDialog.icons} allIcons={exportDialog.allIcons} initialIconId={exportDialog.initialIconId} groupMode={exportDialog.groupMode} zh={zh} onClose={() => setExportDialog(null)} /> : null}
     <RecycleBinDialog open={recycleBinOpen} projectId={projectId} zh={zh} onClose={() => setRecycleBinOpen(false)} onRestored={({ groupId, subjectId, svg, icons }) => {
+      const restoredPlan = plans.find(item => item.id === groupId);
+      const savedPosition = groupPositions[groupId] ?? restoredPlan?.position;
+      const hasKnownPosition = Boolean(savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y));
       setPlans(items => items.map(item => {
         if (item.id !== groupId) return item;
         if (subjectId) return {
@@ -586,7 +745,11 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       }
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const restoredGroup = root.current?.querySelector<HTMLElement>(`[data-canvas-icon-group][data-group-id="${groupId}"]`);
-        if (restoredGroup) focusGroup(restoredGroup);
+        if (!hasKnownPosition || !restoredGroup) {
+          arrangeGroups();
+          return;
+        }
+        focusGroup(restoredGroup);
       }));
     }} onDeleted={({ groupId, subjectId }) => {
       setPlans(items => items.flatMap(item => {
@@ -613,7 +776,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
       });
     }} />
     <div className={css.tools} role="toolbar" aria-label={zh ? "画布工具" : "Canvas tools"} data-canvas-tool-rail data-canvas-controls data-canvas-glass>
-      <button className={css.themeButton} type="button" data-theme-trigger data-tooltip={zh ? "项目主题色" : "Project theme"} aria-label={zh ? "项目主题色" : "Project theme"} aria-expanded={themeOpen} onClick={() => { setOpen(false); setThemeOpen(value => { const next = !value; if (next) setTool("none"); return next; }); }}><ThemeMark theme={theme} /></button>
+      <button className={css.themeButton} type="button" data-theme-trigger data-tooltip={zh ? "项目主题色" : "Project theme"} aria-label={zh ? "项目主题色" : "Project theme"} aria-expanded={themeOpen} onClick={() => { setOpen(false); setThemeOpen(value => !value); }}><ThemeMark theme={theme} /></button>
       <span className={css.toolDivider} aria-hidden="true" />
       <button type="button" data-tooltip={zh ? "选择" : "Select"} aria-label={zh ? "选择工具" : "Select tool"} aria-pressed={tool === "select"} onClick={() => { setThemeOpen(false); setOpen(false); setTool("select"); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"><path d="m6 3 12 10-6 1-3 6Z"/><path d="m12 14 4 7"/></svg>
@@ -643,7 +806,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
         <button type="button" onClick={() => { fit(); setOpen(false); }}><span>{zh ? "适应画布" : "Zoom to Fit"}</span><kbd>⇧ 1</kbd></button>
         <div className={css.presets}>{[5, 25, 50, 100, 200, 300].map(value => <button type="button" key={value} aria-pressed={Math.round(zoom) === value} onClick={() => { changeZoom(value); setOpen(false); }}>{value}%</button>)}</div>
       </div>}
-      <button className={css.zoomButton} data-canvas-glass type="button" aria-expanded={open} aria-label={zh ? "画布缩放" : "Canvas zoom"} onClick={() => { setThemeOpen(false); setOpen(value => { const next = !value; if (next) setTool("none"); return next; }); }}>{Math.round(zoom)}%</button>
+      <button className={css.zoomButton} data-canvas-glass type="button" aria-expanded={open} aria-label={zh ? "画布缩放" : "Canvas zoom"} onClick={() => { setThemeOpen(false); setOpen(value => !value); }}>{Math.round(zoom)}%</button>
     </div>
   </div>;
 }

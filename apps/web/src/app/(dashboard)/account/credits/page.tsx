@@ -137,6 +137,7 @@ export default function CreditHistoryPage() {
 
   return (
     <div className="account-copy-scale">
+      {loadError ? <Toast message={zh ? "网络异常，点数记录加载失败" : "Network error. Credit history could not be loaded."} variant="error" /> : null}
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link
@@ -248,11 +249,9 @@ export default function CreditHistoryPage() {
           </span>
         </div>
 
-        {loading ? (
+        {loading && !history ? (
           <PageState />
-        ) : loadError ? (
-          <PageState kind="error" onRetry={()=>void loadHistory(kind,page)}/>
-        ) : history?.items.length ? (
+        ) : loadError && !history ? null : history?.items.length ? (
           <>
             <div className="divide-y divide-border">
               {history.items.map((item) => (

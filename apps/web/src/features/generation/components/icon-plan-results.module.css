@@ -8,18 +8,24 @@
 .groupActions { position: absolute; left: calc(100% + 10px); top: 12px; z-index: 2; display: flex; flex-direction: column; gap: 6px; padding: 4px; border: 1px solid var(--canvas-glass-border); border-radius: 999px; background: var(--control-surface); box-shadow: 0 6px 18px #0004; }
 .grid article[data-selected] { position: relative; }
 .iconActions { top: 0; }
-.groupActions button { position: relative; display: grid; width: 32px; height: 32px; place-items: center; padding: 7px; border: 0; border-radius: 50%; background: transparent; color: var(--control-ink); cursor: pointer; }
-.groupActions button:hover { background: var(--control-hover); }
+.groupActions button { position: relative; display: grid; width: 32px; height: 32px; place-items: center; padding: 7px; border: 0; border-radius: 50%; background: transparent; color: var(--control-ink); cursor: pointer; transition: background 160ms ease, color 160ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(.2,.8,.2,1); }
+.groupActions button:hover:not(:disabled) { background: var(--control-hover); box-shadow: 0 5px 12px #0003; transform: translateY(-2px) scale(1.07); }
 .groupActions button:disabled { opacity: .45; cursor: default; }
 .groupActions button:disabled[data-busy="true"] { cursor: wait; }
 .groupActions button::before { position: absolute; top: 50%; right: calc(100% + 10px); z-index: 4; padding: 7px 10px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--control-surface); color: var(--control-ink); box-shadow: 0 4px 12px #0004; content: attr(data-tooltip); font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(4px, -50%); transition: opacity 120ms ease, transform 120ms ease; }
 .groupActions button:is(:hover, :focus-visible)::before { opacity: 1; transform: translate(0, -50%); }
 .groupActions button[aria-pressed="true"] { color: #f6c344; }
-.groupActions svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.groupActions svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform 180ms cubic-bezier(.2,.8,.2,1); }
 .groupActions button[aria-pressed="true"] svg { fill: currentColor; }
+.group > .groupActions button:nth-child(1):hover:not(:disabled) svg, .iconActions button:nth-child(1):hover:not(:disabled) svg { transform: rotate(-10deg) scale(1.08); }
+.group > .groupActions button:nth-child(2):hover:not(:disabled) svg, .iconActions button:nth-child(2):hover:not(:disabled) svg { transform: translateY(2px); }
+.group > .groupActions button:nth-child(3):hover:not(:disabled) svg, .iconActions button:nth-child(3):hover:not(:disabled) svg { transform: rotate(7deg); }
 .group h3 { font-size: 16px; margin: 0 0 8px; }
 .group p { font-size: 13px; margin: 4px 0; color: var(--control-muted); }
-.group .summary { max-width: 680px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.groupMeta { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 0; }
+.group .summary { min-width: 0; max-width: 680px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.styleLabel { flex-shrink: 0; color: var(--control-muted); font-size: 12px; white-space: nowrap; }
+.styleLabel strong { color: var(--control-ink); font-weight: 600; }
 .grid { display: grid; grid-template-columns: repeat(var(--group-columns, 1), minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
 .grid article { display: flex; align-items: center; flex-direction: column; gap: 6px; min-width: 0; padding: 8px 4px; border: 1px solid var(--canvas-glass-border); border-radius: 12px; font-size: 12px; text-align: center; }
 .grid article[data-icon-item] { cursor: pointer; }
@@ -38,7 +44,7 @@
 .failedPreview:hover .retryAction svg { transform: rotate(-45deg); }
 .loading { animation: pulse 1.2s ease-in-out infinite alternate; }
 @keyframes pulse { to { opacity: .35; } }
-@media (prefers-reduced-motion: reduce) { .loading { animation: none; } .group, .brokenImage, .retryAction, .retryAction svg { transition-duration: 0ms; } }
+@media (prefers-reduced-motion: reduce) { .loading { animation: none; } .group, .groupActions button, .groupActions svg, .brokenImage, .retryAction, .retryAction svg { transition-duration: 0ms; } }
 .iconButton { pointer-events: auto; border: 0; background: transparent; padding: 0; cursor: pointer; }
 .iconButton img { display: block; width: 88px; height: 88px; }
 .detail { pointer-events: auto; margin: auto; position: fixed; width: 360px; padding: 28px; border: 1px solid var(--canvas-glass-border); border-radius: 16px; background: var(--control-surface, #202124); color: var(--control-ink); }

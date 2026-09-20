@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { GenerationJobV2 } from "@icongen/shared";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { IconResultPageSkeleton } from "@/components/ui/page-skeletons";
-import { PageState } from "@/components/ui/page-state";
+import { Toast } from "@/components/ui/toast";
 import { JobDetails } from "./job-details";
 
 export function JobDetailsLoader({ jobId }: { jobId: string }) {
@@ -48,11 +48,10 @@ export function JobDetailsLoader({ jobId }: { jobId: string }) {
 
   if (job) return <JobDetails initialJob={job} />;
 
-  if (!failed) return <PageState />;
-
   return (
     <main className="icon-results-studio studio-page-enter mx-auto w-full max-w-[1600px] px-5 pb-20 pt-28 sm:px-8">
-      <PageState kind="error" />
+      <IconResultPageSkeleton previewUrls={cachedPreviews} />
+      {failed ? <Toast message={locale === "zh" ? "网络异常，生成详情加载失败" : "Network error. Generation details could not be loaded."} variant="error" /> : null}
     </main>
   );
 }
