@@ -38,7 +38,6 @@ export type AccountSummary = {
   email: string;
   emailVerified: boolean;
   displayName: string | null;
-  creditBalance: number;
   status: AccountStatus;
   createdAt: string;
 };

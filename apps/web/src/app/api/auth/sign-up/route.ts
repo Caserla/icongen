@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   const next = safeNextPath(parsed.data.next);
   const emailRedirectTo = new URL(
-    "/auth/callback?next=/account",
+    `/auth/callback?next=${encodeURIComponent(next)}`,
     publicEnv.appUrl,
   ).toString();
   const supabase = await createServerSupabaseClient();

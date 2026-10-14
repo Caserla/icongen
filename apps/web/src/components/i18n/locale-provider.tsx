@@ -16,9 +16,6 @@ const words: Record<string, Record<Locale, string>> = {
   createIcons: { en: "Create icons", zh: "创建图标" },
   create: { en: "Create", zh: "创建" },
   account: { en: "Account", zh: "账户" },
-  credits: { en: "Credits", zh: "点数" },
-  topUp: { en: "Buy credits", zh: "购买点数" },
-  creditHistory: { en: "Credit history", zh: "点数记录" },
   adminConsole: { en: "Admin console", zh: "管理后台" },
   showPassword: { en: "Show password", zh: "显示密码" },
   hidePassword: { en: "Hide password", zh: "隐藏密码" },
@@ -81,11 +78,10 @@ const words: Record<string, Record<Locale, string>> = {
   personal: { en: "", zh: "" },
   yourAccount: { en: "Personal information", zh: "个人信息" },
   accountCopy: {
-    en: "Manage your profile, credit balance, and account security.",
-    zh: "管理个人资料、点数余额和账户安全。",
+    en: "Manage your profile and account security.",
+    zh: "管理个人资料和账户安全。",
   },
   active: { en: "Active account", zh: "账户正常" },
-  creditBalance: { en: "Credit balance", zh: "点数余额" },
   generations: { en: "5 icon generations available", zh: "可生成 5 组图标" },
   iconsCreated: { en: "Icons created", zh: "已创建图标" },
   briefs: { en: "Across 8 creative briefs", zh: "来自 8 份创意需求" },
@@ -131,8 +127,8 @@ const words: Record<string, Record<Locale, string>> = {
   creating: { en: "Creating…", zh: "正在创建…" },
   alreadyAccount: { en: "Already have an account?", zh: "已经有账户？" },
   checkInbox: {
-    en: "Check your inbox to verify your email. Your 6 experience credits will be ready after sign-in.",
-    zh: "请前往邮箱完成验证。登录后可获得 6 点新用户体验点数。",
+    en: "Check your inbox to verify your email.",
+    zh: "请前往邮箱完成验证。",
   },
   signupFailed: {
     en: "We could not create your account. Check the form and try again.",
@@ -182,10 +178,6 @@ const words: Record<string, Record<Locale, string>> = {
     zh: "个人资料未保存，请检查网络后重试。",
   },
   saving: { en: "Saving…", zh: "正在保存…" },
-  oneCreditRule: {
-    en: "1 credit generates 3 options for one icon subject.",
-    zh: "1 点可为 1 个图标主体生成 3 个方案。",
-  },
   verificationPending: { en: "Email verification pending", zh: "邮箱待验证" },
   requestFailed: {
     en: "Request failed. Please try again.",
@@ -207,8 +199,8 @@ const words: Record<string, Record<Locale, string>> = {
   operations: { en: "Operations", zh: "运营" },
   adminWorkspace: { en: "Admin workspace", zh: "管理工作台" },
   adminCopy: {
-    en: "Review users, icon generation, payments, and credit activity.",
-    zh: "查看用户、图标生成、支付和点数记录。",
+    en: "Review users, projects, and icon generation.",
+    zh: "查看用户、项目和图标生成。",
   },
   adminComing: {
     en: "This section is not available yet.",

@@ -12,6 +12,9 @@
   },
   "scripts": {
     "dev": "npm run dev --workspace=@icongen/web",
+    "dev:local": "npm run dev --workspace=@icongen/web -- --local",
+    "build:local": "npm run build:local --workspace=@icongen/web",
+    "start:local": "npm run start:local --workspace=@icongen/web",
     "build": "npm run build --workspace=@icongen/web",
     "start": "npm run start --workspace=@icongen/web",
     "lint": "npm run lint --workspace=@icongen/web",
@@ -24,13 +27,12 @@
     "test:e2e:product-gaps": "node --env-file-if-exists=apps/web/.env.local scripts/e2e-product-gap-regression.mjs",
     "test:e2e:browser-compat": "node --env-file-if-exists=apps/web/.env.local scripts/e2e-cross-browser-accessibility.mjs",
     "test:e2e:races-recovery": "node --env-file-if-exists=apps/web/.env.local scripts/e2e-browser-races-and-recovery.mjs",
-    "test:e2e:paid-edit-refund": "node --env-file-if-exists=apps/web/.env.local scripts/e2e-paid-detail-edit-refund.mjs",
-    "cd-key:create": "node scripts/create-cd-key.mjs",
     "admin:grant": "node --env-file-if-exists=apps/web/.env.local scripts/set-admin-role.mjs grant",
     "admin:revoke": "node --env-file-if-exists=apps/web/.env.local scripts/set-admin-role.mjs revoke",
     "admin:create": "node --env-file-if-exists=apps/web/.env.local scripts/create-admin-account.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.55.0",
+    "js-yaml": "^4.1.1"
   }
 }

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: "Create account",
   description:
-    "Create an EASY ICON account and receive 6 experience credits.",
+    "Create an EASY ICON account.",
 };
 export default function SignUpLayout({ children }: { children: ReactNode }) {
   return children;

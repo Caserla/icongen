@@ -40,7 +40,7 @@ export function Toast({
     const timer = window.setTimeout(() => setVisible(false), 3200);
     return () => window.clearTimeout(timer);
   }, [message, variant]);
-  if (!visible) return null;
+  if (!visible || !message?.trim()) return null;
   const presentation = TOAST_PRESENTATION[variant];
   const isError = variant === "error";
   return (

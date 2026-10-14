@@ -1,5 +1,7 @@
 # 项目知识库
 
+使用入口：[从零安装教程](guides/simple-local.md) · [功能、架构与生成链路](open-source-guide.md) · [功能截图](screenshots/README.md)。
+
 本目录是 EASY DESIGN / ICON GEN 的需求、技术方案和项目决策唯一入口。需求或技术方向变化时，先更新相应文档，再进入实现。
 
 当前开发前必须先阅读[当前实现基线](project/current-implementation-baseline.md)。历史审计或原始 Word 文档与其冲突时，以共享 Schema、数据库迁移和当前实现基线为准。
@@ -26,6 +28,7 @@
 
 ## 技术
 
+- [六风格生成质量改造第一阶段与实样校准（2026-09-29）](design/library-six-generation-session-2026-09-29.md)
 - [技术架构概览](architecture/overview.md)
 - [后端技术架构](architecture/backend.md)
 - [SVG 输出链路调整方案](architecture/svg-output-adjustment-plan.md)

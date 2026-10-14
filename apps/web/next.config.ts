@@ -1,15 +1,19 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const appEnvironment = process.env.NEXT_PUBLIC_APP_ENV ?? (isDevelopment ? "development" : undefined);
 const isIndexable = appEnvironment === "production";
+const configuredSupabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+  : "";
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co",
+  `img-src 'self' data: blob: https://*.supabase.co ${configuredSupabaseOrigin}`,
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co ${configuredSupabaseOrigin}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -31,13 +35,26 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.EASY_ICON_LOCAL_MODE === "true" ? undefined : "standalone",
+  outputFileTracingRoot: path.resolve(import.meta.dirname, "../.."),
+  serverExternalPackages: ["pathkit-wasm"],
+  outputFileTracingIncludes: {
+    "/api/generation/svg-icon": ["../../node_modules/pathkit-wasm/bin/*", "node_modules/pathkit-wasm/bin/*"],
+  },
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   transpilePackages: ["@icongen/shared"],
   experimental: { proxyClientMaxBodySize: "1mb" },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/images/icon-style-previews/web-512-v1/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+    ];
   },
 };
 

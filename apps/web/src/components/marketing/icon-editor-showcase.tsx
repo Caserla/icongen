@@ -24,7 +24,7 @@ export function IconEditorShowcase({ locale }: { locale: "en" | "zh" }) {
             }}
           >
             <Image
-              src="/images/icon-style-previews/hd-native/flat-playful-v13.png"
+              src="/images/icon-style-previews/web-512-v1/flat-playful-v13.webp"
               alt={
                 locale === "zh"
                   ? "图标编辑器实时预览"
@@ -32,6 +32,7 @@ export function IconEditorShowcase({ locale }: { locale: "en" | "zh" }) {
               }
               width={512}
               height={512}
+              unoptimized
               style={{ width: `${scale}%`, height: `${scale}%` }}
             />
           </div>

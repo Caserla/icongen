@@ -1,8 +1,9 @@
 .shell {
-  --rail-offset: 244px;
+  --rail-offset: calc(var(--workspace-brand-width, 144px) + 12px);
+  --selection-menu-surface: rgb(27 28 30 / 90%);
   position: relative;
   isolation: isolate;
-  grid-template-columns: 232px minmax(0, 1fr) !important;
+  grid-template-columns: var(--workspace-brand-width, 144px) minmax(0, 1fr) !important;
   gap: 12px !important;
   padding: 0 !important;
   border: 0 !important;
@@ -11,26 +12,26 @@
   clip-path: none !important;
 }
 
-.shell[data-locale="zh"] {
-  grid-template-columns: 176px minmax(0, 1fr) !important;
-}
-
-:global(.studio-main):has([data-icon-generation-shell]) {
+:global(.studio-main):has(.shell) {
   animation: none;
   transform: none;
   filter: none;
 }
 
-:global(html[data-theme="light"] .studio-shell):has([data-icon-generation-shell]) {
+:global(html[data-theme="light"] .studio-shell):has(.shell) {
   background: #fff;
 }
 
-:global(html[data-theme="light"] .studio-shell):has([data-icon-generation-shell]) > div,
-:global(html[data-theme="light"] .studio-main):has([data-icon-generation-shell]) {
+:global(html[data-theme="light"] .studio-shell):has(.shell) > div,
+:global(html[data-theme="light"] .studio-main):has(.shell) {
   background: transparent !important;
 }
 
-.rail {
+:global(html[data-theme="light"]) .shell {
+  --selection-menu-surface: rgb(229 232 235 / 90%);
+}
+
+.shell .rail {
   position: relative;
   z-index: 3;
   --category-title: #fff;
@@ -40,8 +41,12 @@
   --category-rail-surface: #000;
   --category-rail-border: #242424;
   display: flex;
+  width: var(--workspace-brand-width, 144px);
   flex-direction: column;
-  overflow: hidden;
+  align-self: start !important;
+  height: max-content;
+  max-height: none !important;
+  overflow: visible !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -71,22 +76,40 @@
 }
 
 .categoryList {
+  position: relative;
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  padding: 20px 22px 20px 16px;
-  border: 1px solid var(--category-rail-border);
+  min-height: auto;
+  overflow: visible;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px 16px;
+  border: 1px solid var(--canvas-glass-border);
   border-radius: 16px;
-  background: var(--category-rail-surface);
+  background: transparent;
+  gap: 8px;
 }
 
+.categoryList > * { position: relative; z-index: 1; }
+
+/* Keep the rail glass behind its contents so the nested style menus can blur
+   the canvas itself, just like the sibling project menu does. */
+.categoryList::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--canvas-glass-surface);
+  -webkit-backdrop-filter: var(--canvas-glass-filter);
+  backdrop-filter: var(--canvas-glass-filter);
+  content: "";
+  pointer-events: none;
+}
+
+
 .categoryItems {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  flex: 0 0 auto;
 }
 
 .rail .categoryItem {
@@ -342,7 +365,7 @@
 }
 
 .projectControl .projectMenu {
-  background: var(--canvas-glass-surface) !important;
+  background: var(--selection-menu-surface) !important;
   border-color: var(--canvas-glass-border) !important;
   -webkit-backdrop-filter: var(--canvas-glass-filter);
   backdrop-filter: var(--canvas-glass-filter);
@@ -709,6 +732,8 @@
   color: var(--category-dialog-text);
 }
 
+.stylePreviewItems { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
 .stylePreviewStage {
   position: relative;
   display: grid;
@@ -770,14 +795,17 @@
   color-scheme: light;
 }
 
+:global(html[data-theme="light"]) .categoryIcon {
+  filter: brightness(.26);
+}
+
 @media (max-width: 760px) {
   .shell {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 12px;
   }
 
   .rail {
-    max-height: 42dvh;
     padding: 0;
     border: 0;
   }
@@ -812,6 +840,7 @@
     margin-top: 0;
     transform: translate(-50%, -50%);
   }
+
 }
 
 @media (prefers-reduced-motion: reduce) {

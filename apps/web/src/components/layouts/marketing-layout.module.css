@@ -1,0 +1,2 @@
+.surface { min-height:100vh; background:#f3f4f0; }
+:global(html[data-theme="dark"]) .surface { background:#121512; }

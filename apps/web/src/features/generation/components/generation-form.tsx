@@ -526,15 +526,6 @@ export function GenerationForm() {
       });
       const result = await response.json();
       if (!response.ok) {
-        if (result.error === "INSUFFICIENT_CREDITS") {
-          const required = result.details?.required ?? subjects.length;
-          const balance = result.details?.balance;
-          throw new Error(
-            locale === "zh"
-              ? `点数不足：本次需要 ${required} 点，当前${balance === null || balance === undefined ? "余额不足" : `有 ${balance} 点`}。`
-              : `Not enough credits: this set needs ${required}, and you ${balance === null || balance === undefined ? "do not have enough" : `have ${balance}`}.`,
-          );
-        }
         throw new Error(result.message ?? "Generation request failed");
       }
       router.push(`/icons/${result.id}`);

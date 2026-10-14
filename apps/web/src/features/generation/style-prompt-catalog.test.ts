@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { resolve } from "node:path";
+import production from "../../../../../docs/design/svg-style-production-v3.json";
 
 type Style = {
   id: string;
@@ -11,20 +11,21 @@ type Style = {
   promptTemplate: string;
 };
 
-const catalog = JSON.parse(readFileSync(resolve(process.cwd(), "../../docs/design/svg-style-prompts-v2.json"), "utf8")) as {
+const catalog = JSON.parse(readFileSync(new URL("../../../../../docs/design/svg-style-prompts-v2.json", import.meta.url), "utf8")) as {
   version: string;
   styles: Style[];
 };
 
-test("all 46 production styles use the visible preview-master prompt", () => {
-  assert.equal(catalog.version, "2.3");
+test("all 46 production styles use the clean production contract, not historical preview subjects", () => {
+  assert.equal(catalog.version, production.version);
   assert.equal(catalog.styles.length, 46);
   for (const style of catalog.styles) {
     assert.ok(style.previewStylePrompt.trim(), `${style.id} is missing its preview prompt`);
     assert.equal(style.stylePrompt, style.previewStylePrompt);
-    assert.match(style.promptTemplate, /AUTHORITATIVE_PREVIEW_STYLE:/);
-    assert.ok(style.promptTemplate.includes(style.previewStylePrompt));
-    assert.doesNotMatch(style.promptTemplate, /AUTHORITATIVE_ATLAS_STYLE:/);
+    assert.match(style.promptTemplate, /SELECTED_PRODUCTION_STYLE/);
+    assert.ok(style.promptTemplate.includes(style.productionStylePrompt));
+    assert.equal(style.productionStylePrompt, production.styles[style.id as keyof typeof production.styles]);
+    assert.doesNotMatch(style.promptTemplate, /AUTHORITATIVE_ATLAS_STYLE:|AUTHORITATIVE_PREVIEW_STYLE:|strawberry|calyx/i);
   }
 });
 

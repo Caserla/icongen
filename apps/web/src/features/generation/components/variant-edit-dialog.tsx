@@ -227,12 +227,6 @@ export function VariantEditDialog({
       );
       const body = await response.json().catch(() => null);
       if (!response.ok) {
-        if (body?.error === "INSUFFICIENT_CREDITS")
-          throw new Error(
-            locale === "zh"
-              ? "点数不足：本次细节调整需要 1 点。"
-              : "Not enough credits: this detail adjustment costs 1 credit.",
-          );
         throw new Error(body?.message ?? "Detail adjustment failed");
       }
       await pollEdit(body.id);

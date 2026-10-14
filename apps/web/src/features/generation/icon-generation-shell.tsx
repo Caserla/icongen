@@ -15,34 +15,62 @@ import { SelectionPopover, useSelectionPopover } from "@/features/library/select
 import { IconPreviewGrid } from "./components/icon-preview-grid";
 import { PreviewCanvas } from "./components/preview-canvas";
 import { ICON_GENERATION_CATEGORIES } from "./icon-generation-categories";
+import { isLibraryGenerationStyle, libraryStylePreview, type LibraryGenerationStyle } from "./library-generation-styles";
 import css from "./icon-generation-shell.module.css";
 import { DEFAULT_PROJECT_THEME, type ProjectTheme } from "./project-themes";
 import type { ManualPreviewColor } from "./manual-preview-color";
 import { ManualColorPreviewImage } from "./components/manual-color-preview-image";
+import { GENERATION_WORKSPACE_SESSION_KEY, parseGenerationWorkspaceSession } from "./generation-workspace-session";
 
 type IconProject = { id: string; name: string; description?: string; theme?: ProjectTheme | null; ai_theme?: ProjectTheme | null; custom_theme?: ProjectTheme | null; theme_status?: string; theme_source?: string };
 
 export function IconGenerationShell() {
   const { locale } = useLocale();
   const zh = locale === "zh";
-  const [categoryId, setCategoryId] = useState(ICON_GENERATION_CATEGORIES[0].id);
-  const [browsingCategoryId, setBrowsingCategoryId] = useState(
-    ICON_GENERATION_CATEGORIES[0].id,
-  );
-  const [subcategoryId, setSubcategoryId] = useState(
-    ICON_GENERATION_CATEGORIES[0].children[0]?.id ?? "",
-  );
-  const [previewSvg, setPreviewSvg] = useState(
-    `/generation/style-subcategories/${ICON_GENERATION_CATEGORIES[0].children[0]?.id}.svg`,
-  );
+  const [categoryId, setCategoryId] = useState<LibraryGenerationStyle>("linear");
+  const previewSvg = libraryStylePreview(categoryId);
   const [manualPreviewColor, setManualPreviewColor] = useState<ManualPreviewColor | null>(null);
-  const [subcategoryOpen, setSubcategoryOpen] = useState(false);
   const [projects, setProjects] = useState<IconProject[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const [unlinkedTheme, setUnlinkedTheme] = useState<ProjectTheme>(DEFAULT_PROJECT_THEME);
   const [unlinkedThemeSource, setUnlinkedThemeSource] = useState<"manual" | "preset">("preset");
   const [unlinkedCustomTheme, setUnlinkedCustomTheme] = useState<ProjectTheme | null>(null);
   const [projectName, setProjectName] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
+  useEffect(() => {
+    try {
+      const saved = parseGenerationWorkspaceSession(sessionStorage.getItem(GENERATION_WORKSPACE_SESSION_KEY));
+      if (saved) {
+        // Hydration must first render the server defaults, then recover this tab's UI context.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCategoryId(saved.mainStyleId);
+        setActiveProjectId(saved.projectId);
+        setProjectName(saved.projectName);
+      }
+    } catch { /* Browser storage can be unavailable; generation still works. */ }
+    setSessionReady(true);
+  }, []);
+  useEffect(() => {
+    if (!sessionReady) return;
+    try {
+      sessionStorage.setItem(GENERATION_WORKSPACE_SESSION_KEY, JSON.stringify({
+        projectId: activeProjectId, projectName, mainStyleId: categoryId,
+      }));
+    } catch { /* The current UI state remains usable without storage. */ }
+  }, [sessionReady, activeProjectId, projectName, categoryId]);
+  useEffect(() => {
+    if (!projectsLoaded || !activeProjectId) return;
+    const project = projects.find(item => item.id === activeProjectId);
+    if (!project) {
+      // A deleted or inaccessible project must not remain selected after restoration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveProjectId("");
+      setProjectName("");
+    } else if (project.name !== projectName) {
+      setProjectName(project.name);
+    }
+  }, [projectsLoaded, projects, activeProjectId, projectName]);
   const [projectBusy, setProjectBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<IconProject | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
@@ -59,7 +87,6 @@ export function IconGenerationShell() {
   const [projectDraftName, setProjectDraftName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectToast, setProjectToast] = useState<{ id: number; message: string; variant?: "error"|"warning"|"success" } | null>(null);
-  const subcategoryRef = useRef<HTMLDivElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
   const projectDialogRef = useRef<HTMLDialogElement>(null);
   const projectDialogCloseTimer = useRef<number | null>(null);
@@ -84,11 +111,6 @@ export function IconGenerationShell() {
   useEffect(() => {
     if (generationLocked) setProjectMenuOpen(false);
   }, [generationLocked, setProjectMenuOpen]);
-  const activeCategory =
-    ICON_GENERATION_CATEGORIES.find(
-      (category) => category.id === browsingCategoryId,
-    ) ??
-    ICON_GENERATION_CATEGORIES[0];
 
   const deleteProject = async () => {
     if (!deleteTarget || deleteInFlight.current || generationLocked) return;
@@ -112,28 +134,8 @@ export function IconGenerationShell() {
   };
 
   const openCategory = (nextCategoryId: string) => {
-    if (subcategoryOpen && nextCategoryId === browsingCategoryId) {
-      setSubcategoryOpen(false);
-      return;
-    }
+    if (!isLibraryGenerationStyle(nextCategoryId)) return;
     setCategoryId(nextCategoryId);
-    setBrowsingCategoryId(nextCategoryId);
-    const nextCategory = ICON_GENERATION_CATEGORIES.find(
-      (category) => category.id === nextCategoryId,
-    );
-    const keepsSelectedSubcategory = categoryId === nextCategoryId
-      && Boolean(nextCategory?.children.some(child => child.id === subcategoryId))
-      && previewSvg.includes("/style-subcategories/");
-    if (!keepsSelectedSubcategory) {
-      setPreviewSvg(nextCategory?.icon ?? "");
-    }
-    setSubcategoryOpen(true);
-  };
-
-  const selectSubcategory = (nextSubcategoryId: string) => {
-    setBrowsingCategoryId(activeCategory.id);
-    setSubcategoryId(nextSubcategoryId);
-    setPreviewSvg(`/generation/style-subcategories/${nextSubcategoryId}.svg`);
   };
 
   useEffect(() => {
@@ -146,6 +148,7 @@ export function IconGenerationShell() {
       .then((payload) => {
         if (active) {
           setProjects(payload.items ?? []);
+          setProjectsLoaded(true);
         }
       })
       .catch(() => {
@@ -278,61 +281,22 @@ export function IconGenerationShell() {
 
   useEffect(() => () => { if (projectDialogCloseTimer.current) window.clearTimeout(projectDialogCloseTimer.current); }, []);
 
-  useEffect(() => {
-    if (!subcategoryOpen) return;
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (subcategoryRef.current && event.composedPath().includes(subcategoryRef.current)) return;
-      setSubcategoryOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSubcategoryOpen(false);
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePointer, true);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer, true);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [subcategoryOpen]);
-
   return (
     <section
       className={`${libraryCss.library} ${css.shell}`}
       data-icon-generation-shell
       data-locale={locale}
       aria-label={zh ? "图标生成" : "Icon generation"}
-      onPointerDownCapture={(event) => {
-        if (!subcategoryOpen) return;
-        if (subcategoryRef.current && event.nativeEvent.composedPath().includes(subcategoryRef.current)) return;
-        setSubcategoryOpen(false);
-      }}
-      onClickCapture={(event) => {
-        if (!subcategoryOpen) return;
-        if (subcategoryRef.current && event.nativeEvent.composedPath().includes(subcategoryRef.current)) return;
-        setSubcategoryOpen(false);
-      }}
     >
       <aside className={`${libraryCss.sidebar} ${css.rail}`}>
-        <nav className={css.categoryList} data-canvas-glass aria-label={zh ? "图标主分类" : "Icon categories"}>
+        <div className={css.categoryList} aria-label={zh ? "图标风格" : "Icon styles"}>
           <h2 className={css.title}>{zh ? "图标风格" : "Icon Style"}</h2>
           <div className={css.categoryItems}>
-            {ICON_GENERATION_CATEGORIES.map((category) => (
-              <button
-                key={category.id}
-                className={css.categoryItem}
-                type="button"
-                aria-pressed={category.id === categoryId}
-                data-category-trigger
-                onClick={() => openCategory(category.id)}
-              >
-                <span className={css.itemLabel}>
-                  <img className={css.categoryIcon} src={`${category.icon}?v=approved-20260915-distinct5`} alt="" aria-hidden="true" />
-                  <span>{category.label[locale]}</span>
-                </span>
-              </button>
-            ))}
+            {ICON_GENERATION_CATEGORIES.map(category => <button key={category.id} className={css.categoryItem} type="button" aria-pressed={categoryId === category.id} onClick={() => openCategory(category.id)}>
+              <span className={css.itemLabel}><img className={css.categoryIcon} src={category.icon} alt="" aria-hidden="true" /><span>{category.label[locale]}</span></span>
+            </button>)}
           </div>
-        </nav>
+        </div>
       </aside>
       <div className={`${libraryCss.main} ${css.canvas}`} aria-label={zh ? "生成工作区" : "Generation workspace"}>
         <div ref={projectControlRef} className={css.projectControl} {...projectRootProps}>
@@ -425,37 +389,7 @@ export function IconGenerationShell() {
             {!projects.length ? <p className={css.projectEmpty}>{zh ? "暂无项目" : "No projects"}</p> : null}
           </SelectionPopover> : null}
         </div>
-        {subcategoryOpen ? <div key="subcategory-popover" ref={subcategoryRef} className={css.subcategoryArea} aria-label={activeCategory.label[locale]}>
-          <div
-            className={css.subcategoryTabs}
-            data-canvas-glass
-            role="tablist"
-            aria-label={zh ? "子分类" : "Subcategories"}
-          >
-            <h2 className={css.subcategoryTitle}>{zh ? "子风格" : "Substyle"}</h2>
-            {activeCategory.children.map((child) => (
-              <button
-                key={child.id}
-                className={css.subcategoryItem}
-                type="button"
-                role="tab"
-                aria-selected={child.id === subcategoryId}
-                onClick={() => selectSubcategory(child.id)}
-              >
-                <span className={css.itemLabel}>
-                  <img
-                    className={css.categoryIcon}
-                    src={`/generation/style-subcategories/${child.id}.svg?v=approved-20260915-distinct5`}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <span>{child.label[locale]}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div> : null}
-        <PreviewCanvas key="preview-canvas" zh={zh} categoryId={categoryId} lastSubcategoryId={subcategoryId} previewSvg={previewSvg} projectId={activeProjectId || undefined} projectName={projects.find(project => project.id === activeProjectId)?.name} projectDescription={projects.find(project => project.id === activeProjectId)?.description} theme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme ?? DEFAULT_PROJECT_THEME : unlinkedTheme} aiTheme={projects.find(project => project.id === activeProjectId)?.ai_theme} customTheme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.custom_theme : unlinkedCustomTheme} themeSource={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme_source ?? "preset" : unlinkedThemeSource} onManualPreviewColorChange={setManualPreviewColor} onGenerationBusyChange={setGenerationLocked} onThemeSave={(nextTheme, choice) => {
+        <PreviewCanvas key="preview-canvas" onStyleResolved={openCategory} zh={zh} categoryId={categoryId} lastSubcategoryId={categoryId} previewSvg={previewSvg} projectId={activeProjectId || undefined} projectName={projects.find(project => project.id === activeProjectId)?.name} projectDescription={projects.find(project => project.id === activeProjectId)?.description} theme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme ?? DEFAULT_PROJECT_THEME : unlinkedTheme} aiTheme={projects.find(project => project.id === activeProjectId)?.ai_theme} customTheme={activeProjectId ? projects.find(project => project.id === activeProjectId)?.custom_theme : unlinkedCustomTheme} themeSource={activeProjectId ? projects.find(project => project.id === activeProjectId)?.theme_source ?? "preset" : unlinkedThemeSource} onManualPreviewColorChange={setManualPreviewColor} onGenerationBusyChange={setGenerationLocked} onThemeSave={(nextTheme, choice) => {
           if (!activeProjectId) {
             setUnlinkedTheme(nextTheme);
             setUnlinkedThemeSource(choice.source === "manual" ? "manual" : "preset");
@@ -480,29 +414,13 @@ export function IconGenerationShell() {
           });
         }}>
         <section className={css.stylePreview} data-canvas-fit-root aria-label={zh ? "风格预览详情" : "Style preview details"}>
-          <div className={css.stylePreviewStage} data-canvas-glass>
-            <p className={css.stylePreviewNotice}>
-              {zh ? "风格预览" : "Style preview"}
-            </p>
-            <IconPreviewGrid className={css.stylePreviewGrid}>
-              {previewSvg.endsWith('/state-pair.svg') ? (
-                <div className={css.statePairPreview}>
-                  {['state-pair-outline', 'state-pair'].map((id, index) => (
-                    <div key={id}>
-                      <img src={`/generation/style-subcategories/${id}.svg?v=approved-20260915-distinct5`} alt={index ? 'Solid' : 'Outline'} />
-                      <span>{index ? (zh ? '已选中' : 'Selected') : (zh ? '未选中' : 'Unselected')}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : previewSvg ? (
-                <ManualColorPreviewImage
-                  className={css.stylePreviewImage}
-                  src={`${previewSvg}?v=approved-20260915-distinct5`}
-                  manualColor={manualPreviewColor}
-                  alt={zh ? "当前风格 SVG 大图预览" : "Large SVG preview of the current style"}
-                />
-              ) : null}
-            </IconPreviewGrid>
+          <div className={css.stylePreviewItems}>
+            <div className={css.stylePreviewStage} data-canvas-glass>
+              <p className={css.stylePreviewNotice}>{zh ? "风格预览" : "Style preview"}</p>
+              <IconPreviewGrid className={css.stylePreviewGrid}>
+                <ManualColorPreviewImage className={css.stylePreviewImage} src={previewSvg} manualColor={manualPreviewColor} alt={zh ? "风格 SVG 预览" : "Style SVG preview"} />
+              </IconPreviewGrid>
+            </div>
           </div>
         </section>
         </PreviewCanvas>

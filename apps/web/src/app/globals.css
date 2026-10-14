@@ -6639,6 +6639,12 @@ html[data-theme="light"] .studio-shell:has([data-preview-canvas]) {
 
 /* Product navigation is two independent glass islands: brand on the left,
    workspace navigation and account controls on the right. */
+.studio-shell { --workspace-brand-width: 144px; }
+.workspace-header__brand-pane {
+  box-sizing: border-box;
+  width: var(--workspace-brand-width, 144px);
+  justify-content: center;
+}
 .workspace-header.studio-header {
   --workspace-header-border: var(--canvas-glass-border, rgb(255 255 255 / 13%));
   width: calc(100% - 24px);
@@ -6718,6 +6724,7 @@ html[data-theme="light"] .studio-shell:has([data-preview-canvas]) {
 }
 .workspace-header__controls-pane .user-menu__panel { right: -17px; }
 @media (max-width: 640px) {
+  .studio-shell { --workspace-brand-width: 124px; }
   .workspace-header.studio-header { width: calc(100% - 16px); }
   .workspace-header__brand-pane,
   .workspace-header__controls-pane { min-height: 56px; border-radius: 14px; }

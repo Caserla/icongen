@@ -30,4 +30,4 @@ export function createIconGenerationLimiter(limit: number) {
 }
 
 // Shared by all icon groups on this page, including manual retries.
-export const withIconGenerationSlot = createIconGenerationLimiter(6);
+export const withIconGenerationSlot = createIconGenerationLimiter(2);

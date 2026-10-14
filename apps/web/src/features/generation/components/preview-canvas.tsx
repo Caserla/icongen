@@ -16,6 +16,8 @@ import { placeGeneratedGroup } from "../canvas-group-placement";
 import { FavoriteIconGroupsDialog } from "./favorite-icon-groups-dialog";
 import { RecycleBinDialog } from "./recycle-bin-dialog";
 import { GeneratedIconExportDialog, type GeneratedExportIcon } from "./generated-icon-export-dialog";
+import { generationSubjectLabel } from "../generation-subject-label";
+import { LIBRARY_GENERATION_STYLES, type LibraryGenerationStyle } from "../library-generation-styles";
 
 const clamp = (value: number) => Math.min(300, Math.max(5, value));
 const isCanvasOverlay = (target: EventTarget | null) =>
@@ -23,7 +25,7 @@ const isCanvasOverlay = (target: EventTarget | null) =>
     "dialog[open], [role=dialog], .studio-color-popover, [data-library-color-popover]",
   ));
 
-export function PreviewCanvas({ children, zh, projectId, projectName, projectDescription, categoryId, lastSubcategoryId, previewSvg, theme = DEFAULT_PROJECT_THEME, aiTheme, customTheme, themeSource = "preset", onThemeSave, onManualPreviewColorChange, onGenerationBusyChange }: { children: ReactNode; zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; lastSubcategoryId: string; previewSvg: string; theme?: ProjectTheme; aiTheme?: ProjectTheme | null; customTheme?: ProjectTheme | null; themeSource?: string; onThemeSave?: (theme: ProjectTheme, choice: { source: "ai" | "manual" | "preset"; presetId?: string }) => void; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onGenerationBusyChange?: (busy: boolean) => void }) {
+export function PreviewCanvas({ children, zh, projectId, projectName, projectDescription, categoryId, lastSubcategoryId, previewSvg, theme = DEFAULT_PROJECT_THEME, aiTheme, customTheme, themeSource = "preset", onThemeSave, onManualPreviewColorChange, onGenerationBusyChange, onStyleResolved }: { children: ReactNode; zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; lastSubcategoryId: string; previewSvg: string; theme?: ProjectTheme; aiTheme?: ProjectTheme | null; customTheme?: ProjectTheme | null; themeSource?: string; onThemeSave?: (theme: ProjectTheme, choice: { source: "ai" | "manual" | "preset"; presetId?: string }) => void; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onGenerationBusyChange?: (busy: boolean) => void; onStyleResolved?: (styleId: string) => void }) {
   const root = useRef<HTMLDivElement>(null);
   const [headerGlassRects, setHeaderGlassRects] = useState<Array<{ left: number; top: number; width: number; height: number }>>([]);
   const [plans, setPlans] = useState<PlanResult[]>([]);
@@ -218,8 +220,14 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
   }, [plans, projectId, zh]);
   const exportableIcons = useCallback(() => plans.filter(item => !item.recycled && projectId && (item.snapshot as { projectId?: string })?.projectId === projectId).flatMap(group => group.plan.subjects.flatMap(subject => {
     const svg = group.icons?.[subject.id];
-    return svg && !(group.recycledIconIds ?? []).includes(subject.id) ? [{ id: `${group.id}:${subject.id}`, groupId: group.id, groupName: group.plan.summary, name: subject.name, svg, styleId: (group.snapshot as { styleId?: string })?.styleId ?? "" }] : [];
-  })), [plans, projectId]);
+    const snapshot = group.snapshot as { styleId?: string; secondaryStyleId?: string };
+    const name = generationSubjectLabel(subject, snapshot, zh);
+    const styleId = subject.styleRole === "secondary" ? snapshot.secondaryStyleId ?? snapshot.styleId : snapshot.styleId;
+    const stored = (group.generationContexts?.[subject.id] as { styleVariants?: Record<string, string> } | undefined)?.styleVariants;
+    const variants = stored && LIBRARY_GENERATION_STYLES.every(style => typeof stored[style] === "string")
+      ? Object.fromEntries(LIBRARY_GENERATION_STYLES.map(style => [style, stored[style]])) as Record<LibraryGenerationStyle, string> : undefined;
+    return svg && !(group.recycledIconIds ?? []).includes(subject.id) ? [{ id: `${group.id}:${subject.id}`, groupId: group.id, groupName: group.plan.summary, name, svg, styleId: variants ? "linear" : styleId ?? "", hasStyleFamily: Boolean((group.snapshot as { styleFamily?: boolean }).styleFamily && !snapshot.secondaryStyleId), variants }] : [];
+  })), [plans, projectId, zh]);
   const exportGroup = useCallback((id: string) => {
     const group = plans.find(item => item.id === id);
     if (!group) return;
@@ -638,7 +646,7 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     });
   };
   // Panning only changes the artwork transform; it must not rebuild every SVG card.
-  const iconResults = useMemo(() => <IconPlanResults results={projectGroups} busy={planning} zh={zh} onBusyChange={onSetBusyChange} actionBusyKeys={actionBusyKeys} tool={tool} scale={scale} selectedGroupId={selectedGroupId} selectedIcon={selectedIcon} raisedGroupId={raisedGroupId} positions={groupPositions} onSelectGroup={id => { setTool("select"); setSelectedGroupId(id); setSelectedIcon(null); setRaisedGroupId(id); }} onSelectIcon={(groupId, subjectId) => { setTool("select"); setSelectedGroupId(null); setSelectedIcon({ groupId, subjectId }); setRaisedGroupId(groupId); }} onIconGenerated={(groupId, subjectId, svg) => setPlans(items => items.map(item => item.id === groupId ? { ...item, icons: { ...(item.icons ?? {}), [subjectId]: svg } } : item))} onRetryError={() => setGroupActionError({ id: Date.now(), message: zh ? "图标重试生成失败，请稍后再试。" : "The icon couldn't be regenerated. Please try again." })} onMoveGroup={moveGroupWithSnap} onMoveGroupEnd={(id, position) => { setAlignmentGuides({}); void saveGroupPosition(id, position); }} onFocusGroup={focusGroup} onToggleFavorite={id => void toggleGroupFavorite(id)} onToggleIconFavorite={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} onRecycleIcon={(groupId, subjectId) => void recycleIcon(groupId, subjectId)} onExportGroup={exportGroup} onExportIcon={exportIcon} onDeleteGroup={id => void recycleGroup(id)} />,
+  const iconResults = useMemo(() => <IconPlanResults results={projectGroups} busy={planning} zh={zh} onBusyChange={onSetBusyChange} actionBusyKeys={actionBusyKeys} tool={tool} scale={scale} selectedGroupId={selectedGroupId} selectedIcon={selectedIcon} raisedGroupId={raisedGroupId} positions={groupPositions} onSelectGroup={id => { setTool("select"); setSelectedGroupId(id); setSelectedIcon(null); setRaisedGroupId(id); }} onSelectIcon={(groupId, subjectId) => { setTool("select"); setSelectedGroupId(null); setSelectedIcon({ groupId, subjectId }); setRaisedGroupId(groupId); }} onIconGenerated={(groupId, subjectId, svg, context) => setPlans(items => items.map(item => item.id === groupId ? { ...item, icons: { ...(item.icons ?? {}), [subjectId]: svg }, generationContexts: { ...(item.generationContexts ?? {}), [subjectId]: context ?? {} } } : item))} onRetryError={() => setGroupActionError({ id: Date.now(), message: zh ? "图标重试生成失败，请稍后再试。" : "The icon couldn't be regenerated. Please try again." })} onMoveGroup={moveGroupWithSnap} onMoveGroupEnd={(id, position) => { setAlignmentGuides({}); void saveGroupPosition(id, position); }} onFocusGroup={focusGroup} onToggleFavorite={id => void toggleGroupFavorite(id)} onToggleIconFavorite={(groupId, subjectId) => void toggleIconFavorite(groupId, subjectId)} onRecycleIcon={(groupId, subjectId) => void recycleIcon(groupId, subjectId)} onExportGroup={exportGroup} onExportIcon={exportIcon} onDeleteGroup={id => void recycleGroup(id)} />,
   [projectGroups, planning, zh, onSetBusyChange, actionBusyKeys, tool, scale, selectedGroupId, selectedIcon, raisedGroupId, groupPositions, moveGroupWithSnap, saveGroupPosition, focusGroup, toggleGroupFavorite, toggleIconFavorite, recycleIcon, exportGroup, exportIcon, recycleGroup]);
   return <div ref={root} className={css.viewport} data-preview-canvas data-zoom={Math.round(zoom)}
     data-tool={tool} data-dragging={dragging} data-focusing={focusing || undefined} data-pan-x={pan.x} data-pan-y={pan.y}
@@ -718,10 +726,10 @@ export function PreviewCanvas({ children, zh, projectId, projectName, projectDes
     {loadError ? <Toast key={loadError.id} message={loadError.message} variant="error" /> : null}
     {positionError ? <Toast key={positionError.id} message={positionError.message} variant="error" /> : null}
     {groupActionError ? <Toast key={groupActionError.id} message={groupActionError.message} variant="error" /> : null}
-    <CanvasComposer zh={zh} projectId={projectId} projectName={projectName} projectDescription={projectDescription} categoryId={categoryId} lastSubcategoryId={lastSubcategoryId} previewSvg={previewSvg} projectTheme={theme} onManualPreviewColorChange={onManualPreviewColorChange} onPlan={appendGeneratedPlan} onPlanning={setPlanning} />
+    <CanvasComposer zh={zh} projectId={projectId} projectName={projectName} projectDescription={projectDescription} styleId={categoryId} lastSubcategoryId={lastSubcategoryId} previewSvg={previewSvg} onManualPreviewColorChange={onManualPreviewColorChange} onPlan={appendGeneratedPlan} onPlanning={setPlanning} onStyleResolved={onStyleResolved} />
     <ProjectThemePanel open={themeOpen} onClose={() => setThemeOpen(false)} theme={theme} aiTheme={aiTheme} customTheme={customTheme} themeSource={themeSource} onSave={(next, choice) => onThemeSave?.(next, choice)} zh={zh} />
     <FavoriteIconGroupsDialog open={favoritesOpen} projectId={projectId} projectGroups={projectGroups} zh={zh} onClose={() => setFavoritesOpen(false)} onLocate={locateGroup} onLocateIcon={locateIcon} onExport={exportFavoriteGroup} onExportIcon={exportFavoriteIcon} onRemove={toggleGroupFavorite} onRemoveIcon={toggleIconFavorite} onRemoveMany={removeFavoritesBatch} />
-    {exportDialog ? <GeneratedIconExportDialog title={exportDialog.title} icons={exportDialog.icons} allIcons={exportDialog.allIcons} initialIconId={exportDialog.initialIconId} groupMode={exportDialog.groupMode} zh={zh} onClose={() => setExportDialog(null)} /> : null}
+    {exportDialog ? <GeneratedIconExportDialog title={exportDialog.title} projectId={projectId} icons={exportDialog.icons} allIcons={exportDialog.allIcons} initialIconId={exportDialog.initialIconId} groupMode={exportDialog.groupMode} zh={zh} onClose={() => setExportDialog(null)} /> : null}
     <RecycleBinDialog open={recycleBinOpen} projectId={projectId} zh={zh} onClose={() => setRecycleBinOpen(false)} onRestored={({ groupId, subjectId, svg, icons }) => {
       const restoredPlan = plans.find(item => item.id === groupId);
       const savedPosition = groupPositions[groupId] ?? restoredPlan?.position;

@@ -11,24 +11,35 @@ import { LibraryColorPicker } from "@/features/library/library-color-picker";
 import { SelectionPopover, useSelectionPopover } from "@/features/library/selection-popover";
 import { applyMonochromeAppearance, isMonochromeStyle, monochromeSvgColor } from "../monochrome-svg";
 import { ICON_GENERATION_CATEGORIES } from "../icon-generation-categories";
+import { LIBRARY_GENERATION_LABELS, LIBRARY_GENERATION_STYLES, type LibraryGenerationStyle } from "../library-generation-styles";
+import { themeDisplaySvg } from "../theme-display-svg";
+import { useTheme } from "@/components/i18n/theme-switch";
 import libraryCss from "@/features/library/library.module.css";
 import css from "./generated-icon-export-dialog.module.css";
 
-export type GeneratedExportIcon = { id: string; groupId: string; groupName: string; name: string; svg: string; styleId: string };
+type StyleFamily = Record<LibraryGenerationStyle, string>;
+export type GeneratedExportIcon = { id: string; groupId: string; groupName: string; name: string; svg: string; styleId: string; hasStyleFamily?: boolean; variants?: StyleFamily };
 
-export function GeneratedIconExportDialog({ title, icons, allIcons, initialIconId, groupMode, zh, onClose }: { title: string; icons: GeneratedExportIcon[]; allIcons: GeneratedExportIcon[]; initialIconId?: string; groupMode: boolean; zh: boolean; onClose: () => void }) {
+export function GeneratedIconExportDialog({ title, projectId, icons, allIcons, initialIconId, groupMode, zh, onClose }: { title: string; projectId?: string; icons: GeneratedExportIcon[]; allIcons: GeneratedExportIcon[]; initialIconId?: string; groupMode: boolean; zh: boolean; onClose: () => void }) {
+  const theme = useTheme();
   const dialog = useRef<HTMLDialogElement>(null);
   const memberStrip = useRef<HTMLDivElement>(null);
   const memberDrag = useRef<{ pointerId: number; startX: number; scrollLeft: number; moved: boolean } | null>(null);
   const suppressMemberClick = useRef(false);
   const [activeId, setActiveId] = useState(initialIconId ?? icons[0]?.id ?? "");
+  const [activeStyle, setActiveStyle] = useState<LibraryGenerationStyle>("linear");
   const [format, setFormat] = useState<FileFormat>("svg");
   const [size, setSize] = useState(128);
   const [codeTarget, setCodeTarget] = useState<CodeTarget>("SVG");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [appearanceOverrides, setAppearanceOverrides] = useState<Record<string, Appearance>>({});
+  const [loadedFamilies, setLoadedFamilies] = useState<Record<string, StyleFamily>>({});
+  const familyRequests = useRef(new Map<string, Promise<StyleFamily>>());
   const active = allIcons.find(icon => icon.id === activeId) ?? icons[0];
+  const activeVariants = active?.variants ?? loadedFamilies[active?.id ?? ""];
+  const selectedSvg = activeVariants?.[activeStyle] ?? (active?.hasStyleFamily && activeStyle !== "linear" ? "" : active?.svg ?? "");
+  const selectedStyleId = active?.hasStyleFamily ? activeStyle : active?.styleId ?? "";
   const downloadIcons = groupMode ? allIcons.filter(icon => icon.groupId === active?.groupId) : active ? [active] : [];
   const activeIndex = allIcons.findIndex(icon => icon.id === active?.id);
   const groupIds = [...new Set(allIcons.map(icon => icon.groupId))];
@@ -39,15 +50,41 @@ export function GeneratedIconExportDialog({ title, icons, allIcons, initialIconI
   const nextIcon = groupMode
     ? groupIds.length > 1 ? allIcons.find(icon => icon.groupId === groupIds[(activeGroupIndex + 1) % groupIds.length]) : undefined
     : allIcons.length > 1 ? allIcons[(activeIndex + 1) % allIcons.length] : undefined;
-  const baseColor = active && isMonochromeStyle(active.styleId) ? monochromeSvgColor(active.svg) : null;
+  const baseColor = active && isMonochromeStyle(selectedStyleId) ? monochromeSvgColor(selectedSvg) : null;
   const activeAppearance = active && baseColor ? appearanceOverrides[active.id] ?? { ...defaultAppearance, color: baseColor } : null;
-  const activeSvg = active && baseColor && activeAppearance ? applyMonochromeAppearance(active.svg, baseColor, activeAppearance) : active?.svg ?? "";
-  const substyle = ICON_GENERATION_CATEGORIES.flatMap(category => category.children).find(item => item.id === active?.styleId)?.label;
+  const activeSvg = active && baseColor && activeAppearance ? applyMonochromeAppearance(selectedSvg, baseColor, activeAppearance) : selectedSvg;
+  const substyle = ICON_GENERATION_CATEGORIES.flatMap(category => category.children).find(item => item.id === selectedStyleId)?.label;
   const code = useMemo(() => exportCode(activeSvg, codeTarget), [activeSvg, codeTarget]);
-  const outputSvg = (icon: GeneratedExportIcon) => {
-    const original = isMonochromeStyle(icon.styleId) ? monochromeSvgColor(icon.svg) : null;
+  const loadFamily = async (icon: GeneratedExportIcon): Promise<StyleFamily | undefined> => {
+    if (!icon.hasStyleFamily) return undefined;
+    if (icon.variants) return icon.variants;
+    if (loadedFamilies[icon.id]) return loadedFamilies[icon.id];
+    const pending = familyRequests.current.get(icon.id);
+    if (pending) return pending;
+    if (!projectId) throw new Error("Missing project");
+    const request = fetch(`/api/projects/${projectId}/svg-sets/${icon.groupId}/icons/${encodeURIComponent(icon.id.slice(icon.groupId.length + 1))}`, { cache: "no-store" })
+      .then(async response => {
+        if (!response.ok) throw new Error("Icon styles unavailable");
+        const payload = await response.json() as { variants?: Record<string, string> };
+        if (!payload.variants || !LIBRARY_GENERATION_STYLES.every(style => typeof payload.variants?.[style] === "string")) throw new Error("Incomplete icon styles");
+        const variants = payload.variants as StyleFamily;
+        setLoadedFamilies(current => ({ ...current, [icon.id]: variants }));
+        return variants;
+      }).finally(() => familyRequests.current.delete(icon.id));
+    familyRequests.current.set(icon.id, request);
+    return request;
+  };
+  useEffect(() => {
+    if (!active?.hasStyleFamily || activeVariants) return;
+    void loadFamily(active).catch(() => setMessage(zh ? "风格加载失败，点击下载可重试。" : "Styles failed to load. Download to retry."));
+    // Only the active item changes which family we need; cached requests are deduplicated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id, activeVariants, projectId]);
+  const outputSvg = (icon: GeneratedExportIcon, variants?: StyleFamily) => {
+    const variantSvg = variants?.[activeStyle] ?? icon.svg;
+    const original = isMonochromeStyle(variants ? activeStyle : icon.styleId) ? monochromeSvgColor(variantSvg) : null;
     const appearance = appearanceOverrides[icon.id];
-    return original && appearance ? applyMonochromeAppearance(icon.svg, original, appearance) : icon.svg;
+    return original && appearance ? applyMonochromeAppearance(variantSvg, original, appearance) : variantSvg;
   };
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -62,10 +99,15 @@ export function GeneratedIconExportDialog({ title, icons, allIcons, initialIconI
     try {
       if (downloadIcons.length === 1) {
         const icon = downloadIcons[0];
-        saveBlob(await exportBlob(outputSvg(icon), format, size), `${icon.name || icon.id}.${format}`);
+        const variants = await loadFamily(icon);
+        saveBlob(await exportBlob(outputSvg(icon, variants), format, size), `${icon.name || icon.id}${variants ? `-${activeStyle}` : ""}.${format}`);
       } else {
         const zip = new JSZip();
-        await Promise.all(downloadIcons.map(async (icon, index) => zip.file(`${String(index + 1).padStart(2, "0")}-${icon.name || icon.id}.${format}`, await exportBlob(outputSvg(icon), format, size))));
+        for (let index = 0; index < downloadIcons.length; index++) {
+          const icon = downloadIcons[index];
+          const variants = await loadFamily(icon);
+          zip.file(`${String(index + 1).padStart(2, "0")}-${icon.name || icon.id}${variants ? `-${activeStyle}` : ""}.${format}`, await exportBlob(outputSvg(icon, variants), format, size));
+        }
         saveBlob(await zip.generateAsync({ type: "blob" }), `${active.groupName || title || "icon-group"}-${format}.zip`);
       }
     } catch { setMessage(zh ? "下载失败，请重试。" : "Download failed. Try again."); }
@@ -82,10 +124,10 @@ export function GeneratedIconExportDialog({ title, icons, allIcons, initialIconI
   if (!active) return null;
   return <dialog ref={dialog} tabIndex={-1} className={`${libraryCss.dialog} ${libraryCss.iconDetail} ${css.dialog}`} aria-label={zh ? `${title}下载与代码预览` : `${title} download and code preview`} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target !== event.currentTarget) return; const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose(); }}>
     <button type="button" className={libraryCss.close} onClick={onClose} aria-label={zh ? "关闭下载弹窗" : "Close download dialog"}>×</button>
-    <button type="button" className={`${libraryCss.neighbor} ${libraryCss.previous}`} disabled={!previousIcon} aria-label={groupMode ? (zh ? "上一个图组" : "Previous group") : (zh ? "上一个图标" : "Previous icon")} onClick={event => navigate(previousIcon, event.currentTarget)}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>{previousIcon ? <img src={svgDataUrl(previousIcon.svg)} width="40" height="40" alt="" /> : null}</button>
-    <button type="button" className={`${libraryCss.neighbor} ${libraryCss.next}`} disabled={!nextIcon} aria-label={groupMode ? (zh ? "下一个图组" : "Next group") : (zh ? "下一个图标" : "Next icon")} onClick={event => navigate(nextIcon, event.currentTarget)}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>{nextIcon ? <img src={svgDataUrl(nextIcon.svg)} width="40" height="40" alt="" /> : null}</button>
+    <button type="button" className={`${libraryCss.neighbor} ${libraryCss.previous}`} disabled={!previousIcon} aria-label={groupMode ? (zh ? "上一个图组" : "Previous group") : (zh ? "上一个图标" : "Previous icon")} onClick={event => navigate(previousIcon, event.currentTarget)}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>{previousIcon ? <img src={svgDataUrl(themeDisplaySvg(previousIcon.svg, theme))} width="40" height="40" alt="" /> : null}</button>
+    <button type="button" className={`${libraryCss.neighbor} ${libraryCss.next}`} disabled={!nextIcon} aria-label={groupMode ? (zh ? "下一个图组" : "Next group") : (zh ? "下一个图标" : "Next icon")} onClick={event => navigate(nextIcon, event.currentTarget)}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>{nextIcon ? <img src={svgDataUrl(themeDisplaySvg(nextIcon.svg, theme))} width="40" height="40" alt="" /> : null}</button>
     <div className={libraryCss.detailContent}>
-      <div className={css.layout}>
+      <div className={css.layout} data-six-styles={Boolean(active.hasStyleFamily) || undefined}>
         <div className={`${libraryCss.codeTabs} ${css.tabs}`} aria-label={zh ? "代码格式" : "Code format"}><span aria-hidden="true" className={libraryCss.codeTabIndicator} style={{ left: `calc(${codeTargets.indexOf(codeTarget) * 100 / 6}% + ${6 - codeTargets.indexOf(codeTarget) * 8 / 6}px)` }} />{codeTargets.map(target => <button type="button" key={target} aria-pressed={target === codeTarget} onClick={() => setCodeTarget(target)}>{target}</button>)}</div>
         {groupMode ? <div ref={memberStrip} className={css.memberTabs} aria-label={zh ? "选择图组中的图标" : "Choose an icon from the group"}
           onPointerDown={event => { if (event.pointerType !== "mouse" || event.button !== 0) return; memberDrag.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft, moved: false }; }}
@@ -94,11 +136,12 @@ export function GeneratedIconExportDialog({ title, icons, allIcons, initialIconI
           onPointerCancel={() => { memberDrag.current = null; suppressMemberClick.current = false; }}
           onWheel={event => { const strip = event.currentTarget; if (strip.scrollWidth <= strip.clientWidth) return; const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY; if (!delta) return; const next = Math.max(0, Math.min(strip.scrollWidth - strip.clientWidth, strip.scrollLeft + delta)); if (next === strip.scrollLeft) return; event.preventDefault(); strip.scrollLeft = next; }}
           onClickCapture={event => { if (!suppressMemberClick.current) return; suppressMemberClick.current = false; event.preventDefault(); event.stopPropagation(); }}>
-          {downloadIcons.map(icon => <button type="button" key={icon.id} aria-label={icon.name} aria-pressed={icon.id === active.id} onClick={() => setActiveId(icon.id)}><img src={svgDataUrl(icon.svg)} alt="" /></button>)}
+          {downloadIcons.map(icon => <button type="button" key={icon.id} aria-label={icon.name} aria-pressed={icon.id === active.id} onClick={() => setActiveId(icon.id)}><img src={svgDataUrl(themeDisplaySvg(icon.svg, theme))} alt="" /></button>)}
         </div> : null}
+        {active.hasStyleFamily ? <div className={`${libraryCss.variants} ${css.styleRail}`} aria-label={zh ? "切换风格" : "Change style"}>{LIBRARY_GENERATION_STYLES.map(style => <button type="button" key={style} aria-label={zh ? LIBRARY_GENERATION_LABELS[style].zh : LIBRARY_GENERATION_LABELS[style].en} aria-pressed={activeStyle === style} onClick={() => setActiveStyle(style)}>{activeVariants ? <img src={svgDataUrl(themeDisplaySvg(activeVariants[style], theme))} width="28" height="28" alt="" /> : <i className={css.styleSkeleton} aria-hidden="true" />}<span>{zh ? LIBRARY_GENERATION_LABELS[style].zh : LIBRARY_GENERATION_LABELS[style].en}</span></button>)}</div> : null}
         <div className={`${libraryCss.previewPanel} ${css.preview}`}>
           <div className={libraryCss.metadata}><span>{zh ? "名称" : "Name"}: <strong>{active.name}</strong></span><span>{zh ? "风格" : "Style"}: <strong>{substyle ? (zh ? substyle.zh : substyle.en) : active.styleId || "—"}</strong></span></div>
-          <div className={libraryCss.stage}><IconPreviewGrid className={libraryCss.guides}><img className={libraryCss.previewIcon} src={svgDataUrl(activeSvg)} alt={active.name} /></IconPreviewGrid></div>
+          <div className={libraryCss.stage}><IconPreviewGrid className={libraryCss.guides}>{activeSvg ? <img className={libraryCss.previewIcon} src={svgDataUrl(themeDisplaySvg(activeSvg, theme))} alt={active.name} /> : <span className={libraryCss.skeleton} aria-label={zh ? "加载风格中" : "Loading style"} />}</IconPreviewGrid></div>
         </div>
         <section className={`${libraryCss.liveCode} ${css.code}`} aria-label={zh ? "代码预览" : "Code preview"}><textarea aria-label={zh ? "代码内容" : "Code content"} readOnly spellCheck={false} wrap="soft" value={code} /><button type="button" onClick={() => void navigator.clipboard.writeText(code).then(() => setMessage(zh ? "代码已复制" : "Code copied")).catch(() => setMessage(zh ? "复制失败，请手动复制" : "Copy failed. Select the code manually."))}>{zh ? "复制代码" : "Copy code"}</button></section>
         <div className={`${libraryCss.controls} ${css.controls}`}>

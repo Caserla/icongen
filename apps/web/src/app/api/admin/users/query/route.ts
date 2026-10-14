@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     let query = createAdminSupabaseClient()
       .from("profiles")
       .select(
-        "id,email,display_name,status,created_at,updated_at,credit_accounts(balance)",
+        "id,email,display_name,status,created_at,updated_at",
         { count: "exact" },
       )
       .order("created_at", { ascending: false })

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PlanResult } from "./icon-plan-results";
 import css from "./favorite-icon-groups-dialog.module.css";
 import { ProjectCollectionDialog } from "./project-collection-dialog";
+import { generationSubjectLabel } from "../generation-subject-label";
 
 const svgUrl = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
@@ -15,7 +16,8 @@ export function FavoriteIconGroupsDialog({ open, projectId, projectGroups, zh, o
   const favoriteIcons = projectGroups.flatMap(group => (group.favoriteIconIds ?? []).flatMap(subjectId => {
     const svg = group.icons?.[subjectId];
     const subject = group.plan.subjects.find(item => item.id === subjectId);
-    return svg && subject ? [{ groupId: group.id, subjectId, svg, name: subject.name }] : [];
+    const name = subject ? generationSubjectLabel(subject, group.snapshot as { styleId?: string; secondaryStyleId?: string }, zh) : undefined;
+    return svg && subject && name ? [{ groupId: group.id, subjectId, svg, name }] : [];
   }));
   const keys = useMemo(() => category === "groups" ? groups.map(group => group.id) : favoriteIcons.map(icon => `${icon.groupId}:${icon.subjectId}`), [category, groups, favoriteIcons]);
   useEffect(() => { setSelected(current => new Set([...current].filter(key => keys.includes(key)))); }, [keys.join("|")]);

@@ -10,6 +10,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { UserMenu } from "@/components/layouts/user-menu";
 import type { Viewer } from "@/lib/auth/viewer";
 import { myIconsEnabled } from "@/lib/product-features";
+import css from "./workspace-header.module.css";
 
 export function WorkspaceHeader({ viewer = null }: { viewer?: Viewer | null }) {
   const { t, locale } = useLocale();
@@ -31,17 +32,17 @@ export function WorkspaceHeader({ viewer = null }: { viewer?: Viewer | null }) {
   const activeViewer = viewer ?? fetchedViewer;
   const selected = (href: string) => href === "/create" ? pathname === href : pathname.startsWith(href);
   const navClass = (href: string) => `studio-nav-link focus-ring whitespace-nowrap ${selected(href) ? "is-selected" : ""}`;
-  return <header className="studio-header workspace-header relative z-30 mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3">
+  return <header className={`${css.root} studio-header workspace-header relative z-30 mx-auto flex min-h-16 max-w-[1440px] items-center justify-between gap-3`}>
     <div data-canvas-glass className="workspace-header__brand-pane flex min-h-16 shrink-0 items-center px-5 sm:px-6"><Brand /></div>
     <div data-canvas-glass className="workspace-header__controls-pane ml-auto flex min-h-16 shrink-0 items-center gap-3 px-3 sm:px-4">
-      <nav className="hidden items-center gap-1 md:flex" aria-label="Workspace navigation">
+      <nav className="hidden items-center gap-1 sm:flex" aria-label="Workspace navigation">
         <Link href="/create" aria-current={selected("/create") ? "page" : undefined} className={navClass("/create")}>{t("workspace")}</Link>
         {myIconsEnabled ? <Link href="/icons" aria-current={selected("/icons") ? "page" : undefined} className={navClass("/icons")}>{t("myIcons")}</Link> : null}
         <Link href="/library" aria-current={selected("/library") ? "page" : undefined} className={navClass("/library")}>{locale === "zh" ? "素材库" : "Library"}</Link>
       </nav>
       <ThemeSwitch />
       <LanguageSwitch />
-      {activeViewer ? <UserMenu viewer={activeViewer} /> : <Link href="/account" className="studio-button studio-button--primary focus-ring hidden px-4 py-3 text-sm font-extrabold sm:block">{t("account")}</Link>}
+      <UserMenu viewer={activeViewer} />
     </div>
   </header>;
 }

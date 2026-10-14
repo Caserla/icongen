@@ -4175,7 +4175,6 @@ create table public.project_svg_icon_sets (
   user_id uuid not null references public.profiles(id) on delete cascade,
   plan jsonb not null,
   snapshot jsonb not null,
-  recycled_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index project_svg_icon_sets_project_created_idx
@@ -4185,9 +4184,6 @@ create table public.project_svg_icons (
   set_id uuid not null references public.project_svg_icon_sets(id) on delete cascade,
   subject_id text not null,
   svg text not null check (octet_length(svg) <= 100000),
-  is_favorite boolean not null default false,
-  recycled_at timestamptz,
-  constraint project_svg_icons_favorite_recycle_exclusive check (not (is_favorite and recycled_at is not null)),
   created_at timestamptz not null default now(),
   primary key (set_id, subject_id)
 );
@@ -4214,10 +4210,6 @@ create policy "users update own svg icons" on public.project_svg_icons
   )) with check (exists (
     select 1 from public.project_svg_icon_sets where id = set_id and user_id = auth.uid()
   ));
-create policy "users delete own svg icons" on public.project_svg_icons
-  for delete using (exists (
-    select 1 from public.project_svg_icon_sets where id = set_id and user_id = auth.uid()
-  ));
 
 commit;
 
@@ -4241,10 +4233,6 @@ alter table public.project_svg_icon_sets
     and abs((canvas_position ->> 'y')::numeric) <= 100000
   );
 
-alter table public.project_svg_icon_sets
-  add constraint project_svg_icon_sets_favorite_recycle_exclusive
-  check (not (is_favorite and recycled_at is not null));
-
 create policy "users update own svg icon sets" on public.project_svg_icon_sets
   for update using (user_id = auth.uid())
   with check (user_id = auth.uid() and exists (
@@ -4253,5 +4241,235 @@ create policy "users update own svg icon sets" on public.project_svg_icon_sets
 
 create policy "users delete own svg icon sets" on public.project_svg_icon_sets
   for delete using (user_id = auth.uid());
+
+commit;
+
+-- ============================================================================
+-- 0041_project_svg_icon_favorites.sql
+-- ============================================================================
+
+begin;
+
+-- Project-scoped favorites for individual SVG icons generated on the canvas.
+alter table public.project_svg_icons
+  add column if not exists is_favorite boolean not null default false;
+
+create index if not exists project_svg_icons_favorite_idx
+  on public.project_svg_icons(set_id, is_favorite)
+  where is_favorite = true;
+
+commit;
+
+-- ============================================================================
+-- 0042_project_svg_icon_recycle_bin.sql
+-- ============================================================================
+
+begin;
+
+-- Recoverable, project-scoped recycle bin for generated SVG groups and icons.
+alter table public.project_svg_icon_sets
+  add column if not exists recycled_at timestamptz;
+
+alter table public.project_svg_icons
+  add column if not exists recycled_at timestamptz;
+
+create index if not exists project_svg_icon_sets_recycled_idx
+  on public.project_svg_icon_sets(project_id, recycled_at, created_at desc);
+
+create index if not exists project_svg_icons_recycled_idx
+  on public.project_svg_icons(set_id, recycled_at);
+
+commit;
+
+-- ============================================================================
+-- 0043_project_svg_group_compatibility.sql
+-- ============================================================================
+
+begin;
+
+-- Backfill group-level fields for environments that received later SVG
+-- migrations without the original position/favorite migration.
+alter table public.project_svg_icon_sets
+  add column if not exists canvas_position jsonb not null default '{"x":0,"y":0}'::jsonb,
+  add column if not exists is_favorite boolean not null default false,
+  add column if not exists recycled_at timestamptz;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'project_svg_icon_sets_canvas_position_shape'
+      and conrelid = 'public.project_svg_icon_sets'::regclass
+  ) then
+    alter table public.project_svg_icon_sets
+      add constraint project_svg_icon_sets_canvas_position_shape check (
+        jsonb_typeof(canvas_position) = 'object'
+        and jsonb_typeof(canvas_position -> 'x') = 'number'
+        and jsonb_typeof(canvas_position -> 'y') = 'number'
+        and abs((canvas_position ->> 'x')::numeric) <= 100000
+        and abs((canvas_position ->> 'y')::numeric) <= 100000
+      );
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'project_svg_icon_sets' and policyname = 'users update own svg icon sets') then
+    create policy "users update own svg icon sets" on public.project_svg_icon_sets
+      for update using (user_id = auth.uid())
+      with check (user_id = auth.uid() and exists (
+        select 1 from public.icon_projects where id = project_id and user_id = auth.uid()
+      ));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'project_svg_icon_sets' and policyname = 'users delete own svg icon sets') then
+    create policy "users delete own svg icon sets" on public.project_svg_icon_sets
+      for delete using (user_id = auth.uid());
+  end if;
+end $$;
+
+create index if not exists project_svg_icon_sets_recycled_idx
+  on public.project_svg_icon_sets(project_id, recycled_at, created_at desc);
+
+commit;
+
+-- ============================================================================
+-- 0044_project_svg_favorite_recycle_exclusivity.sql
+-- ============================================================================
+
+begin;
+
+-- A generated SVG group/icon cannot be both favorited and recycled.
+update public.project_svg_icon_sets
+set is_favorite = false
+where recycled_at is not null and is_favorite;
+
+update public.project_svg_icons
+set is_favorite = false
+where recycled_at is not null and is_favorite;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'project_svg_icon_sets_favorite_recycle_exclusive'
+      and conrelid = 'public.project_svg_icon_sets'::regclass
+  ) then
+    alter table public.project_svg_icon_sets
+      add constraint project_svg_icon_sets_favorite_recycle_exclusive
+      check (not (is_favorite and recycled_at is not null));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'project_svg_icons_favorite_recycle_exclusive'
+      and conrelid = 'public.project_svg_icons'::regclass
+  ) then
+    alter table public.project_svg_icons
+      add constraint project_svg_icons_favorite_recycle_exclusive
+      check (not (is_favorite and recycled_at is not null));
+  end if;
+end $$;
+
+commit;
+
+-- ============================================================================
+-- 0045_project_svg_icon_delete_policy.sql
+-- ============================================================================
+
+begin;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'project_svg_icons'
+      and policyname = 'users delete own svg icons'
+  ) then
+    create policy "users delete own svg icons" on public.project_svg_icons
+      for delete using (
+        exists (
+          select 1
+          from public.project_svg_icon_sets
+          where id = set_id
+            and user_id = auth.uid()
+        )
+      );
+  end if;
+end $$;
+
+commit;
+
+-- ============================================================================
+-- 0046_svg_generation_context.sql
+-- ============================================================================
+
+begin;
+
+-- Preserve the authoring plan and hash-bound model review beside the SVG.
+-- This is provenance, not a human-approval/release flag. Existing rows remain unchanged.
+alter table public.project_svg_icons
+  add column if not exists generation_context jsonb;
+alter table public.project_svg_icons
+  add constraint project_svg_icons_generation_context_size
+  check (generation_context is null or octet_length(generation_context::text) <= 200000);
+comment on column public.project_svg_icons.generation_context is
+  'Versioned authoring plan, protocol/reference hashes, provider calls and model-assisted review bound to final SVG hashes; not human approval.';
+
+commit;
+
+-- ============================================================================
+-- 0047_svg_six_style_family.sql
+-- ============================================================================
+
+begin;
+
+-- Keep the canvas list small: six generated SVGs are fetched only when the
+-- user opens a subject's detail or downloads its styles.
+alter table public.project_svg_icons
+  add column if not exists style_variants jsonb;
+alter table public.project_svg_icons
+  add constraint project_svg_icons_style_variants_size
+  check (style_variants is null or octet_length(style_variants::text) <= 900000);
+comment on column public.project_svg_icons.style_variants is
+  'Six validated SVG styles of one semantic subject; the Linear SVG remains in svg for the canvas thumbnail.';
+
+commit;
+
+-- ============================================================================
+-- 0048_local_self_use.sql
+-- ============================================================================
+
+begin;
+
+-- Local self-use: stop signup credit grants, retain historical rows for safety.
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email) values (new.id, new.email)
+  on conflict (id) do update set email = excluded.email;
+  return new;
+end;
+$$;
+
+-- Disable financial RPC entrypoints, without deleting historical order/ledger data.
+do $$
+declare item record;
+begin
+  for item in select p.oid::regprocedure as signature from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.proname in (
+      'credit_paid_order','create_credit_redemption_code','redeem_credit_code',
+      'create_credit_redemption_batch','disable_credit_redemption_batch',
+      'create_generation_job_v2','create_local_generation_job_v2',
+      'create_variant_detail_edit_v2','create_local_variant_detail_edit_v2',
+      'refund_failed_variant_detail_edit_v2','credit_failed_generation_job',
+      'finalize_generation_job_v2_failure'
+    )
+  loop
+    execute format('revoke execute on function %s from public, anon, authenticated, service_role', item.signature);
+  end loop;
+end;
+$$;
 
 commit;

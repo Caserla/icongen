@@ -131,7 +131,7 @@ export function RecycleBinDialog({ open, projectId, zh, onClose, onRestored, onD
   const batchBar = keys.length ? <div className={css.batchBar}>
     <label className={css.selectAll}><input type="checkbox" checked={selected.size === keys.length} ref={input => { if (input) input.indeterminate = selected.size > 0 && selected.size < keys.length; }} onChange={() => setSelected(selected.size === keys.length ? new Set() : new Set(keys))} /><span>{zh ? "全选" : "Select all"}</span></label>
     <span className={css.selectedCount}>{zh ? `已选 ${selected.size} 项` : `${selected.size} selected`}</span>
-    <div className={css.batchActions}><button type="button" disabled={!selected.size || batchBusy} onClick={() => void restoreMany(selectedRestoreTargets)}>{zh ? "恢复所选" : "Restore selected"}</button><button type="button" className={css.batchDelete} disabled={!selected.size || batchBusy} onClick={() => requestPermanentDelete(selectedDeleteTargets)}>{zh ? "永久删除所选" : "Delete selected"}</button></div>
+    <div className={css.batchActions}><button type="button" disabled={!selected.size || batchBusy} onClick={() => void restoreMany(selectedRestoreTargets)}>{zh ? "恢复所选" : "Restore selected"}</button><button type="button" className={css.batchDelete} disabled={!selected.size || batchBusy} onClick={() => requestPermanentDelete(selectedDeleteTargets)}>{zh ? "永久删除" : "Delete selected"}</button></div>
   </div> : null;
   const emptyLabel = category === "groups" ? (zh ? "暂无回收图标组" : "No recycled icon groups") : (zh ? "暂无回收单图" : "No recycled single icons");
   const empty = <div className={css.empty}><svg viewBox="0 0 24 24" style={{ fill: "none" }} aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" /></svg><p>{emptyLabel}</p></div>;

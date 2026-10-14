@@ -1,6 +1,7 @@
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { healthcheckAuthorized } from "@/lib/security/healthcheck-auth";
 import { serverLogger } from "@/lib/security/server-log";
+import { isLocalMode } from "@/lib/local/mode";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const check = createAdminSupabaseClient()
-      .from("generation_runtime_limits")
-      .select("singleton")
-      .eq("singleton", true)
-      .maybeSingle();
+    const client = createAdminSupabaseClient();
+    const check = isLocalMode()
+      ? client.from("profiles").select("id").limit(1).maybeSingle()
+      : client.from("generation_runtime_limits").select("singleton").eq("singleton", true).maybeSingle();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error("readiness timeout")), 3000);

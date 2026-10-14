@@ -1,4 +1,5 @@
 const MONOCHROME_STYLE_IDS = new Set([
+  "linear", "outline", "bold", "broken", "bulk", "twotone",
   "thin", "light", "regular", "bold-outline", "broken-outline",
   "pure-solid", "cutout", "state-pair",
   "soft-rounded", "fully-rounded", "rounded-fill",

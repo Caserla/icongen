@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isLocalMode } from "@/lib/local/mode";
 
 export type Viewer = { email: string; name: string; isAdmin: boolean };
 
@@ -15,7 +16,7 @@ export async function getOptionalViewer(): Promise<Viewer | null> {
           name.includes("-auth-token") &&
           value.length > 0,
       );
-    if (!hasAuthCookie) return null;
+    if (!hasAuthCookie && !isLocalMode()) return null;
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user?.email) return null;

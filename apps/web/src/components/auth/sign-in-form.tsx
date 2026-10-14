@@ -8,6 +8,7 @@ import { useLocale } from "@/components/i18n/locale-provider";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Toast } from "@/components/ui/toast";
 import { publicEnv } from "@/lib/env";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 type SocialProvider = "google" | "github";
 
@@ -18,7 +19,7 @@ export function SignInForm({ className = "" }: { className?: string }) {
   const [error, setError] = useState("");
   const search = useSyncExternalStore(subscribeToLocation, getLocationSearch, () => "");
   const params = new URLSearchParams(search);
-  const nextPath = params.get("next") ?? "/create";
+  const nextPath = safeNextPath(params.get("next"));
   const authUnavailable = params.get("reason") === "auth_unavailable";
   const reasonQuery = authUnavailable ? "&reason=auth_unavailable" : "";
 
@@ -30,7 +31,7 @@ export function SignInForm({ className = "" }: { className?: string }) {
     }
     const supabase = createBrowserClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey);
     const callbackUrl = new URL("/auth/callback", window.location.origin);
-    callbackUrl.searchParams.set("next", "/");
+    callbackUrl.searchParams.set("next", nextPath);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: callbackUrl.toString() } });
     if (oauthError) { setError(t("socialSignInFailed")); setSocialBusy(null); }
   }
@@ -42,8 +43,16 @@ export function SignInForm({ className = "" }: { className?: string }) {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: form.get("email"), password: form.get("password"), next: nextPath }),
     }).catch(() => null);
-    if (!response?.ok) { setError(t("invalidLogin")); setBusy(false); return; }
-    const data = await response.json(); window.location.assign(data.next);
+    const data = await response?.json().catch(() => null);
+    if (!response?.ok) {
+      setError(!response || response.status >= 500 || data?.error?.code === "AUTH_SERVICE_UNAVAILABLE" ? t("authUnavailable") : t("invalidLogin"));
+      setBusy(false);
+      return;
+    }
+    if (!data || typeof data.next !== "string") {
+      setError(t("authUnavailable")); setBusy(false); return;
+    }
+    window.location.assign(safeNextPath(data.next));
   }
 
   return (

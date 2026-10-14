@@ -824,7 +824,6 @@ export function DesignLanding() {
             <Link href="/create" className={styles.primaryAction}>
               <span>{c.primary}</span><i aria-hidden="true" />
             </Link>
-            <Link href="/pricing" className={styles.secondaryAction}>{c.pricing}</Link>
           </div>
         </div>
       </section>

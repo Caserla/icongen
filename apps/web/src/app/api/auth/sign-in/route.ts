@@ -21,10 +21,17 @@ export async function POST(request: Request) {
     );
 
   const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const result = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
-  });
+  }).catch(() => null);
+  if (!result || (result.error && (result.error.status === 402 || (result.error.status ?? 0) >= 500)))
+    return apiError(
+      "AUTH_SERVICE_UNAVAILABLE",
+      "Sign-in is temporarily unavailable. Please try again later.",
+      503,
+    );
+  const { data, error } = result;
   if (error || !data.user)
     return apiError(
       "INVALID_CREDENTIALS",

@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { generationSnapshotSchema } from "@/features/generation/generation-snapshot";
+import { prepareGenerationDraft } from "@/features/generation/server/prepare-generation-draft";
 import { requireActiveUser } from "@/lib/auth/require-user";
 import { apiError, authErrorResponse } from "@/lib/http/api-response";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { iconPlanSchema, normalizeIconPlan } from "@/features/generation/icon-plan";
+import { persistedIconPlanSchema, parsePersistedIconPlan } from "@/features/generation/icon-plan";
 
 const paramsSchema = z.object({ projectId: z.string().uuid() });
 type Context = { params: Promise<{ projectId: string }> };
@@ -37,11 +39,16 @@ export async function GET(request: Request, context: Context) {
     }
     if (sets.error) throw sets.error;
     const ids = (sets.data ?? []).map(set => set.id);
-    const assets: Array<{ set_id: string; subject_id: string; svg: string; is_favorite?: boolean; recycled_at?: string | null }> = [];
+    const assets: Array<{ set_id: string; subject_id: string; svg: string; is_favorite?: boolean; recycled_at?: string | null; generation_context?: unknown }> = [];
     if (ids.length) {
       for (let offset = 0; ; offset += 1000) {
-        let page = await client.from("project_svg_icons").select("set_id,subject_id,svg,is_favorite,recycled_at").in("set_id", ids)
+        let page = await client.from("project_svg_icons").select("set_id,subject_id,svg,is_favorite,recycled_at,generation_context").in("set_id", ids)
           .order("set_id").order("subject_id").range(offset, offset + 999);
+        if (["42703", "PGRST204"].includes(page.error?.code ?? "") && page.error?.message.includes("generation_context")) {
+          const compatible = await client.from("project_svg_icons").select("set_id,subject_id,svg,is_favorite,recycled_at").in("set_id", ids)
+            .order("set_id").order("subject_id").range(offset, offset + 999);
+          page = { ...compatible, data: compatible.data?.map(icon => ({ ...icon, generation_context: null })) ?? null } as typeof page;
+        }
         if (page.error?.code === "42703" || page.error?.code === "PGRST204") {
           const legacy = await client.from("project_svg_icons").select("set_id,subject_id,svg").in("set_id", ids)
             .order("set_id").order("subject_id").range(offset, offset + 999);
@@ -62,6 +69,7 @@ export async function GET(request: Request, context: Context) {
       const groupAssets = assetsBySet.get(set.id) ?? [];
       return { id: set.id, plan: set.plan, snapshot: set.snapshot, position: set.canvas_position ?? { x: 0, y: 0 }, favorite: set.is_favorite ?? false, recycled: Boolean(set.recycled_at), saved: true,
         icons: Object.fromEntries(groupAssets.filter(asset => !asset.recycled_at).map(asset => [asset.subject_id, asset.svg])),
+        generationContexts: Object.fromEntries(groupAssets.filter(asset => asset.generation_context).map(asset => [asset.subject_id, asset.generation_context])),
         favoriteIconIds: groupAssets.filter(asset => asset.is_favorite && !asset.recycled_at).map(asset => asset.subject_id),
         recycledIconIds: groupAssets.filter(asset => asset.recycled_at).map(asset => asset.subject_id) };
     });
@@ -73,7 +81,7 @@ export async function POST(request: Request, context: Context) {
   const parsed = paramsSchema.safeParse(await context.params);
   if (!parsed.success) return apiError("INVALID_PROJECT_ID", "Invalid project.", 400);
   const body = await request.json().catch(() => null);
-  const input = z.object({ plan: iconPlanSchema, snapshot: z.object({ projectId: z.string().uuid(), styleId: z.string().min(1).max(100), colors: z.unknown().optional(), theme: z.enum(["light", "dark"]).optional() }) }).safeParse(body);
+  const input = z.object({ plan: persistedIconPlanSchema, snapshot: generationSnapshotSchema, resolution: z.enum(["keep", "requested"]).optional() }).safeParse(body);
   if (!input.success) return apiError("INVALID_INPUT", "Invalid icon set.", 400);
   if (input.data.snapshot.projectId !== parsed.data.projectId) return apiError("INVALID_PROJECT_ID", "Project mismatch.", 400);
   try {
@@ -82,10 +90,13 @@ export async function POST(request: Request, context: Context) {
     const project = await client.from("icon_projects").select("id").eq("id", parsed.data.projectId).eq("user_id", user.id).maybeSingle();
     if (project.error) throw project.error;
     if (!project.data) return apiError("PROJECT_NOT_FOUND", "Project not found.", 404);
-    const plan = normalizeIconPlan(input.data.plan);
-    const saved = await client.from("project_svg_icon_sets").insert({ project_id: parsed.data.projectId, user_id: user.id, plan, snapshot: input.data.snapshot }).select("id").single();
+    let draft;
+    try { draft = prepareGenerationDraft(parsePersistedIconPlan(input.data.plan), input.data.snapshot, input.data.resolution); }
+    catch (error) { return apiError("INTENT_CONFLICT", error instanceof Error ? error.message : "Resolve the design intent first.", 409); }
+    const { plan, snapshot } = draft;
+    const saved = await client.from("project_svg_icon_sets").insert({ project_id: parsed.data.projectId, user_id: user.id, plan, snapshot }).select("id").single();
     if (saved.error) throw saved.error;
-    return Response.json({ id: saved.data.id }, { status: 201 });
+    return Response.json({ id: saved.data.id, plan, snapshot }, { status: 201 });
   } catch (error) { return authErrorResponse(error) ?? apiError("SVG_SET_SAVE_FAILED", "Icon set could not be saved.", 503); }
 }
 

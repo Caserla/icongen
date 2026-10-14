@@ -151,9 +151,10 @@ html .user-menu .user-menu__panel .user-menu__identity > p {color:var(--menu-mut
 html .user-menu .user-menu__panel .user-menu__item.text-danger {color:var(--menu-danger) !important}
 html .user-menu .user-menu__item::before {background:var(--menu-line)}
 html .user-menu .user-menu__item:is(:hover,:focus-visible) {
-  background:var(--menu-hover) !important;
-  border-radius:10px !important;
-  opacity:1 !important;
+  padding-left:20px !important;
+  background:transparent !important;
+  border-radius:0 !important;
+  opacity:.52 !important;
 }
 
 /* Subject controls remain visibly actionable on the white card. */

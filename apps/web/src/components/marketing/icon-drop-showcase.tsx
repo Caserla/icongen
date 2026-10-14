@@ -4,18 +4,15 @@ import Image from "next/image";
 import { useEffect, useRef, type CSSProperties } from "react";
 
 const icons = [
-  ["isometric-3d", "/images/icon-style-previews/isometric-3d-hd.png"],
-  ["neon", "/images/icon-style-previews/neon-hd.png"],
-  ["low-poly", "/images/icon-style-previews/low-poly-hd.png"],
-  ["clay-3d", "/images/icon-style-previews/clay-3d-hd.png"],
-  [
-    "flat-playful",
-    "/images/icon-style-previews/hd-native/flat-playful-v13.png",
-  ],
-  ["pixel-art", "/images/icon-style-previews/pixel-art-hd.png"],
-  ["flat-illustration", "/images/icon-style-previews/flat-illustration-hd.png"],
-  ["cute-sticker", "/images/icon-style-previews/cute-sticker-hd.png"],
-  ["minimal-logo", "/images/icon-style-previews/minimal-logo-hd.png"],
+  ["isometric-3d", "/images/icon-style-previews/web-512-v1/isometric-3d-hd.webp"],
+  ["neon", "/images/icon-style-previews/web-512-v1/neon-hd.webp"],
+  ["low-poly", "/images/icon-style-previews/web-512-v1/low-poly-hd.webp"],
+  ["clay-3d", "/images/icon-style-previews/web-512-v1/clay-3d-hd.webp"],
+  ["flat-playful", "/images/icon-style-previews/web-512-v1/flat-playful-v13.webp"],
+  ["pixel-art", "/images/icon-style-previews/web-512-v1/pixel-art-hd.webp"],
+  ["flat-illustration", "/images/icon-style-previews/web-512-v1/flat-illustration-hd.webp"],
+  ["cute-sticker", "/images/icon-style-previews/web-512-v1/cute-sticker-hd.webp"],
+  ["minimal-logo", "/images/icon-style-previews/web-512-v1/minimal-logo-hd.webp"],
 ] as const;
 
 export function IconDropShowcase({ locale }: { locale: "en" | "zh" }) {
@@ -82,6 +79,7 @@ export function IconDropShowcase({ locale }: { locale: "en" | "zh" }) {
                   width={512}
                   height={512}
                   sizes="(max-width: 700px) 27vw, 18vw"
+                  unoptimized
                 />
                 <figcaption>{name.replaceAll("-", " ")}</figcaption>
               </figure>

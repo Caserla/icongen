@@ -2,8 +2,11 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { requirePublicSupabaseEnv } from "@/lib/env";
+import { isLocalMode } from "@/lib/local/mode";
+import { createLocalClient } from "@/lib/local/database.mjs";
 
 export async function createServerSupabaseClient() {
+  if (isLocalMode()) return createLocalClient();
   const { supabaseUrl, supabaseAnonKey } = requirePublicSupabaseEnv();
   const cookieStore = await cookies();
 

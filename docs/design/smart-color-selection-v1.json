@@ -1,0 +1,1144 @@
+{
+  "specVersion": "1.1.4",
+  "status": "runtime-integrated-visual-review-pending",
+  "reviewDate": "2026-09-21",
+  "basedOnStyleVersion": "3.4.0",
+  "scope": "Smart color selection for the 46 existing SVG substyles. Prototype colors are design seeds, not final paint slots, usage statistics or a claim of accessibility/visual approval.",
+  "priority": {
+    "manual": "Bypass smart selection; preserve exact user input.",
+    "smart": [
+      "Explicit current color intent within chosen style",
+      "Chosen style color grammar",
+      "Object/material/action identity within that grammar",
+      "Target-surface readability",
+      "Saved batch/subject plan consistency",
+      "Whole-recipe aesthetic preference",
+      "Equal-weight project harmony reference"
+    ]
+  },
+  "projectReference": {
+    "allFourEqualWeight": true,
+    "copyLiteralForegroundColors": false,
+    "averageThemeHues": false,
+    "deriveOnePaintPerProjectSlot": false,
+    "structuralMaskColorsExempt": true,
+    "adaptation": "Prefer whole alternate recipe; then bounded perceptual lightness/chroma changes inside the chosen semantic hue family. Never rotate every role independently.",
+    "nearDuplicatePolicy": "Do not evade exclusion with a one-channel increment. Perceptual separation is a soft ranking term, not a hard aesthetic rejection gate.",
+    "explicitOverride": "Only an explicit current user color request may override literal exclusion; record the override. Subject hue identity alone does not authorize copying an exact project value."
+  },
+  "selection": {
+    "candidateUnit": "whole-recipe-not-independent-swatches",
+    "defaultOrder": [
+      "clear-blue",
+      "warm-orange",
+      "natural-green",
+      "soft-violet",
+      "coral-rose"
+    ],
+    "primarySelection": "Filter by style grammar and subject constraints. Rank complete compatible recipes with style/intent first; project harmony breaks comparable choices but must not determine a mean hue.",
+    "stableTieBreak": "Use configured recipe order, never per-icon randomness.",
+    "projectFit": "Equal-weight reference to overall intensity/temperature; compare complete recipe, not distance to project.primary.",
+    "variantBehavior": "Retry reuses the saved plan. Explicit recolor creates a new plan version. No background regeneration on theme/project edits.",
+    "boundedDerivation": {
+      "space": "OKLCH",
+      "description": "Candidate refinement, not a new failure threshold.",
+      "hueDegreesMax": 8,
+      "lightnessDeltaMax": 0.08,
+      "chromaDeltaMax": 0.03,
+      "fallback": "If no readable candidate exists in the local range, derive another value in the permitted hue family or use another whole recipe; do not change object identity or reject the whole batch."
+    },
+    "neutralFallback": {
+      "light": [
+        "#343A40",
+        "#41464F",
+        "#505660",
+        "#242830"
+      ],
+      "dark": [
+        "#D6DCE5",
+        "#C8CFD9",
+        "#E2E6ED",
+        "#BAC3CE"
+      ],
+      "rule": "First readable candidate not copied from a project color; bounded neutral adjustment if all four collide. Never choose a saturated fallback."
+    }
+  },
+  "batch": {
+    "singleColor": "One exact foreground per monochrome batch, shared by all subjects and both states.",
+    "multicolor": "Freeze recipe, named UI roles, gradients and repeated material paints; permit semantic per-object colors.",
+    "statePair": "Same colorPlanId and part color roles for outline/solid; state changes geometry, not hue.",
+    "retry": "Reuse batch and subject plans including object overrides; no re-selection for a failed item.",
+    "legacy": "Do not recolor successful old items. Derive a compatible plan from saved history for retries, or report unavailable evidence without fabricating continuity.",
+    "concurrency": "Resolve and persist a batch plan once before dispatch. UI responds immediately; no per-item color-planning model call."
+  },
+  "backgrounds": {
+    "referenceLight": "#FFFFFF",
+    "referenceDark": "#20252D",
+    "actualSurfaceRequired": true,
+    "unknownSurface": "Provide separate light/dark variants or declare surface assumption; never promise universal contrast.",
+    "alpha": "Evaluate composited paint against adjacent actual colors.",
+    "themeChange": "Use saved paired theme paints for preview/export; changing UI theme does not regenerate icons or silently mutate saved SVG."
+  },
+  "readability": {
+    "essentialBoundaryMinContrast": 3,
+    "thinBoundaryPreferredContrast": 4.5,
+    "scope": "Necessary icon boundaries/features versus adjacent colors; not every decorative fill/highlight, not an automatic rejection score.",
+    "unknownCriticalBoundary": "Inspect real SVG at target sizes. Do not assume role token contrast proves rendered accessibility.",
+    "response": "Plan a readable role paint before generation; prefer local role-aware repair or warning over whole-batch model retries."
+  },
+  "roles": {
+    "ink": "识别轮廓/文字类前景（按风格需要）",
+    "body": "主体色",
+    "support": "真实次级部件色",
+    "companion": "对比双色的陪衬色",
+    "accent": "可选小面积强调色",
+    "highlight": "材质受光",
+    "shade": "材质背光",
+    "tint": "玻璃透色",
+    "rim": "玻璃边缘",
+    "halo": "光晕",
+    "gradientStart": "渐变起点",
+    "gradientMid": "三色渐变中点",
+    "gradientEnd": "渐变终点"
+  },
+  "recipeUsage": "Select only the roles the style needs. Characteristic object colors are authored separately and recorded with stable partId/material keys; these recipes are not an exhaustive list of allowed output colors.",
+  "recipes": [
+    {
+      "id": "neutral-ink",
+      "name": "中性黑灰",
+      "type": "neutral",
+      "userPreference": "existing-requirement",
+      "light": {
+        "ink": "#343A40",
+        "body": "#343A40",
+        "support": "#8B929C",
+        "companion": "#6B7280",
+        "accent": "#343A40",
+        "highlight": "#F1F3F5"
+      },
+      "dark": {
+        "ink": "#D6DCE5",
+        "body": "#D6DCE5",
+        "support": "#87919F",
+        "companion": "#A7B0BD",
+        "accent": "#D6DCE5",
+        "highlight": "#F4F6FA"
+      }
+    },
+    {
+      "id": "pixel-sorbet",
+      "name": "像素柔彩",
+      "type": "general",
+      "userPreference": "style-reference-direction",
+      "light": {
+        "ink": "#4A547A",
+        "body": "#B9ABE7",
+        "support": "#79CEC2",
+        "companion": "#79CEC2",
+        "accent": "#EE9CAC",
+        "highlight": "#E9E5F7"
+      },
+      "dark": {
+        "ink": "#DDE3FB",
+        "body": "#BBAEF0",
+        "support": "#8ED8CD",
+        "companion": "#8ED8CD",
+        "accent": "#F4AABB",
+        "highlight": "#EEEAFE"
+      }
+    },
+    {
+      "id": "clear-blue",
+      "name": "清爽蓝 A",
+      "gradientThree": { "light": ["#3874DB", "#8A55D1", "#D24C98"], "dark": ["#82ADF5", "#BA9CEB", "#EE9BCB"] },
+      "type": "general",
+      "userPreference": "accepted-direction-not-final-values",
+      "light": {
+        "ink": "#344359",
+        "body": "#3C7DE6",
+        "support": "#9EC6F2",
+        "companion": "#DC754E",
+        "accent": "#DCA63C",
+        "highlight": "#EAF3FF"
+      },
+      "dark": {
+        "ink": "#DEE7F3",
+        "body": "#82ADF5",
+        "support": "#BED5F7",
+        "companion": "#F1B98E",
+        "accent": "#F2CA76",
+        "highlight": "#EBF3FF"
+      },
+      "gradient": {
+        "light": [
+          "#3C7DE6",
+          "#7857CA"
+        ],
+        "dark": [
+          "#82ADF5",
+          "#B9A2EF"
+        ]
+      }
+    },
+    {
+      "id": "warm-orange",
+      "name": "温暖橙 B",
+      "gradientThree": { "light": ["#B98730", "#DC754E", "#B75367"], "dark": ["#EBC272", "#F1AD83", "#F29CA7"] },
+      "type": "general",
+      "userPreference": "accepted-direction-not-final-values",
+      "light": {
+        "ink": "#574039",
+        "body": "#DC754E",
+        "support": "#F1C38D",
+        "companion": "#4E83C4",
+        "accent": "#CB9A38",
+        "highlight": "#FFF0E2"
+      },
+      "dark": {
+        "ink": "#F0DFD4",
+        "body": "#F1AD83",
+        "support": "#F6D4B2",
+        "companion": "#91B6E3",
+        "accent": "#F1CB82",
+        "highlight": "#FFF2E8"
+      },
+      "gradient": {
+        "light": [
+          "#DC754E",
+          "#B75367"
+        ],
+        "dark": [
+          "#F1AD83",
+          "#F29CA7"
+        ]
+      }
+    },
+    {
+      "id": "natural-green",
+      "name": "自然绿",
+      "gradientThree": { "light": ["#758D43", "#398564", "#337B91"], "dark": ["#BDCF87", "#88C7A6", "#8BC6D7"] },
+      "type": "general",
+      "userPreference": "candidate",
+      "light": {
+        "ink": "#344D42",
+        "body": "#398564",
+        "support": "#A9D5BC",
+        "companion": "#BD8A45",
+        "accent": "#CBA447",
+        "highlight": "#EAF5EE"
+      },
+      "dark": {
+        "ink": "#DEECE3",
+        "body": "#88C7A6",
+        "support": "#BCDCC9",
+        "companion": "#DEB879",
+        "accent": "#E8CD94",
+        "highlight": "#EFF8F1"
+      },
+      "gradient": {
+        "light": [
+          "#398564",
+          "#337B91"
+        ],
+        "dark": [
+          "#88C7A6",
+          "#8BC6D7"
+        ]
+      }
+    },
+    {
+      "id": "soft-violet",
+      "name": "柔和紫",
+      "gradientThree": { "light": ["#626BC5", "#9B5DBE", "#C05293"], "dark": ["#A1AFEA", "#CAA0EB", "#E5A1CB"] },
+      "type": "general",
+      "userPreference": "candidate",
+      "light": {
+        "ink": "#463D60",
+        "body": "#8069C7",
+        "support": "#D4C8EE",
+        "companion": "#BE874D",
+        "accent": "#CCAA4A",
+        "highlight": "#F2ECFB"
+      },
+      "dark": {
+        "ink": "#E6DEF4",
+        "body": "#B4A1E5",
+        "support": "#DDD2F2",
+        "companion": "#DEB889",
+        "accent": "#E8CE8D",
+        "highlight": "#F7F2FD"
+      },
+      "gradient": {
+        "light": [
+          "#8069C7",
+          "#AA5798"
+        ],
+        "dark": [
+          "#B4A1E5",
+          "#DDA3CF"
+        ]
+      }
+    },
+    {
+      "id": "coral-rose",
+      "name": "珊瑚暖红",
+      "gradientThree": { "light": ["#CD8646", "#D96570", "#AB598D"], "dark": ["#E8BC86", "#ED9FA7", "#DCA3C7"] },
+      "type": "general",
+      "userPreference": "candidate",
+      "light": {
+        "ink": "#594049",
+        "body": "#D96570",
+        "support": "#F0BDC3",
+        "companion": "#4D89AF",
+        "accent": "#D2A45B",
+        "highlight": "#FDEDEF"
+      },
+      "dark": {
+        "ink": "#F0DFE3",
+        "body": "#ED9FA7",
+        "support": "#F3CDD1",
+        "companion": "#90BED9",
+        "accent": "#EAC994",
+        "highlight": "#FFF2F3"
+      },
+      "gradient": {
+        "light": [
+          "#D96570",
+          "#AB598D"
+        ],
+        "dark": [
+          "#ED9FA7",
+          "#DCA3C7"
+        ]
+      }
+    },
+    {
+      "id": "glass-cool",
+      "name": "冷色玻璃",
+      "type": "material",
+      "userPreference": "style-specific",
+      "light": {
+        "ink": "#4A6A91",
+        "body": "#BDD7EE",
+        "support": "#DCE9F6",
+        "companion": "#879ACB",
+        "accent": "#6689B2",
+        "highlight": "#FFFFFF"
+      },
+      "dark": {
+        "ink": "#ACCDEC",
+        "body": "#7FA9CF",
+        "support": "#BED7EE",
+        "companion": "#ACB5E5",
+        "accent": "#91B8DB",
+        "highlight": "#F1F8FF"
+      }
+    },
+    {
+      "id": "neon-cyan",
+      "name": "清晰青色灯管",
+      "type": "effect",
+      "userPreference": "style-specific-not-global-default",
+      "light": {
+        "ink": "#1689C5",
+        "body": "#1689C5",
+        "support": "#168FFF",
+        "companion": "#168FFF",
+        "accent": "#168FFF",
+        "highlight": "#90E7FF"
+      },
+      "dark": {
+        "ink": "#29B8F2",
+        "body": "#29B8F2",
+        "support": "#348AFF",
+        "companion": "#348AFF",
+        "accent": "#348AFF",
+        "highlight": "#A0EEFF"
+      }
+    },
+    {
+      "id": "soft-lavender",
+      "name": "柔光薰衣草",
+      "type": "effect",
+      "userPreference": "style-specific",
+      "light": {
+        "ink": "#785BB7",
+        "body": "#8465C3",
+        "support": "#BCA8DC",
+        "companion": "#8465C3",
+        "accent": "#8465C3",
+        "highlight": "#EAE0F7"
+      },
+      "dark": {
+        "ink": "#DDCEF3",
+        "body": "#BFADF0",
+        "support": "#D9CDF6",
+        "companion": "#BFADF0",
+        "accent": "#BFADF0",
+        "highlight": "#F1E9FE"
+      }
+    },
+    {
+      "id": "neon-blue-magenta",
+      "name": "蓝洋红双色霓虹",
+      "type": "effect",
+      "userPreference": "style-specific",
+      "light": {
+        "ink": "#4B64C5",
+        "body": "#3E76D6",
+        "support": "#A84CAF",
+        "companion": "#A84CAF",
+        "accent": "#A84CAF",
+        "highlight": "#C8C9EF"
+      },
+      "dark": {
+        "ink": "#B9C9FF",
+        "body": "#77AAFF",
+        "support": "#E19BEA",
+        "companion": "#E19BEA",
+        "accent": "#E19BEA",
+        "highlight": "#EFDBFF"
+      },
+      "gradient": {
+        "light": [
+          "#3E76D6",
+          "#A84CAF"
+        ],
+        "dark": [
+          "#77AAFF",
+          "#E19BEA"
+        ]
+      }
+    }
+  ],
+  "grammars": {
+    "neutral-one-paint": {
+      "roles": [
+        "ink"
+      ],
+      "rule": "一种前景色；所有主体、状态和重试共用；仅用户明确彩色要求才允许改为一个彩色前景。",
+      "objectColor": "shape-only"
+    },
+    "doodle-ink": {
+      "roles": [
+        "ink",
+        "accent"
+      ],
+      "rule": "主体仅用中性深色自由手绘线；最多两处短小暖色笔触作为风格节奏，不描摹物品结构、不改变主体色。手动指定单色时不另加暖色。"
+    },
+    "duotone-outline": {
+      "roles": [
+        "ink",
+        "support"
+      ],
+      "rule": "恰好两种实际颜色；从选定主体色相派生较深边界与较浅填充（不能盲用配方 ink 引入另一色相），透明开口保留。"
+    },
+    "duotone-flat": {
+      "roles": [
+        "body",
+        "support"
+      ],
+      "rule": "恰好两种不透明颜色；body 为较浅的主要体块，support 为较深的真实功能部件或局部结构。遵循参考图的浅大面、深局部关系，不把全部体块做成同等深色，也不凭空增加分面。"
+    },
+    "contrast-flat": {
+      "roles": [
+        "body",
+        "companion"
+      ],
+      "rule": "恰好两个协调色相；一主一次，真实固有色优先，不切割物体凑双色。"
+    },
+    "alpha-two": {
+      "roles": [
+        "body"
+      ],
+      "opacityLevels": [
+        0.35,
+        1
+      ],
+      "rule": "一个基础色，两个透明度层级；在真实背景合成后检查识别部分。"
+    },
+    "alpha-three": {
+      "roles": [
+        "body"
+      ],
+      "opacityLevels": [
+        0.25,
+        0.55,
+        1
+      ],
+      "rule": "一个基础色，最多三个结构强调层级；不造部件凑层数。"
+    },
+    "outline-alpha": {
+      "roles": [
+        "body"
+      ],
+      "rule": "同一基础色的实线与局部透明填充；填充不是第二个独立色相。"
+    },
+    "object-flat": {
+      "roles": [
+        "body",
+        "support",
+        "accent"
+      ],
+      "rule": "按主体/材料/功能分配平涂色；可扩展真实语义颜色，不受配方角色总数限制。"
+    },
+    "pastel-one-hue": {
+      "roles": [
+        "body",
+        "ink"
+      ],
+      "rule": "一个彩色色相的浅柔主体与适度加深边界；由候选配方派生同色系，不直接取其中异色角色。"
+    },
+    "pastel-two-hue": {
+      "roles": [
+        "body",
+        "companion"
+      ],
+      "rule": "两个柔和彩色色相；需要边界时仅派生同色系较深层级，不再引入第三色相。"
+    },
+    "pastel-tile": {
+      "roles": [
+        "ink",
+        "support"
+      ],
+      "rule": "仅此类允许整体柔彩底板；底板 support 为衬底，主体 ink 或语义配色独立解析，分别检查可见性。"
+    },
+    "gradient-two": {
+      "roles": [
+        "gradientStart",
+        "gradientEnd"
+      ],
+      "stops": [
+        0,
+        1
+      ],
+      "rule": "两个预先配好的端点；全图共享方向和坐标范围，不能逐部件重启渐变。"
+    },
+    "gradient-radial": {
+      "roles": [
+        "gradientStart",
+        "gradientEnd"
+      ],
+      "stops": [
+        0,
+        1
+      ],
+      "rule": "同一色系的较亮中心和较深外围，亮度跨度受控。"
+    },
+    "gradient-three": {
+      "roles": [
+        "gradientStart",
+        "gradientMid",
+        "gradientEnd"
+      ],
+      "stops": [
+        0,
+        0.5,
+        1
+      ],
+      "rule": "使用保存的完整三色渐变配方；中间色是独立设计的色相节点，不是两端的数学平均。保持顺序和连续过渡，不拆成色带或增加几何分面。"
+    },
+    "material-volume": {
+      "roles": [
+        "body",
+        "shade",
+        "highlight"
+      ],
+      "rule": "先按材料/物体确定基色，再派生受光、背光；多个部件共享光照方向。"
+    },
+    "material-glass": {
+      "roles": [
+        "tint",
+        "rim",
+        "highlight"
+      ],
+      "rule": "透明主体加可读边缘；在实际背景合成后检查，不靠加不透明白底解决。"
+    },
+    "colored-hand": {
+      "roles": [
+        "ink",
+        "body",
+        "support",
+        "accent"
+      ],
+      "rule": "统一手绘线色与真实语义填色；边界/填充共享几何，不允许错版溢色。"
+    },
+    "colored-pixel": {
+      "roles": [
+        "body",
+        "support",
+        "accent",
+        "ink"
+      ],
+      "rule": "深色像素边线围住真实部件。柔彩色块数量由可见语义部件或真实结构分区决定；单一连续材质可只用一种主体柔彩，不得为消费色槽把它斜切成多色。第三色只在有真实小部件时点缀。边线负责对比，柔彩填充不按独立文字对比度强行变深。"
+    },
+    "neon-single": {
+      "roles": [
+        "body"
+      ],
+      "rule": "一个蓝青色系，分为照明角色而非物品配色：body 是承载轮廓对比度的细窄管壁，core 是明亮冰青灯芯，halo 是外围蓝青光晕。三层必须完全共用几何与中心线，不新增同心圈或物体部件。只有 body 承担浅底边界对比度，core/halo 不按普通单色图标统一压暗。不得把三者设成同一个深青色，也不添加纯白灯芯、渐变或偏移阴影。旧快照缺少 core 时复用原有 body/halo，不在重试时重选配色。"
+    },
+    "glow-single": {
+      "roles": [
+        "body",
+        "halo"
+      ],
+      "rule": "一种薰衣草色系基色，低透明同色光晕；主体清晰，光晕不能代替轮廓。"
+    },
+    "neon-dual": {
+      "roles": [
+        "gradientStart",
+        "gradientEnd"
+      ],
+      "stops": [
+        0,
+        1
+      ],
+      "rule": "蓝色至洋红色的连贯描边渐变；后方保留同方向、同几何的克制渐变光晕，上层核心清晰。不改成普通灰黑线或无光晕的普通渐变线。"
+    }
+  },
+  "styles": [
+    {
+      "id": "thin",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "light",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "regular",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "bold-outline",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "broken-outline",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "pure-solid",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "cutout",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "state-pair",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "soft-rounded",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "fully-rounded",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "rounded-fill",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "sharp",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "angular",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "grid-based",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "sketch",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "doodle",
+      "grammar": "doodle-ink",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "pixel-outline",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "pixel-solid",
+      "grammar": "neutral-one-paint",
+      "recipes": [
+        "neutral-ink"
+      ],
+      "objectPolicy": "monochrome-projection",
+      "notes": "默认中性前景；形状承担物品辨识。State Pair 的两态同色，不能以变色掩盖几何差异。"
+    },
+    {
+      "id": "outline-duotone",
+      "grammar": "duotone-outline",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "hue-family-with-two-paints",
+      "notes": "深线浅面同色系；浅面可以较轻，但外轮廓和关键内线必须可读。"
+    },
+    {
+      "id": "filled-duotone",
+      "grammar": "duotone-flat",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "hue-family-with-two-paints",
+      "notes": "浅色主体搭配深色功能结构，对齐已确认参考图的面积层级；保持足够彩度和清晰轮廓，不靠添加描边补救。"
+    },
+    {
+      "id": "two-color",
+      "grammar": "contrast-flat",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-within-two-hues",
+      "notes": "不同于同色深浅；天然双色物品优先原本色系，其余选择完整主/陪衬组合。"
+    },
+    {
+      "id": "two-level",
+      "grammar": "alpha-two",
+      "recipes": [
+        "neutral-ink",
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "single-base-hue",
+      "notes": "优先中性两级，也可选一个批次强调色；不把透明层误识别为可自由择色的新部件。"
+    },
+    {
+      "id": "three-level",
+      "grammar": "alpha-three",
+      "recipes": [
+        "neutral-ink",
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "single-base-hue",
+      "notes": "按真实结构分配层级；低透明区域不能独自承担必要边界。"
+    },
+    {
+      "id": "outline-fill",
+      "grammar": "outline-alpha",
+      "recipes": [
+        "neutral-ink",
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "single-base-hue",
+      "notes": "同一基础色，保留明显透明内部，不能变成全填充双色。"
+    },
+    {
+      "id": "semantic",
+      "grammar": "object-flat",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "物品、材料、传统动作语义优先；不是默认四种品牌色。"
+    },
+    {
+      "id": "palette",
+      "grammar": "object-flat",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "统一的是跨图标角色、材料色和鲜艳程度；允许不同物体有不同固有色。"
+    },
+    {
+      "id": "illustrative",
+      "grammar": "object-flat",
+      "renderingRule": "插画多彩使用纯色平涂与克制结构立体感，不使用光效。按实际材料保留固有基色，必要侧面、凹入面、后层可派生同色系较深纯色；每个区域内部颜色均匀、不透明。通过前后遮挡、连接根部和连贯弧形的结构边界表达厚度，主体正面保持宽大清楚；平涂不等于把所有部件合成同色剪影。语义 partColors 定义材料基色，允许结构配色派生，但不生成亮面/中间调/暗面光照色带。不添加渐变、高光、光晕、发光、模糊、投影或固定光向。重复圆润部件使用一致的前后层色彩角色与真实遮挡保持可区分，不随机逐颗换色。不要使用无关批次色、不任意对半切色，也不要为凑层次增加不存在的部件。用户明确锁定的精确色值仍优先。基础 object-flat 角色与历史已保存配色保持兼容。",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "圆润明快的纯色卡通插画；用前后遮挡、必要的同色系深色侧面和独立分层色块表达平面结构立体感，不使用渐变、光照、高光、发光或投影。"
+    },
+    {
+      "id": "mono-pastel",
+      "grammar": "pastel-one-hue",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "single-chromatic-hue",
+      "notes": "只保留一个彩色色相；不是所有柔彩默认紫色，也不是中性灰。"
+    },
+    {
+      "id": "soft-two-tone",
+      "grammar": "pastel-two-hue",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-within-two-hues",
+      "notes": "两种柔和彩色有温差但不争抢；用明暗承担边界而非添加黑色粗框。"
+    },
+    {
+      "id": "background-tile",
+      "grammar": "pastel-tile",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "subject-identity-with-backing",
+      "notes": "柔彩底板不是每种风格通用背景；如主体需真实颜色，可以使用语义配色。"
+    },
+    {
+      "id": "gradient-outline",
+      "grammar": "gradient-two",
+      "recipes": [
+        "clear-blue",
+        "soft-violet"
+      ],
+      "objectPolicy": "cool-hue-style",
+      "notes": "继承现有冷色渐变描边契约；纯线风格，不能使用橙色实面或浅色中段。"
+    },
+    {
+      "id": "gradient-fill",
+      "grammar": "gradient-two",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "coherent-hue-ramp",
+      "notes": "一般两端色；对象需要强固有色时从其色系派生渐变，不添加部件只为展示渐变。"
+    },
+    {
+      "id": "radial",
+      "grammar": "gradient-radial",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "coherent-hue-ramp",
+      "notes": "由选定基色生成同色系中心与边缘，非直接照抄任意两色线性渐变。"
+    },
+    {
+      "id": "multi-stop",
+      "grammar": "gradient-three",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "coherent-hue-ramp",
+      "notes": "基于完整有序色带选三色，不随机挑三种品牌色。"
+    },
+    {
+      "id": "clay",
+      "grammar": "material-volume",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "宽而柔的明暗，低高光强度；不是所有物体涂奶油色。"
+    },
+    {
+      "id": "plastic",
+      "grammar": "material-volume",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "更明确的局部反光，主体保持真实颜色；白高光不计为新的物品颜色。"
+    },
+    {
+      "id": "extruded",
+      "grammar": "material-volume",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "前面、连接侧面同色系明暗，不把整个偏移副本当深色背面。"
+    },
+    {
+      "id": "isometric",
+      "grammar": "material-volume",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "不同朝向表面的明暗由同一光照决定，不能逐面随机换色。"
+    },
+    {
+      "id": "frosted",
+      "grammar": "material-glass",
+      "recipes": [
+        "glass-cool"
+      ],
+      "objectPolicy": "glass-tint-controls-material",
+      "notes": "乳透面、扩散明暗和清晰边缘；不以灰雾覆盖主体。"
+    },
+    {
+      "id": "clear",
+      "grammar": "material-glass",
+      "recipes": [
+        "glass-cool"
+      ],
+      "objectPolicy": "glass-tint-controls-material",
+      "notes": "面接近透明，边缘承担形状；避免不透明白面冒充玻璃。"
+    },
+    {
+      "id": "tinted",
+      "grammar": "material-glass",
+      "recipes": [
+        "glass-cool"
+      ],
+      "objectPolicy": "glass-tint-controls-material",
+      "notes": "蓝/薰衣草染色玻璃，不能被通用蓝灰中性规则压成纯色。"
+    },
+    {
+      "id": "colored-doodle",
+      "grammar": "colored-hand",
+      "recipes": [
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "统一线色后按真实闭合区域配色；不使用阴影和渐变制造丰富度。"
+    },
+    {
+      "id": "pixel-color",
+      "grammar": "colored-pixel",
+      "recipes": [
+        "pixel-sorbet",
+        "clear-blue",
+        "warm-orange",
+        "natural-green",
+        "soft-violet",
+        "coral-rose"
+      ],
+      "objectPolicy": "preserve-characteristic-colors",
+      "notes": "色块应帮助识别真实部件，颜色数量由必要结构决定。"
+    },
+    {
+      "id": "neon-tube",
+      "grammar": "neon-single",
+      "recipes": [
+        "neon-cyan"
+      ],
+      "objectPolicy": "style-specific-cyan",
+      "notes": "青色是此风格的专用选择，不是智能配色全局默认。"
+    },
+    {
+      "id": "soft-glow",
+      "grammar": "glow-single",
+      "recipes": [
+        "soft-lavender"
+      ],
+      "objectPolicy": "style-specific-lavender",
+      "notes": "主体色和光晕同色系；不得把彩色光晕中性化。"
+    },
+    {
+      "id": "dual-neon",
+      "grammar": "neon-dual",
+      "recipes": [
+        "neon-blue-magenta"
+      ],
+      "objectPolicy": "style-specific-dual-hue",
+      "notes": "蓝到洋红的连续两色描边与克制同色光晕，保留发光风格身份。"
+    }
+  ],
+  "generationPrompt": [
+    "Choose colors after shape and part structure. Use SELECTED_STYLE_COLOR_GRAMMAR and the saved BATCH_COLOR_PLAN; project colors are equal-weight harmony references, never mandatory paint slots. Do not copy any of their literal visible paint values, privilege primary, or average their hues. An explicit user override must be recorded.",
+    "For generic UI symbols, use the saved exact color roles consistently. A monochrome batch and both State Pair members share one foreground.",
+    "For multicolor subjects, identify each meaningful material or conventional color feature. Preserve that identity; author a new compatible shade where needed and record the partId and reason. Do not recolor every object with the batch body paint.",
+    "Distribute color by real components and visual area: a dominant body, quieter supporting parts and an optional small accent. Do not split a surface, invent detail or add colors merely to fill all roles.",
+    "Respect the style's permitted hues, flat/gradient/opacity/material treatment. Check important edges against TARGET_SURFACE; highlights and mask paints have different roles.",
+    "Reuse the saved subject color plan on retry; never reselect palette or change the corresponding state's colors. Return the part color assignments in the existing designCard along with the SVG, without an extra model call.",
+    "Manual color mode bypasses these smart choices. A user-specified exact color override is recorded explicitly, not silently treated as a project-color suggestion."
+  ],
+  "acceptance": {
+    "registry": "Every existing style must have exactly one mapping and valid recipe/grammar references.",
+    "visual": "Prototype palette review, generated object diversity, actual 16/24/48px light/dark renders, batch/state/retry continuity. Not satisfied by config tests.",
+    "activation": "Integrated into the current generation pipeline after user authorization; full generated visual review remains pending.",
+    "validation": "node scripts/check-smart-color-selection-spec.cjs verifies shared configuration, runtime wiring and representative opaque seed contrast. Runtime tests are separate; neither proves generated SVG visual quality."
+  },
+  "subjectIdentity": {
+    "categories": [
+      "inherent-color",
+      "material-color",
+      "conventional-action-or-status",
+      "flexible-product-color",
+      "abstract-ui-symbol"
+    ],
+    "rule": "Resolve colors for meaningful parts, not a whitelist of object names. Apply only color distinctions permitted by the selected style.",
+    "conflict": "Color-limited styles preserve the most informative distinctions and use shape/negative space for the rest. Never silently add hues beyond the style contract.",
+    "status": "Use red/yellow/green only for an actual error/warning/success meaning or explicit object color, not an arbitrary accent on every UI symbol. Shape must also express the status."
+  },
+  "derivationRules": {
+    "roleSeeds": "Recipe values are seeds. Ink/support/companion are not all automatically used; a style-specific role resolver produces the final plan once.",
+    "sameHue": "Duotone and mono-pastel derive all visible tonal roles from the selected body hue. Do not blindly use recipe.ink if it introduces another hue family.",
+    "twoHues": "Contrast-flat uses body/companion or two identity-bearing subject hues; exactly two paints. Pastel-two-hue may derive tonal boundaries from those same two hues.",
+    "glass": "Derive tint from glass body, readable rim from glass ink and restrained highlight. Alpha and rim definition differ by the selected glass substyle.",
+    "radial": "Derive center/edge from one body hue rather than copy a two-hue linear ramp.",
+    "threeStops": "Choose an ordered intermediate hue between the approved endpoints; render the actual SVG gradient because endpoint contrast alone does not prove the interior.",
+    "semanticExtension": "Additional colors may only map to real subject/material/status parts in styles permitting multiple colors. Record them before the final subject plan is frozen.",
+    "paintExclusionScope": "Exclude literal project hex values in visible paint tokens, including white highlights unless explicitly overridden. Structural mask black/white, alpha compositing and interpolated gradient pixels are not discrete chosen foreground paints.",
+    "colorArea": "For flexible multicolor UI symbols, start with a 60–80% dominant area, 20–40% combined support, and optional 0–10% accent within that total. Structural truth overrides those advisory ranges; never invent geometry to meet them."
+  }
+}

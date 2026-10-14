@@ -1,0 +1,39 @@
+/* Navigation owns its palette; route wrappers must not decide its theme.
+   Repeated root specificity bridges legacy global !important selectors. */
+.root {
+  --navigation-ink: #f5f5f5;
+  --navigation-muted: #b7b7bc;
+  --navigation-surface: rgb(27 28 30 / 68%);
+  --navigation-border: rgb(255 255 255 / 13%);
+  --navigation-button-ink: #171717;
+  --canvas-glass-surface: var(--navigation-surface);
+  --canvas-glass-border: var(--navigation-border);
+  --workspace-header-border: var(--navigation-border);
+  color: var(--navigation-ink) !important;
+}
+:global(html[data-theme="light"]) .root {
+  --navigation-ink: #171717;
+  --navigation-muted: #52525b;
+  --navigation-surface: rgb(229 232 235 / 66%);
+  --navigation-border: rgb(60 64 67 / 18%);
+  --navigation-button-ink: #f5f5f5;
+}
+.root.root.root :global(.brand-wordmark),
+.root.root.root :global(.brand-wordmark > span),
+.root.root.root :global(.theme-switch),
+.root.root.root :global(.user-menu__trigger),
+.root.root.root :global(.user-menu__avatar) {
+  color: var(--navigation-ink) !important;
+}
+.root.root.root :global(.studio-nav-link),
+.root.root.root :global(.language-switch__option) {
+  color: var(--navigation-muted) !important;
+  opacity: 1;
+}
+.root.root.root :global(.studio-nav-link:hover),
+.root.root.root :global(.studio-nav-link.is-selected),
+.root.root.root :global(.language-switch__option:hover),
+.root.root.root :global(.language-switch__option[aria-pressed="true"]) {
+  color: var(--navigation-ink) !important;
+  opacity: 1;
+}

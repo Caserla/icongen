@@ -13,6 +13,11 @@ const guestOnlyPrefixes = ["/auth/sign-in", "/auth/sign-up"];
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
+  if (process.env.EASY_ICON_LOCAL_MODE === "true") {
+    const host = request.headers.get("host")?.split(":")[0];
+    if (host !== "127.0.0.1" && host !== "localhost") return NextResponse.json({ error: {code:"LOCAL_ONLY",message:"Local mode is restricted to loopback."} }, {status:403});
+    if (pathname.startsWith("/api/auth/")) return NextResponse.json({error:{code:"LOCAL_AUTH_DISABLED",message:"Local mode does not use account sign-in."}}, {status:410});
+  }
   const requestCheck = checkMutationRequest({
     pathname,
     method: request.method,
@@ -60,6 +65,10 @@ export async function proxy(request: NextRequest) {
   // API handlers perform their own authenticated authorization. Avoid a
   // second remote Supabase `getUser()` here after origin and rate-limit checks.
   if (pathname.startsWith("/api/")) return response;
+  if (process.env.EASY_ICON_LOCAL_MODE === "true") {
+    if (guestOnlyPrefixes.includes(pathname)) return NextResponse.redirect(new URL("/create", request.url));
+    return response;
+  }
   const isProtectedRoute = protectedPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

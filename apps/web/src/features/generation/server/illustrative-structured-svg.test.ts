@@ -15,21 +15,17 @@ test("preserves model-designed paints outside project slots", () => {
 });
 
 test("structured contract delegates color design while retaining safe server assembly", () => {
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /server preserves your chosen paints/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /New hues are allowed/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /Do not copy the preview subject/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /no fixed color-slot palette/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /5–8 meaningful structural parts/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /structurally complete master object/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /coherent representative equipment assembly/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /Complete designPlan before writing any path data/);
-  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /Never add a floating semantic sticker/);
+  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /explicit hex paints under the supplied runtime policy/);
+  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /no fixed color-slot list/);
+  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /Part count follows the subject/);
+  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /Copy the approved plan/);
+  assert.match(ILLUSTRATIVE_STRUCTURED_OUTPUT_PROMPT, /transparent holes/);
   assert.throws(() => renderIllustrativeStructuredSvg('{"parts":[]}', {}));
 });
 
 test("illustrative anatomy is planned before geometry without minimal-pictogram bias", () => {
-  assert.match(ILLUSTRATIVE_DESIGN_PLAN_PROMPT, /before any SVG path is drawn/);
-  assert.match(ILLUSTRATIVE_DESIGN_PLAN_PROMPT, /Do not choose the simplest possible pictogram/);
+  assert.match(ILLUSTRATIVE_DESIGN_PLAN_PROMPT, /before details/);
+  assert.match(ILLUSTRATIVE_DESIGN_PLAN_PROMPT, /No fixed feature count/);
   const plan = parseIllustrativeDesignPlan({ chosenObject: "完整潜水呼吸装备", silhouette: "以面镜为宽主体，下接呼吸阀与弯管", diagnosticFeatures: ["面罩外框", "双镜片内层", "面罩厚度面", "呼吸阀", "弯管"], assemblyRelations: ["镜片对称嵌入外框", "厚度面连接外框", "呼吸阀连接面罩", "弯管连接呼吸阀"] });
   assert.equal(plan.diagnosticFeatures.length, 5);
 });

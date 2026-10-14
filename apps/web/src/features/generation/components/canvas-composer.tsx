@@ -1,73 +1,105 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { StudioColorPicker } from "./studio-color-picker";
-import { LibraryColorPicker } from "@/features/library/library-color-picker";
+import { useTheme } from "@/components/i18n/theme-switch";
 import type { Appearance } from "@/features/library/core";
 import { Toast } from "@/components/ui/toast";
 import { previewPaletteFor } from "../preview-svg-palette";
 import type { ManualPreviewColor } from "../manual-preview-color";
 import css from "./canvas-composer.module.css";
 import type { PlanResult } from "./icon-plan-results";
-import type { ProjectTheme } from "../project-themes";
 import { ICON_GENERATION_CATEGORIES } from "../icon-generation-categories";
+import { generationErrorMessage } from "../generation-error-message";
+import type { IntentResolution } from "../generation-intent";
+import type { GenerationSnapshot } from "../generation-snapshot";
+import { IntentResolutionDialog } from "./intent-resolution-dialog";
+type GenerationDraft = { plan: PlanResult["plan"]; snapshot: GenerationSnapshot; needsResolution?: boolean };
+const COMPOSER_DRAFT_SESSION_KEY = "icongen:generation-prompt-draft:v1";
 
-export function CanvasComposer({ zh, projectId, projectName, projectDescription, categoryId, lastSubcategoryId, previewSvg, projectTheme, onManualPreviewColorChange, onPlan, onPlanning }: { zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; categoryId: string; lastSubcategoryId: string; previewSvg: string; projectTheme: ProjectTheme; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onPlan?: (result: PlanResult) => void; onPlanning?: (busy: boolean) => void }) {
+export function CanvasComposer({ zh, projectId, projectName, projectDescription, styleId, lastSubcategoryId, previewSvg, onManualPreviewColorChange, onPlan, onPlanning, onStyleResolved }: { zh: boolean; projectId?: string; projectName?: string; projectDescription?: string; styleId: string; lastSubcategoryId: string; previewSvg: string; onManualPreviewColorChange?: (value: ManualPreviewColor | null) => void; onPlan?: (result: PlanResult) => void; onPlanning?: (busy: boolean) => void; onStyleResolved?: (styleId: string) => void }) {
+  const theme = useTheme();
   const [text, setText] = useState("");
-  const [color, setColor] = useState("#3399DB");
-  const [colorAlpha, setColorAlpha] = useState(100);
-  const [automaticColor, setAutomaticColor] = useState(true);
-  const [gradientColor, setGradientColor] = useState<Appearance>({ size: 24, mode: "linear", color: "#3399DB", endColor: "#A78BFA", angle: 135 });
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    // Restore only after hydration so server and client initially render the same textarea.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    try { setText(sessionStorage.getItem(COMPOSER_DRAFT_SESSION_KEY) ?? ""); }
+    catch { /* Browser storage can be unavailable. */ }
+    setDraftRestored(true);
+  }, []);
+  useEffect(() => {
+    if (!draftRestored) return;
+    try { sessionStorage.setItem(COMPOSER_DRAFT_SESSION_KEY, text); }
+    catch { /* Keep the editable draft in React state. */ }
+  }, [draftRestored, text]);
+  const [appearance, setAppearance] = useState<Appearance>({ size: 24, mode: "solid", color: "#3399DB", endColor: "#A78BFA", angle: 135 });
   const [colorSource, setColorSource] = useState("");
-  const manualColorAvailable = categoryId !== "multicolor";
-  const previewUsesGradient = Boolean(previewPaletteFor(previewSvg, false)?.gradient);
-  const smartColor = automaticColor || !manualColorAvailable;
-  const selectedStyle = ICON_GENERATION_CATEGORIES.flatMap(category => category.children).find(style => style.id === lastSubcategoryId)?.label;
-  const toggleColorMode = () => {
-    if (!smartColor) onManualPreviewColorChange?.(null);
-    setAutomaticColor(value => !value);
-  };
-  useEffect(() => {
-    if (!manualColorAvailable) setAutomaticColor(true);
-  }, [manualColorAvailable]);
+  const previousPalette = useRef<{ src: string; color: string } | null>(null);
   useLayoutEffect(() => {
-    if (smartColor) { setColorSource(""); return; }
-    setColorSource("");
-    const colors = previewPaletteFor(previewSvg, window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const colors = previewPaletteFor(previewSvg, theme === "dark");
     if (!colors) return;
-    setColor(colors.solid);
-    setColorAlpha(colors.alpha ?? 100);
-    if (previewUsesGradient) setGradientColor(current => ({
+    const previous = previousPalette.current;
+    const styleChanged = previous?.src !== previewSvg;
+    setAppearance(current => ({
       ...current,
-      color: colors.gradient?.start ?? colors.solid,
+      color: styleChanged || current.color.toLowerCase() === previous?.color.toLowerCase()
+        ? colors.gradient?.start ?? colors.solid : current.color,
       endColor: colors.gradient?.end ?? current.endColor,
-      mode: colors.gradient?.mode ?? "linear",
+      mode: styleChanged ? colors.gradient?.mode ?? "solid" : current.mode,
+      alpha: styleChanged ? (colors.alpha ?? 100) / 100 : current.alpha,
     }));
+    previousPalette.current = { src: previewSvg, color: colors.solid };
     setColorSource(previewSvg);
-  }, [smartColor, previewSvg, previewUsesGradient]);
+  }, [previewSvg, theme]);
   useEffect(() => {
-    onManualPreviewColorChange?.(!smartColor && colorSource === previewSvg
-      ? { src: previewSvg, solid: color, alpha: colorAlpha, gradient: previewUsesGradient ? { start: gradientColor.color, end: gradientColor.endColor, mode: gradientColor.mode === "radial" ? "radial" : "linear" } : undefined }
+    onManualPreviewColorChange?.(colorSource === previewSvg
+      ? { src: previewSvg, solid: appearance.color, alpha: Math.round((appearance.alpha ?? 1) * 100), gradient: appearance.mode !== "solid" ? { start: appearance.color, end: appearance.endColor, mode: appearance.mode } : undefined }
       : null);
-  }, [smartColor, colorSource, previewSvg, color, colorAlpha, previewUsesGradient, gradientColor, onManualPreviewColorChange]);
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [fileError, setFileError] = useState(0);
-  useEffect(() => {
-    if (!file) { setPreviewUrl(""); return; }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [colorSource, previewSvg, appearance, onManualPreviewColorChange]);
   const [notice, setNotice] = useState(0);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [pending, setPending] = useState<GenerationDraft | null>(null);
+  const contextKey = projectId + ":" + lastSubcategoryId;
+  const [lastContext, setLastContext] = useState(contextKey);
+  if (lastContext !== contextKey) {
+    setLastContext(contextKey);
+    setPending(null);
+  }
+  const currentContext = useRef(contextKey);
+  const requestAbort = useRef<AbortController | null>(null);
+  useLayoutEffect(() => {
+    currentContext.current = contextKey;
+    requestAbort.current?.abort();
+    return () => requestAbort.current?.abort();
+  }, [contextKey]);
+  async function saveDraft(draft: GenerationDraft, choice?: IntentResolution) {
+    const capturedContext = currentContext.current;
+    const saved = await fetch(`/api/projects/${draft.snapshot.projectId}/svg-sets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: draft.plan, snapshot: draft.snapshot, resolution: choice }), signal: requestAbort.current?.signal });
+    const result = await saved.json();
+    if (!saved.ok) throw new Error(result.message || (zh ? "图标集保存失败，请重试。" : "Couldn't save the icon set. Please retry."));
+    if (!result.plan || !result.snapshot) throw new Error("Saved generation plan is missing");
+    if (capturedContext !== currentContext.current) return;
+    const snapshot = result.snapshot as GenerationSnapshot;
+    setText(current => current.trim() === draft.snapshot.prompt?.trim() ? "" : current);
+    onPlan?.({ id: result.id, plan: result.plan, snapshot });
+    if (!snapshot.secondaryStyleId && snapshot.styleId !== lastSubcategoryId) onStyleResolved?.(snapshot.styleId);
+  }
+  async function chooseIntent(choice: IntentResolution) {
+    if (!pending || submitting.current) return;
+    const draft = pending;
+    setPending(null); // Immediate response; save in the background.
+    submitting.current = true; setBusy(true); onPlanning?.(true);
+    requestAbort.current = new AbortController();
+    try { await saveDraft(draft, choice); }
+    catch (error) { if (!requestAbort.current.signal.aborted) { setPending(draft); setErrorMessage(generationErrorMessage(error, zh)); setNotice(Date.now()); } }
+    finally { submitting.current = false; setBusy(false); onPlanning?.(false); }
+  }
   async function submitPlan() {
-    if (submitting.current || (!text.trim() && !file)) return;
-    const styleId = previewSvg.split("/").pop()?.replace(/\.svg$/, "") ?? "";
-    if (!previewSvg.includes("/style-subcategories/") || !styleId) {
-      const message = zh ? "请先选择图标子风格。" : "Select an icon substyle first.";
+    if (submitting.current || !text.trim()) return;
+    if (!ICON_GENERATION_CATEGORIES.some(category => category.children.some(style => style.id === styleId))) {
+      const message = zh ? "请先选择图标风格。" : "Select an icon style first.";
       setErrorMessage(message);
       setNotice(Date.now());
       return;
@@ -78,51 +110,35 @@ export function CanvasComposer({ zh, projectId, projectName, projectDescription,
       setNotice(Date.now());
       return;
     }
-    submitting.current = true; setBusy(true); setErrorMessage(""); onPlanning?.(true);
+    submitting.current = true; setBusy(true); setNotice(0); setErrorMessage(""); onPlanning?.(true);
+    const capturedContext = contextKey;
+    const controller = new AbortController(); requestAbort.current = controller;
     try {
       const body = new FormData();
-      const smartDefault = previewUsesGradient
-        ? { mode: "linear", color: projectTheme.primary, endColor: projectTheme.secondary, angle: 135, alpha: 100 }
-        : { mode: "solid", color: projectTheme.primary, alpha: 100 };
-      body.set("input", JSON.stringify({ prompt: text, projectId, projectName, projectDescription, styleId, locale: zh ? "zh" : "en", colors: { mode: smartColor ? "smart" : "manual", locked: true, palette: projectTheme, default: smartColor ? smartDefault : previewUsesGradient ? gradientColor : { mode: "solid", color, alpha: colorAlpha }, selected: null } }));
-      if (file) {
-        let reference = file;
-        if (file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) {
-          const url = URL.createObjectURL(file);
-          try {
-            const image = new Image(); image.src = url; await image.decode();
-            const canvas = document.createElement("canvas"); canvas.width = 1024; canvas.height = Math.max(1, Math.round(1024 * image.naturalHeight / Math.max(1, image.naturalWidth)));
-            if (canvas.height > 4096) throw new Error("参考图比例过大，请使用 PNG 或 WebP。");
-            canvas.getContext("2d")!.drawImage(image, 0, 0, canvas.width, canvas.height);
-            const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("参考图转换失败")), "image/png"));
-            reference = new File([blob], "reference.png", { type: "image/png" });
-          } finally { URL.revokeObjectURL(url); }
-        }
-        body.set("reference", reference);
-      }
-      setText("");
+      const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+      const surface = getComputedStyle(input.current!).getPropertyValue("--canvas-surface").trim();
+      body.set("input", JSON.stringify({ prompt: text, projectId, projectName, projectDescription, styleId, styleFamily: true, theme, targetSurface: /^#[0-9a-f]{6}$/i.test(surface) ? surface : undefined, locale: zh ? "zh" : "en", colors: { mode: "manual", locked: true, default: appearance.mode === "solid" ? { mode: "solid", color: appearance.color, alpha: Math.round((appearance.alpha ?? 1) * 100) } : appearance } }));
       let response: Response | null = null;
-      let payload: { error?: { message?: string } | string; message?: string; plan?: PlanResult["plan"]; snapshot?: PlanResult["snapshot"] } = {};
+      let payload: { error?: { message?: string } | string; message?: string } & Partial<GenerationDraft> = {};
       for (let attempt = 0; attempt < 2; attempt += 1) {
-        response = await fetch("/api/generation/icon-plan", { method: "POST", body, signal: AbortSignal.timeout(85_000) });
+        response = await fetch("/api/generation/icon-plan", { method: "POST", body, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(85_000)]) });
         payload = await response.json().catch(() => ({}));
         if (response.ok || (response.status !== 429 && response.status < 500)) break;
       }
       if (!response?.ok) {
         const code = typeof payload.error === "string" ? payload.error : "";
         const detail = typeof payload.error === "object" ? payload.error?.message : "";
-        throw new Error(code === "SELECT_SUBSTYLE" ? (zh ? "请先选择图标子风格。" : "Select an icon substyle first.") : detail || payload.message || (zh ? "解析失败，请重试。" : "Analysis failed. Please retry."));
+        throw new Error(code === "SELECT_STYLE" ? (zh ? "请先选择图标风格。" : "Select an icon style first.") : detail || payload.message || (zh ? "解析失败，请重试。" : "Analysis failed. Please retry."));
       }
       if (!payload.plan || !payload.snapshot) throw new Error(zh ? "解析结果不完整，请重试。" : "The analysis result was incomplete. Please retry.");
-      const saved = await fetch(`/api/projects/${projectId}/svg-sets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: payload.plan, snapshot: payload.snapshot }) });
-      const savedPayload = await saved.json();
-      if (!saved.ok) throw new Error(savedPayload.message || (zh ? "图标集保存失败，请重试。" : "Couldn't save the icon set. Please retry."));
-      onPlan?.({ id: savedPayload.id, plan: payload.plan, snapshot: payload.snapshot });
-    } catch (error) { setErrorMessage(error instanceof Error ? error.message : "解析失败，请重试。"); setNotice(Date.now()); }
+      if (capturedContext !== currentContext.current || controller.signal.aborted) return;
+      const draft: GenerationDraft = { plan: payload.plan, snapshot: payload.snapshot, needsResolution: payload.needsResolution };
+      if (draft.needsResolution) { setPending(draft); return; }
+      await saveDraft(draft);
+    } catch (error) { if (!controller.signal.aborted) { setErrorMessage(generationErrorMessage(error, zh)); setNotice(Date.now()); } }
     finally { submitting.current = false; setBusy(false); onPlanning?.(false); }
   }
   const input = useRef<HTMLTextAreaElement>(null);
-  const attachment = useRef<HTMLInputElement>(null);
   useLayoutEffect(() => {
     const el = input.current;
     if (!el) return;
@@ -154,42 +170,14 @@ export function CanvasComposer({ zh, projectId, projectName, projectDescription,
       event.preventDefault();
       void submitPlan();
     }}>
-      {file && <div className={css.attachment}>{previewUrl && <img src={previewUrl} alt="" />}<span title={file.name}>{file.name}</span><button type="button" aria-label={zh ? "移除附件" : "Remove attachment"} onClick={() => { setFile(null); if (attachment.current) attachment.current.value = ""; }}>×</button></div>}
       <textarea ref={input} value={text} rows={1} aria-label={zh ? "图标描述" : "Icon description"} placeholder={zh ? "您想更改或创建什么内容？" : "What would you like to change or create?"} onChange={event => setText(event.target.value)} />
       <div className={css.actions}>
-        <input ref={attachment} type="file" accept=".png,.jpg,.jpeg,.svg,.webp,image/png,image/jpeg,image/svg+xml,image/webp" hidden onChange={event => {
-          const selected = event.target.files?.[0];
-          if (!selected) return;
-          if (!/\.(png|jpe?g|svg|webp)$/i.test(selected.name) || (selected.type && !["image/png", "image/jpeg", "image/svg+xml", "image/webp"].includes(selected.type))) {
-            event.target.value = "";
-            setFileError(Date.now());
-            return;
-          }
-          setFileError(0);
-          setFile(selected);
-        }} />
-        <div className={css.leftActions}>
-          <button className={css.add} type="button" aria-label={zh ? "添加参考图片" : "Add reference image"} onClick={() => attachment.current?.click()}><svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /></svg></button>
-          {selectedStyle ? <span className={css.selectedStyle} data-tooltip={zh ? "当前生成风格" : "Current generation style"}><span>{zh ? "风格" : "Style"}</span><strong>{zh ? selectedStyle.zh : selectedStyle.en}</strong></span> : null}
-        </div>
         <div className={css.right}>
-          <div className={css.colorSlot}>
-            {!smartColor && (previewUsesGradient
-              ? <div className={`${css.color} ${css.gradientColor}`}><LibraryColorPicker gradientOnly portal value={gradientColor} onChange={setGradientColor} zh={zh} /></div>
-              : <div className={css.color} onClick={event => {
-                if ((event.target as Element).closest("button")) return;
-                event.currentTarget.querySelector<HTMLButtonElement>("button")?.click();
-              }}><StudioColorPicker value={color} onChange={setColor} alpha={colorAlpha} onAlphaChange={setColorAlpha} label={zh ? "选择颜色" : "Choose color"} locale={zh ? "zh" : "en"} /><svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg></div>)}
-          </div>
-          <div className={css.generationMode}>
-            <span className={css.modeState}>{smartColor ? (zh ? "智能配色" : "Smart colors") : (zh ? "手动配色" : "Manual colors")}</span>
-            <button className={css.modeSwitch} type="button" role="switch" aria-checked={smartColor} aria-label={zh ? "智能配色" : "Smart colors"} title={!manualColorAvailable ? (zh ? "多色风格仅支持智能配色" : "Multicolor styles use smart colors only") : undefined} disabled={!manualColorAvailable} onClick={toggleColorMode}><span className={css.modeThumb} /></button>
-          </div>
-          <button className={css.send} type="submit" disabled={busy || (!text.trim() && !file)} aria-label={busy ? (zh ? "正在分析需求" : "Analyzing request") : (zh ? "发送" : "Send")}><svg viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6" /></svg></button>
+          <button className={css.send} type="submit" disabled={busy || !text.trim()} aria-label={busy ? (zh ? "正在分析需求" : "Analyzing request") : (zh ? "发送" : "Send")}><svg viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6" /></svg></button>
         </div>
       </div>
     </form></div>
-    {notice > 0 && <Toast key={notice} variant="error" message={errorMessage} />}
-    {fileError > 0 && <Toast key={fileError} variant="error" message={zh ? "仅支持 PNG、JPG/JPEG、SVG、WebP 格式图片。" : "Only PNG, JPG/JPEG, SVG and WebP images are supported."} />}
+    {pending?.snapshot.designBrief && <IntentResolutionDialog brief={pending.snapshot.designBrief} zh={zh} onChoose={choice => { void chooseIntent(choice); }} onClose={() => { setPending(null); requestAnimationFrame(() => input.current?.focus()); }} />}
+    {notice > 0 && errorMessage.trim() && <Toast key={notice} variant="error" message={errorMessage} />}
   </>;
 }

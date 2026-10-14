@@ -1,5 +1,5 @@
-import { DesignLanding } from "@/components/marketing/design-landing";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return <DesignLanding />;
+  redirect("/create");
 }

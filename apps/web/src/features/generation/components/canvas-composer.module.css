@@ -43,17 +43,11 @@
 }
 .composer textarea::placeholder { color: var(--control-muted); opacity: 1; }
 .actions, .right { display: flex; align-items: center; }
-.actions { justify-content: space-between; margin-top: 8px; }
-.leftActions { display: flex; min-width: 0; align-items: center; gap: 8px; }
-.selectedStyle { position: relative; display: flex; min-width: 0; max-width: 180px; height: 30px; box-sizing: border-box; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); color: var(--control-muted); font-size: 11px; white-space: nowrap; cursor: default; user-select: none; }
-.selectedStyle strong { overflow: hidden; color: var(--control-ink); font-size: 12px; font-weight: 600; text-overflow: ellipsis; }
-.selectedStyle::after { position: absolute; left: 50%; bottom: calc(100% + 8px); z-index: 12; padding: 7px 10px; border: 1px solid var(--control-border); border-radius: 8px; background: var(--control-surface); color: var(--control-ink); box-shadow: 0 5px 16px #0005; content: attr(data-tooltip); font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, 4px); transition: opacity 120ms ease, transform 120ms ease; }
-.selectedStyle:hover::after { opacity: 1; transform: translate(-50%, 0); }
+.actions { justify-content: flex-end; margin-top: 8px; }
 .right { gap: 12px; }
 .composer button { display: grid; place-items: center; padding: 0; border: 0; color: var(--control-ink); cursor: pointer; }
-.composer .add, .composer .send { width: 36px; height: 36px; border-radius: 50%; background: transparent; }
+.composer .send { width: 36px; height: 36px; border-radius: 50%; background: transparent; }
 .composer svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.composer .add:hover { background: var(--control-hover); }
 .composer .send { background: var(--control-selected); color: var(--control-selected-ink); }
 .composer .send:disabled { background: var(--control-hover); color: var(--control-muted); opacity: .45; cursor: default; }
 .generationMode { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; color: var(--control-ink); font-size: 13px; font-weight: 500; white-space: nowrap; }
@@ -67,17 +61,10 @@
 .composer .modeSwitch:disabled { cursor: not-allowed; opacity: .6; }
 .composer .modeSwitch:disabled:hover { border-color: var(--control-selected); }
 @media (prefers-reduced-motion: reduce) { .composer .modeSwitch, .modeThumb { transition: none; } }
-.color { display: flex; align-items: center; gap: 8px; padding: 5px 9px 5px 5px; border-radius: 999px; background: var(--control-hover); cursor: pointer; }
-.color :global(.studio-color-swatch) { width: 24px; height: 24px; border-radius: 50%; border: 0; }
-.gradientColor > :first-child { width: 46px; }
-.gradientColor :global(button[aria-expanded]) { display: flex; width: 46px; height: 24px; align-items: center; justify-content: space-between; gap: 6px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--control-ink); }
-.gradientColor :global(button[aria-expanded] > span:first-child) { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; }
-.gradientColor :global(button[aria-expanded] > svg) { width: 14px; height: 14px; }
-.color > svg { width: 14px; height: 14px; pointer-events: none; transition: transform 160ms ease; }
-.color:has(:global(.studio-color-swatch[aria-expanded="true"])) > svg { transform: rotate(180deg); }
-.attachment { display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin-bottom: 14px; padding: 5px 8px 5px 6px; border: 1px solid var(--control-border); border-radius: 999px; background: var(--control-hover); font-size: 13px; }
-.attachment img { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; object-fit: contain; }
-.attachment span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.attachment button { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--control-hover); }
+.color { display: flex; align-items: center; border-radius: 999px; background: var(--control-hover); }
+.color > :first-child { width: 54px; }
+.color :global(button[aria-expanded]) { display: flex; box-sizing: border-box; width: 54px; height: 34px; align-items: center; justify-content: space-between; gap: 4px; padding: 5px; border: 0; border-radius: 999px; background: transparent; color: var(--control-ink); }
+.color :global(button[aria-expanded] > span:first-child) { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; }
+.color :global(button[aria-expanded] > svg) { width: 14px; height: 14px; flex: 0 0 14px; stroke-width: 2.5; }
 .composer button:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 2px; }
 @media(max-width: 600px) { .composerDock { left: calc(50% + var(--rail-offset, 0px) / 2); width: calc(100vw - var(--rail-offset, 0px) - 24px); bottom: 68px; } .composer { padding: 12px; } }

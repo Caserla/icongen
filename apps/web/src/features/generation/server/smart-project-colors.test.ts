@@ -10,8 +10,7 @@ test("smart colors use the saved project theme as adaptive anchors", () => {
   assert.equal(result.adaptedPalette, undefined);
   assert.equal(result.locked, false);
   assert.equal(result.paletteMode, "adaptive-project-theme");
-  assert.equal(result.default.color, theme.primary);
-  assert.equal(result.default.endColor, theme.secondary);
+  assert.equal(result.default, undefined);
 });
 
 test("illustrative palette builds a stable new harmony without copying raw hex", () => {
@@ -29,8 +28,8 @@ test("manual colors are not overwritten", () => {
 test("guidance names all four project color roles", () => {
   const guidance = projectPaletteGuidance({ mode: "smart", palette: theme }) ?? "";
   for (const color of Object.values(theme)) assert.match(guidance, new RegExp(color));
-  assert.match(guidance, /reference anchors, not mandatory literal paint values/);
-  assert.match(guidance, /New hues outside the project palette are explicitly allowed/);
+  assert.match(guidance, /excluded output paints/);
+  assert.match(guidance, /outside ALL four/);
 });
 
 test("smart policy adapts while manual policy locks exact values", () => {

@@ -5,9 +5,6 @@ import path from "node:path";
 
 const approvedAdminConsumers = new Set([
   "src/app/api/admin/audit/query/route.ts",
-  "src/app/api/admin/cd-keys/batches/[batchId]/disable/route.ts",
-  "src/app/api/admin/cd-keys/batches/route.ts",
-  "src/app/api/admin/cd-keys/query/route.ts",
   "src/app/api/admin/jobs/query/route.ts",
   "src/app/api/admin/overview/route.ts",
   "src/app/api/admin/users/query/route.ts",

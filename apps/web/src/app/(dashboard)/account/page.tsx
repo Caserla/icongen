@@ -1,7 +1,6 @@
 "use client";
 
 import type { AccountSummary } from "@icongen/shared";
-import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocale } from "@/components/i18n/locale-provider";
 import { PageState } from "@/components/ui/page-state";
@@ -75,16 +74,6 @@ export default function AccountPage() {
         </h1>
         <p className="mt-2 text-sm text-muted">{t("accountCopy")}</p>
       </header>
-      <section className="mt-8">
-        <Stat
-          tone="bg-brand text-white"
-          label={t("creditBalance")}
-          value={String(account.creditBalance)}
-          meta={t("oneCreditRule")}
-          action={t("topUp")}
-          history={t("creditHistory")}
-        />
-      </section>
       <section className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
         <form onSubmit={save} className="studio-panel p-6 sm:p-7">
           <h2 className="text-xl font-black tracking-[-.025em]">
@@ -135,51 +124,6 @@ export default function AccountPage() {
   );
 }
 
-function Stat({
-  tone,
-  label,
-  value,
-  meta,
-  action,
-  history,
-}: {
-  tone: string;
-  label: string;
-  value: string;
-  meta: string;
-  action: string;
-  history: string;
-}) {
-  return (
-    <article
-      className={`studio-panel flex min-h-40 flex-wrap items-end justify-between gap-5 p-6 sm:p-7 ${tone}`}
-    >
-      <div>
-        <p className="text-sm font-black uppercase tracking-[.1em] opacity-70">
-          {label}
-        </p>
-        <strong className="mt-4 block text-5xl tracking-[-.06em]">
-          {value}
-        </strong>
-        <p className="mt-2 text-sm opacity-70">{meta}</p>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <Link
-          href="/account/credits"
-          className="focus-ring text-sm font-black text-white underline decoration-2 underline-offset-4"
-        >
-          {history}
-        </Link>
-        <Link
-          href="/pricing"
-          className="studio-button studio-button--primary focus-ring inline-flex min-h-12 items-center justify-center px-6 text-base font-black"
-        >
-          {action}
-        </Link>
-      </div>
-    </article>
-  );
-}
 function Field({
   label,
   value,

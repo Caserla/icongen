@@ -24,8 +24,9 @@
 .group p { font-size: 13px; margin: 4px 0; color: var(--control-muted); }
 .groupMeta { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 0; }
 .group .summary { min-width: 0; max-width: 680px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.styleLabel { flex-shrink: 0; color: var(--control-muted); font-size: 12px; white-space: nowrap; }
-.styleLabel strong { color: var(--control-ink); font-weight: 600; }
+.metaActions { display: flex; align-items: center; flex-shrink: 0; gap: 10px; }
+.retryFailed { padding: 5px 9px; border: 1px solid var(--control-border); border-radius: 8px; background: transparent; color: var(--control-ink); cursor: pointer; font-size: 12px; font-weight: 650; transition: background 140ms ease, transform 140ms ease; }
+.retryFailed:hover { background: var(--control-hover); transform: translateY(-1px); }
 .grid { display: grid; grid-template-columns: repeat(var(--group-columns, 1), minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
 .grid article { display: flex; align-items: center; flex-direction: column; gap: 6px; min-width: 0; padding: 8px 4px; border: 1px solid var(--canvas-glass-border); border-radius: 12px; font-size: 12px; text-align: center; }
 .grid article[data-icon-item] { cursor: pointer; }
@@ -47,6 +48,8 @@
 @media (prefers-reduced-motion: reduce) { .loading { animation: none; } .group, .groupActions button, .groupActions svg, .brokenImage, .retryAction, .retryAction svg { transition-duration: 0ms; } }
 .iconButton { pointer-events: auto; border: 0; background: transparent; padding: 0; cursor: pointer; }
 .iconButton img { display: block; width: 88px; height: 88px; }
+.reviewNote { padding: 0; border: 0; background: transparent; color: var(--control-muted); font-size: 10px; line-height: 1.2; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.reviewNote:disabled { cursor: default; text-decoration: none; }
 .detail { pointer-events: auto; margin: auto; position: fixed; width: 360px; padding: 28px; border: 1px solid var(--canvas-glass-border); border-radius: 16px; background: var(--control-surface, #202124); color: var(--control-ink); }
 .detail::backdrop { background: #0006; backdrop-filter: blur(8px); }
 .large { display: block; width: 220px; height: 220px; margin: 24px auto; }
