@@ -1,5 +1,7 @@
 # esdesign · EASY ICON
 
+简体中文 | [English](README.en.md)
+
 ## 项目介绍
 
 EASY ICON 是一个本地运行的 AI 图标创作与管理工具。用文字描述你需要的图标，即可为同一主体生成六种 SVG 风格；也可以从素材库查找已有图标，预览、调整并下载，用于 App、网站或产品原型。

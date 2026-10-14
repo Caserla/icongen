@@ -1,5 +1,7 @@
 # 本地安装与使用教程
 
+简体中文 | [English](simple-local.en.md)
+
 EASY ICON 在你的电脑上运行，使用 SQLite 保存项目和图标。安装后可以生成六风格 SVG、管理收藏和回收、浏览素材库、下载 SVG / PNG / WebP。
 
 本教程使用单用户本地模式：**无需 Docker、Supabase、注册账户或验证邮箱**。生成仍需要你自己的模型接口，不是离线生图工具。
