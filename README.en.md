@@ -86,13 +86,37 @@ The application uses Next.js 16, React 19, and TypeScript. Frontend and API hand
 
 ```mermaid
 flowchart LR
-  UI[Browser workspace] --> API[Next.js API]
-  API --> DB[Local SQLite]
-  API --> MODEL[Configured model endpoint]
+  UI[Browser: canvas and icon details] --> API[Next.js API]
   UI --> LIBRARY[Bundled icon library]
+  UI --> EXPORT[Downloads and code export]
+  API --> DB[Local SQLite]
+  DB --> DATA[Projects / six SVG styles / favorites / recycle bin]
+  API --> MODEL[Configured model endpoint]
+  API -. Optional gateway .-> GATEWAY[sub2api]
+  GATEWAY --> MODEL
 ```
 
 The generation pipeline parses the request, resolves intent conflicts, plans the subject's structure, draws six styles, checks SVG safety and geometry, renders previews for model-assisted visual review, and saves results with recovery context. A technical pass is not the same as visual acceptance.
+
+Each subject generates Linear, Outline, Bold, Broken, Bulk, and Twotone variants. The canvas shows subjects in Linear by default; the detail dialog switches between all six styles.
+
+```mermaid
+flowchart TD
+  INPUT[User description and project context] --> PARSE[Parse subjects, count, and intent]
+  PARSE --> PLAN[Save task plan and settings snapshot]
+  PLAN --> SCHEDULE[Schedule generation by subject]
+  SCHEDULE --> STRUCTURE[Plan shared meaning, composition, and parts]
+  STRUCTURE --> DRAW[Draw six SVG styles]
+  DRAW --> CHECK[Safety, format, and geometry checks]
+  CHECK --> REVIEW[Render light and dark previews for model visual review]
+  REVIEW --> SAVE[Save SVGs, review status, and recovery context]
+  SAVE --> DISPLAY[Canvas / six-style details / export]
+  CHECK -. Failed check .-> RETRY[Bounded retry: retain successful results]
+  REVIEW -. Rework required .-> RETRY
+  RETRY --> DRAW
+```
+
+A failed style does not require discarding the subject's successful variants. Recovery and retries use saved context. Unavailable or pending visual review must not be treated as visual acceptance.
 
 The model endpoint may be a compatible provider or an optional sub2api gateway. sub2api is installed and configured separately; it is not started by this project. Sharp and PathKit/WASM are npm dependencies for rendering and outline conversion. Users do not need Codex or the development SVG skill installed.
 

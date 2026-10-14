@@ -85,6 +85,46 @@ npm run dev:local
 - [本地运行与数据边界](docs/guides/local-self-use.md)
 - [研发准则](docs/project/development-principles.md)
 
+## 系统架构
+
+前端与接口运行在同一个 Next.js 应用中。本地单用户模式使用 SQLite 保存项目、图标与操作状态，素材库由仓库内静态文件提供。
+
+```mermaid
+flowchart LR
+  UI[浏览器：生成画布与图标详情] --> API[Next.js 接口]
+  UI --> LIB[内置素材库]
+  UI --> EXPORT[下载与代码导出]
+  API --> DB[(本地 SQLite)]
+  DB --> DATA[项目 / SVG 六风格 / 收藏 / 回收]
+  API --> MODEL[配置的模型接口]
+  API -. 可选代理 .-> GATEWAY[sub2api]
+  GATEWAY --> MODEL
+```
+
+模型接口可直接连接兼容服务，也可经单独部署的 sub2api 转发；本项目不会自动启动该代理。浏览器负责详情展示与导出，服务端负责生成、检查及数据保存。
+
+## 图标生成链路
+
+每个主体默认生成 Linear、Outline、Bold、Broken、Bulk、Twotone 六种风格。画布按主体展示，默认使用 Linear，详情弹窗可切换六风格。
+
+```mermaid
+flowchart TD
+  INPUT[用户描述与项目上下文] --> PARSE[需求解析：主体、数量与意图]
+  PARSE --> PLAN[保存任务计划与设置快照]
+  PLAN --> SCHEDULE[按主体调度生成]
+  SCHEDULE --> STRUCTURE[规划共同语义、构图与部件结构]
+  STRUCTURE --> DRAW[绘制六种风格 SVG]
+  DRAW --> CHECK[安全、格式与几何检查]
+  CHECK --> REVIEW[渲染深浅底预览并进行模型视觉复核]
+  REVIEW --> SAVE[保存 SVG、审核状态与恢复上下文]
+  SAVE --> DISPLAY[画布展示主体 / 详情切换六风格 / 导出]
+  CHECK -. 未通过 .-> RETRY[有限重试：保留已成功结果]
+  REVIEW -. 需返工 .-> RETRY
+  RETRY --> DRAW
+```
+
+单个风格失败不会要求丢弃整个主体的成功结果；恢复与重试利用已保存的上下文。技术检查通过不等于视觉通过，复核不可用或待返工时不应标记为视觉验收通过。
+
 ## 测试
 
 ```bash
