@@ -1,4 +1,5 @@
 // One-time migration of legacy neutral CSS colors to reversible theme tokens.
+/* eslint-disable @typescript-eslint/no-require-imports -- standalone CommonJS migration script */
 const fs = require('node:fs');
 const postcss = require('postcss');
 const files = ['src/app/globals.css', 'src/features/library/library.module.css'];

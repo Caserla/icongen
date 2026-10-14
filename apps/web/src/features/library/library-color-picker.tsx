@@ -9,15 +9,17 @@ import { createPortal } from 'react-dom';
 export function LibraryColorPicker({value,onChange,zh,portal=false,portalTargetRef,portalAbove=false,portalAlign='start',gradientOnly=false,solidOnly=false}:{value:Appearance;onChange:(value:Appearance)=>void;zh:boolean;portal?:boolean;portalTargetRef?:RefObject<HTMLElement|null>;portalAbove?:boolean;portalAlign?:'start'|'end';gradientOnly?:boolean;solidOnly?:boolean}) {
   const {open,setOpen,root,trigger,portalRoot,rootProps}=useSelectionPopover();
   const [position,setPosition]=useState({left:12,top:12});
+  const [portalHost,setPortalHost]=useState<HTMLElement|null>(null);
   useLayoutEffect(()=>{
     if(!open||!portal)return;
+    setPortalHost(portalTargetRef?.current??document.body);
     const update=()=>{const rect=trigger.current?.getBoundingClientRect();if(rect)setPosition({left:Math.max(12,Math.min(portalAlign==='end'?rect.right-300:rect.left,window.innerWidth-312)),top:portalAbove?rect.top-8:Math.max(12,Math.min(rect.bottom+8,window.innerHeight-430))});};
     update();window.addEventListener('resize',update);window.addEventListener('scroll',update,true);
     return()=>{window.removeEventListener('resize',update);window.removeEventListener('scroll',update,true);};
-  },[open,portal,portalAbove,portalAlign,trigger]);
+  },[open,portal,portalAbove,portalAlign,trigger,portalTargetRef]);
   return <div ref={root} className={css.libraryColorRoot} {...rootProps}>
     <button type="button" ref={trigger} className={css.libraryColorTrigger} aria-label={zh?'颜色设置':'Color settings'} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span style={{background:value.mode==='solid'?value.color:`linear-gradient(90deg,${value.color},${value.endColor})`}}/><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true" style={{transform:open?'rotate(180deg)':undefined}}><path d="m6 9 6 6 6-6"/></svg></button>
-    {open&&(portal?createPortal(<div data-library-color-popover ref={portalRoot} {...rootProps} style={{position:'fixed',...position,transform:portalAbove?'translateY(-100%)':undefined,zIndex:1000,width:300,maxWidth:'calc(100vw - 24px)',maxHeight:portalAbove?`calc(${position.top}px - 12px)`:'calc(100dvh - 24px)',overflowY:'auto'}}><ColorPanel gradientOnly={gradientOnly} solidOnly={solidOnly} inline value={value} onChange={onChange} zh={zh}/></div>,portalTargetRef?.current??document.body):<ColorPanel gradientOnly={gradientOnly} solidOnly={solidOnly} value={value} onChange={onChange} zh={zh}/>)}
+    {open&&(portal?(portalHost?createPortal(<div data-library-color-popover ref={portalRoot} {...rootProps} style={{position:'fixed',...position,transform:portalAbove?'translateY(-100%)':undefined,zIndex:1000,width:300,maxWidth:'calc(100vw - 24px)',maxHeight:portalAbove?`calc(${position.top}px - 12px)`:'calc(100dvh - 24px)',overflowY:'auto'}}><ColorPanel gradientOnly={gradientOnly} solidOnly={solidOnly} inline value={value} onChange={onChange} zh={zh}/></div>,portalHost):null):<ColorPanel gradientOnly={gradientOnly} solidOnly={solidOnly} value={value} onChange={onChange} zh={zh}/>)}
   </div>;
 }
 export function ColorPanel({value,onChange,zh,inline=false,gradientOnly=false,solidOnly=false}:{value:Appearance;onChange:(value:Appearance)=>void;zh:boolean;inline?:boolean;gradientOnly?:boolean;solidOnly?:boolean}) {

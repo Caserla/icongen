@@ -1,0 +1,11 @@
+{
+  "confirmedBy": "user",
+  "styles": {
+    "15-filled-duotone": "15-filled-duotone-normalized-v3.png",
+    "16-two-color": "16-two-color-flat-trial-v1.png",
+    "21-palette": "21-palette-flat-trial-v1.png",
+    "23-mono-pastel": "23-mono-pastel-normalized-v2.png"
+  },
+  "originalsPreserved": true,
+  "scope": "Only the four versions displayed in actual-fill-comparison.html are accepted; failed trials and other styles are not replaced."
+}

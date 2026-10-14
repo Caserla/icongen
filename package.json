@@ -32,7 +32,7 @@
     "admin:create": "node --env-file-if-exists=apps/web/.env.local scripts/create-admin-account.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.64.0",
     "js-yaml": "^4.1.1"
   }
 }

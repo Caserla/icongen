@@ -9,6 +9,10 @@ const envFile = resolve(process.cwd(),'.env.local');
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 process.env.EASY_ICON_LOCAL_MODE = 'true';
 process.env.NEXT_PUBLIC_EASY_ICON_LOCAL_MODE = 'true';
+// Local mode is never an indexable public deployment, even for a production build.
+process.env.APP_ENV = 'development';
+process.env.NEXT_PUBLIC_APP_ENV = 'development';
+process.env.SUPABASE_ENVIRONMENT = 'development';
 const child = spawn(process.execPath,[resolve(process.cwd(),'../../node_modules/next/dist/bin/next'),command,...(command === 'build' ? ['--webpack'] : ['--hostname','127.0.0.1'])],{env:process.env,stdio:'inherit'});
 for (const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>child.kill(signal));
 child.on('exit',code=>process.exit(code ?? 1));

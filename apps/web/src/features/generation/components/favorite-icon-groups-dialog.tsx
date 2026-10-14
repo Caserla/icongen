@@ -20,8 +20,13 @@ export function FavoriteIconGroupsDialog({ open, projectId, projectGroups, zh, o
     return svg && subject && name ? [{ groupId: group.id, subjectId, svg, name }] : [];
   }));
   const keys = useMemo(() => category === "groups" ? groups.map(group => group.id) : favoriteIcons.map(icon => `${icon.groupId}:${icon.subjectId}`), [category, groups, favoriteIcons]);
-  useEffect(() => { setSelected(current => new Set([...current].filter(key => keys.includes(key)))); }, [keys.join("|")]);
-  useEffect(() => { if (!open) { setSelected(new Set()); setBatchBusy(false); } }, [open]);
+  const selectionContext = JSON.stringify([open, projectId, keys]);
+  const [previousContext, setPreviousContext] = useState(selectionContext);
+  if (selectionContext !== previousContext) {
+    setPreviousContext(selectionContext);
+    setSelected(current => new Set(open ? [...current].filter(key => keys.includes(key)) : []));
+    if (!open) setBatchBusy(false);
+  }
   const changeCategory = (next: "groups" | "icons") => { setSelected(new Set()); setCategory(next); };
   const toggleSelected = (key: string) => setSelected(current => {
     const next = new Set(current);

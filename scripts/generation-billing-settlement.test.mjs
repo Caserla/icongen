@@ -25,6 +25,6 @@ test("failed variant retry uses one database transaction", async () => {
   ]);
   assert.match(sql, /create or replace function public\.retry_generation_variant_v2/);
   assert.match(sql, /where id = p_variant_id\s+for update/);
-  assert.match(route, /\.rpc\("retry_generation_variant_v2"/);
+  assert.match(route, /client\.rpc\(\s*localReservation\s*\? "retry_local_generation_variant_v2"\s*: "retry_generation_variant_v2"/);
   assert.doesNotMatch(route, /from\("generation_variants"\)\.update/);
 });

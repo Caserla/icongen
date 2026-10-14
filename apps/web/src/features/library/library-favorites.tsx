@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { findAsset } from './favorite-model';
 import css from './library.module.css';
+import { useHydrated } from '@/components/ui/use-hydrated';
 
 export function useLibraryFavorites(autoLoad = true) {
   const [ids,setIds]=useState<string[]>([]);
@@ -46,8 +47,7 @@ export function FavoriteStar({id,favorites,zh,notify}:{id:string;favorites:Libra
 }
 
 export function LibraryFavoritesPanel({favorites,zh,notify,inline=false}:{favorites:LibraryFavorites;zh:boolean;notify:(text:string)=>void;inline?:boolean}){
-  const [mounted,setMounted]=useState(false);
-  useEffect(()=>{setMounted(true);},[]);
+  const mounted=useHydrated();
   const dialog=useRef<HTMLElement>(null);
   const trigger=useRef<HTMLButtonElement>(null);
   const [open,setOpen]=useState(false);

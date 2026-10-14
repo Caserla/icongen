@@ -202,6 +202,6 @@ node --env-file=apps/web/.env.local scripts/test-local-deployment.mjs
 
 ## 开源发布注意事项
 
-代码及仓库自有素材采用根目录 MIT License，第三方依赖和引用资产保留各自许可证，参见 THIRD_PARTY_NOTICES.md。当前本地构建及 SQLite 核心回归已通过，干净机器安装尚未全面验证；旧收费流程测试与停用接口存在不一致，不能声明全量测试通过。
+代码及仓库自有素材采用根目录 MIT License，第三方依赖和引用资产保留各自许可证，参见 THIRD_PARTY_NOTICES.md。干净源码检出已通过 480 项测试、类型检查、代码检查和本地构建；生产依赖审计清零。开发工具仍有上游 braces 公告，见 testing/security-ci-remediation.md；Windows / Linux 实际安装及模型视觉质量须另行验证。
 
 自托管不等于离线：输入描述、参考图和复核图会发送到配置的模型服务。部署者须确认实际网关目的地及其数据处理规则。

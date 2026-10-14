@@ -120,4 +120,4 @@ The last test requires local SQLite mode on port 3000, uses fixture SVGs rather 
 - Provider authorization, model routing, quotas, and timeouts can cause failures; a batch is not guaranteed to succeed on its first attempt.
 - Legacy image workers and database migrations remain for compatibility; old paid raster creation is disabled.
 - Local mode is single-user and loopback-only. Do not expose it publicly or use it as a multi-user service.
-- Clean-machine installation and Windows/Linux setup have not been fully verified. Some legacy billing tests conflict with retired endpoints; the entire test suite is not claimed to pass.
+- A clean source snapshot passes 480 tests, type checking, linting, and the local build. Actual Windows/Linux installation and model quality need separate verification. Production dependency auditing reports zero vulnerabilities; development tooling retains an upstream `braces` advisory. See [security verification notes](docs/testing/security-ci-remediation.md).

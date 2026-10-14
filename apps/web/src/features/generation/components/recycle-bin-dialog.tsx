@@ -67,8 +67,13 @@ export function RecycleBinDialog({ open, projectId, zh, onClose, onRestored, onD
     return () => window.clearTimeout(timer);
   }, [open, load]);
   const keys = useMemo(() => category === "groups" ? groups.map(group => group.id) : icons.map(icon => `${icon.groupId}:${icon.subjectId}`), [category, groups, icons]);
-  useEffect(() => { setSelected(current => new Set([...current].filter(key => keys.includes(key)))); }, [keys.join("|")]);
-  useEffect(() => { if (!open) { setSelected(new Set()); setBatchBusy(false); } }, [open]);
+  const selectionContext = JSON.stringify([open, projectId, keys]);
+  const [previousContext, setPreviousContext] = useState(selectionContext);
+  if (selectionContext !== previousContext) {
+    setPreviousContext(selectionContext);
+    setSelected(current => new Set(open ? [...current].filter(key => keys.includes(key)) : []));
+    if (!open) setBatchBusy(false);
+  }
   const changeCategory = (next: "groups" | "icons") => { setSelected(new Set()); setDeletePrompt(null); setCategory(next); };
   const toggleSelected = (key: string) => setSelected(current => {
     const next = new Set(current);

@@ -62,6 +62,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+  const closeDrawer = useCallback(() => {
+    setClosing(true);
+    window.setTimeout(() => { setOpen(false); setClosing(false); }, 220);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const onEscape = (event: KeyboardEvent) => { if (event.key === "Escape") closeDrawer(); };
@@ -75,16 +79,12 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("keydown", onEscape);
       window.removeEventListener("pointerdown", onPointerDown);
     };
-  });
+  }, [open, closeDrawer]);
   const selectedVariantIds = useMemo(
     () => items.filter((item) => selectedIds.has(item.variantId)).map((item) => item.variantId),
     [items, selectedIds],
   );
 
-  function closeDrawer() {
-    setClosing(true);
-    window.setTimeout(() => { setOpen(false); setClosing(false); }, 220);
-  }
 
   const toggleFavorite = useCallback(async (variantId: string, seed?: Omit<FavoriteItem, "id" | "createdAt">) => {
     if (busyIds.has(variantId)) return;

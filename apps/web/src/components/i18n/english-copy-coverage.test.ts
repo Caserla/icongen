@@ -34,12 +34,11 @@ test("admin uses the shared workspace navigation and panels provide English copy
   assert.match(workspaceHeader, /Workspace navigation/);
   for (const copy of [
     "Library",
-    "Operations console",
-    "Refresh data",
-    "Generation jobs",
-    "No data yet",
-    "Data could not be loaded. Try again.",
-    "Generate CD-Keys",
+    "Local overview",
+    "Users",
+    "Projects",
+    "SVG subjects",
+    "Overview unavailable",
   ]) {
     assert.ok(
       `${workspaceHeader}\n${dashboard}`.includes(copy),
@@ -48,13 +47,11 @@ test("admin uses the shared workspace navigation and panels provide English copy
   }
 });
 
-test("new CD-Keys are visible and exportable during their one-time reveal", async () => {
+test("local admin overview does not expose retired credit or CD-Key controls", async () => {
   const dashboard = await source(
     "features/admin/components/admin-dashboard.tsx",
   );
 
-  assert.match(dashboard, /value=\{codes\.join\("\\n"\)\}/);
-  assert.match(dashboard, /navigator\.clipboard\.writeText/);
-  assert.match(dashboard, /Export CSV/);
-  assert.match(dashboard, /Shown once/);
+  assert.match(dashboard, /No billing/);
+  assert.doesNotMatch(dashboard, /Generate CD-Keys|Export CSV|\/api\/admin\/cd-keys|creditBalance/);
 });

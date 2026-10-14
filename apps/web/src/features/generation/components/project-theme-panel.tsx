@@ -13,7 +13,12 @@ export function ProjectThemePanel({ open, onClose, theme, aiTheme, customTheme, 
   const initialPreset = matchingPreset(theme);
   const sourceChoice = (): ThemeChoice => themeSource === "ai" ? { source: "ai" } : themeSource === "preset" ? { source: "preset", presetId: initialPreset?.id } : { source: "manual" };
   const [draft, setDraft] = useState(theme); const [choice, setChoice] = useState<ThemeChoice>(sourceChoice); const [presets, setPresets] = useState(false); const [expandedColor, setExpandedColor] = useState<keyof ProjectTheme | null>(null); const root = useRef<HTMLDivElement>(null);
-  useEffect(() => { const preset = matchingPreset(theme); setDraft(theme); setChoice(themeSource === "ai" ? { source: "ai" } : themeSource === "preset" ? { source: "preset", presetId: preset?.id } : { source: "manual" }); }, [theme, themeSource]);
+  const [previousTheme,setPreviousTheme] = useState({theme,themeSource});
+  if (previousTheme.theme !== theme || previousTheme.themeSource !== themeSource) {
+    setPreviousTheme({theme,themeSource});
+    setDraft(theme);
+    setChoice(sourceChoice());
+  }
   const presetLabel = choice.source === "ai" ? (zh ? "智能推荐" : "Smart recommendation") : choice.source === "preset" ? (PROJECT_THEME_PRESETS.find(preset => preset.id === choice.presetId)?.name ?? (zh ? "系统预设" : "System preset")) : (zh ? "自定义" : "Custom");
   useEffect(() => { if (!open) return; const close=(e:PointerEvent)=>{if(!root.current?.contains(e.target as Node) && !(e.target as Element).closest('[data-theme-trigger]')) onClose()}; document.addEventListener('pointerdown',close); return()=>document.removeEventListener('pointerdown',close)},[open,onClose]);
   if (!open) return null;

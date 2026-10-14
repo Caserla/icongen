@@ -17,6 +17,9 @@ if (localMode) {
   if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('Local SQLite mode requires Node.js 24 or newer.');
   process.env.EASY_ICON_LOCAL_MODE = "true";
   process.env.NEXT_PUBLIC_EASY_ICON_LOCAL_MODE = "true";
+  process.env.APP_ENV = "development";
+  process.env.NEXT_PUBLIC_APP_ENV = "development";
+  process.env.SUPABASE_ENVIRONMENT = "development";
 }
 if (!localMode && existsSync(workerEnvPath)) {
   process.loadEnvFile(workerEnvPath);

@@ -24,10 +24,9 @@ test("failed paid detail edits refund once through the immutable ledger", async 
   assert.match(worker, /refund_failed_variant_detail_edit_v2/);
 });
 
-test("detail edit API delegates charging to the database and reports insufficient balance", async () => {
+test("retired detail edit API returns 410 without charging or refunding", async () => {
   const route = await readFile(routeUrl, "utf8");
-  assert.match(route, /\.rpc\("create_variant_detail_edit_v2"/);
-  assert.match(route, /idempotencyKey: z\.string\(\)\.uuid\(\)/);
-  assert.match(route, /"INSUFFICIENT_CREDITS"/);
-  assert.doesNotMatch(route, /VARIANT_EDIT_LIMIT_REACHED/);
+  assert.match(route, /LEGACY_EDIT_RETIRED/);
+  assert.match(route, /status:410/);
+  assert.doesNotMatch(route, /create_variant_detail_edit_v2|refund_failed_variant_detail_edit_v2|INSUFFICIENT_CREDITS/);
 });

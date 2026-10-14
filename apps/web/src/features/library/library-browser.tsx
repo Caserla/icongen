@@ -5,6 +5,7 @@ import { useTheme } from '@/components/i18n/theme-switch';
 import { useSearchParams } from 'next/navigation';
 import { useLocale } from '@/components/i18n/locale-provider';
 import { Toast } from '@/components/ui/toast';
+import { useHydrated } from '@/components/ui/use-hydrated';
 import { IconPreviewGrid } from '@/features/generation/components/icon-preview-grid';
 import { LibraryColorPicker } from "./library-color-picker";
 import { catalog, styles, filterCatalog, defaultAppearance, renderSvg, svgDataUrl, exportBlob, saveBlob, validateVariant, type Appearance, type Design, type LibraryStyle, type Variant, type FileFormat } from './core';
@@ -20,8 +21,7 @@ Object.assign(categories,Object.fromEntries(Object.entries({home:'家居',clothe
 Object.assign(categories,{archive:['档案','Archive'],beauty:['美妆','Beauty'],booking:['预约','Booking'],'computers-devices-electronics':['电脑设备','Devices'],email:['邮件','Email'],medical:['医疗','Medical'],security:['安全','Security'],location:['位置','Location']});
 
 export function LibraryBrowser() {
-  const [mounted,setMounted]=useState(false);
-  useEffect(()=>{setMounted(true);},[]);
+  const mounted=useHydrated();
   // The interactive workbench reads URL state, browser preferences and cached
   // variants. Keep its server and initial client markup identical.
   if(!mounted)return <section className={css.library} aria-busy="true"><div className={css.libraryLoading}/></section>;
@@ -148,6 +148,12 @@ function Detail({design, items, navigate, initialStyle, zh, close, notify,favori
   const [variants,setVariants] = useState<Record<LibraryStyle,Variant> | undefined>(cache.get(design.id));
   const [error,setError] = useState(false);
   const [attempt,setAttempt] = useState(0);
+  const [requestIdentity,setRequestIdentity] = useState(`${design.id}:${attempt}`);
+  if (requestIdentity !== `${design.id}:${attempt}`) {
+    setRequestIdentity(`${design.id}:${attempt}`);
+    setError(false);
+    setVariants(cache.get(design.id));
+  }
   const theme = useTheme();
   const [appearanceState,setAppearance] = useState<Appearance>(defaultAppearance);
   const [customColor,setCustomColor] = useState(false);
@@ -169,8 +175,6 @@ function Detail({design, items, navigate, initialStyle, zh, close, notify,favori
     return ()=>{node?.close(); document.body.style.overflow=overflow; previous?.focus(); };
   },[]);
   useEffect(()=>{
-    setError(false);
-    setVariants(cache.get(design.id));
     if (cache.has(design.id)) return;
     const controller = new AbortController();
     fetch(design.url,{signal:controller.signal}).then(async r=>{

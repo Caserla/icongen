@@ -35,8 +35,12 @@ export function Toast({
   placement?: "bottom" | "center";
 }) {
   const [visible, setVisible] = useState(true);
-  useEffect(() => {
+  const [identity, setIdentity] = useState({ message, variant });
+  if (identity.message !== message || identity.variant !== variant) {
+    setIdentity({ message, variant });
     setVisible(true);
+  }
+  useEffect(() => {
     const timer = window.setTimeout(() => setVisible(false), 3200);
     return () => window.clearTimeout(timer);
   }, [message, variant]);
